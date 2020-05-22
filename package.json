@@ -1,0 +1,45 @@
+{
+  "name": "Stateful",
+  "author": "MakeAwesomeHappen",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Stateful",
+    "uuid": "cde1025b-6dac-45f5-bd4a-7b5f83153184",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": [
+      "dummy"
+    ],
+    "resources": {
+      "media": [
+        {
+          "file": "images/bulb.png",
+          "name": "IMAGE_BULB",
+          "type": "bitmap"
+        },
+        {
+          "file": "fonts/Ubuntu-B.ttf",
+          "name": "FONT_UBUNTU_BOLD_18",
+          "type": "font"
+        },
+        {
+          "file": "fonts/Ubuntu-B.ttf",
+          "name": "FONT_UBUNTU_BOLD_10",
+          "type": "font"
+        }
+     ]
+    }
+  }
+}
