@@ -1,6 +1,9 @@
 #include <pebble.h>
-#define DEBUG 1
+#define DEBUG 0
 #define SHORT_VIBE() vibes_enqueue_custom_pattern(short_vibe);
+//persistant storage var
+#define ENDPOINT_STATE 100
+
 typedef enum {
 	GOOD,
 	BAD
@@ -14,20 +17,54 @@ typedef enum {
 Window *window;
 static int window_width, window_height;
 
-Layer *bg_layer, *heading_layer, *sidebar_layer;
-BitmapLayer *icon_layer;
+Layer *bg_layer, *heading_layer, *sidebar_layer, *icon_layer;
 
 static uint8_t x_pad, y_pad;
 
 GFont ubuntu18, ubuntu10;
 GBitmap *icon;
 GColor colors[2][2];
-int color = 0;
+int color;
+
 VibePattern short_vibe = { 
 	.durations = (uint32_t []) {50},
 	.num_segments = 1,};
 
+// Called when a message is received from the JavaScript side
+static void inbox(DictionaryIterator *received, void *context) {
+    SHORT_VIBE();
 
+	Tuple *tuple;
+    
+	tuple = dict_find(received, MESSAGE_KEY_status);
+	if(tuple) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "tuple: %s, literal: %s, comparison %d", tuple->value->cstring, "Success", strcmp(tuple->value->cstring, "Success"));
+        if (strcmp(tuple->value->cstring, "Success") == 0) {
+			uint32_t state = ! persist_read_int(ENDPOINT_STATE);
+			color = state;
+			persist_write_int(ENDPOINT_STATE, state);
+		}
+        layer_mark_dirty(bg_layer);
+        layer_mark_dirty(sidebar_layer);
+	} 
+	else {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "ERROR!");
+    }
+}
+
+
+// Make a request for the national debt number
+static void outbox(void *context, uint8_t endpoint, uint8_t param) {
+    DictionaryIterator *iter;
+	
+	uint32_t result = app_message_outbox_begin(&iter);
+    if (result == APP_MSG_OK) {
+	    dict_write_uint8(iter, MESSAGE_KEY_endpoint, endpoint);  // Gotta have a payload
+        dict_write_uint8(iter, MESSAGE_KEY_param, param);
+	    dict_write_end(iter);
+        app_message_outbox_send();
+    }
+}
 
 static void bg_layer_callback(Layer *layer, GContext *ctx) {
 	GRect bounds = layer_get_bounds(layer);
@@ -35,7 +72,7 @@ static void bg_layer_callback(Layer *layer, GContext *ctx) {
 	graphics_fill_rect(ctx, bounds, 0, 0);
 
 	#if DEBUG == 1
-		graphics_context_set_stroke_color(ctx, GColorRed);
+		graphics_context_set_stroke_color(ctx, colors[!color][0]);
 		graphics_draw_rect(ctx, bounds);
 	#endif
 }
@@ -53,8 +90,8 @@ static void sidebar_layer_callback(Layer *layer, GContext *ctx) {
 	}
 
 	#if DEBUG == 1
-		graphics_context_set_stroke_color(ctx, GColorRed);
-		graphics_draw_rect(ctx, bounds);
+		graphics_context_set_stroke_color(ctx, colors[!color][0]);
+		//graphics_draw_rect(ctx, bounds);
 	#endif
 }
 static void heading_layer_callback(Layer *layer, GContext *ctx) {
@@ -75,7 +112,22 @@ static void heading_layer_callback(Layer *layer, GContext *ctx) {
 					   GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
 
 	#if DEBUG == 1
-		graphics_context_set_stroke_color(ctx, GColorRed);
+		graphics_context_set_stroke_color(ctx, colors[!color][0]);
+		graphics_draw_rect(ctx, bounds);
+	#endif
+}
+static void icon_layer_callback(Layer *layer, GContext *ctx) {
+	GRect bounds = layer_get_bounds(layer);
+	GRect icon_bounds = gbitmap_get_bounds(icon);
+
+	grect_align(&icon_bounds, &bounds, GAlignCenter, true);
+	graphics_context_set_compositing_mode(ctx, GCompOpSet);
+
+	graphics_draw_bitmap_in_rect(ctx, icon, icon_bounds);
+
+	#if DEBUG == 1
+		graphics_context_set_stroke_color(ctx, colors[!color][0]);
+		graphics_draw_rect(ctx, icon_bounds);
 		graphics_draw_rect(ctx, bounds);
 	#endif
 }
@@ -85,10 +137,7 @@ static void up_click_callback(ClickRecognizerRef recognizer, void *ctx) {
 
 }
 static void select_click_callback(ClickRecognizerRef recognizer, void *ctx) {
-	color = !color;
-	layer_mark_dirty(bg_layer);
-	layer_mark_dirty(sidebar_layer);
-	SHORT_VIBE();
+	outbox(ctx, 2, persist_read_int(ENDPOINT_STATE));
 }
 static void down_click_callback(ClickRecognizerRef recognizer, void *ctx) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "Down clicked!");
@@ -117,22 +166,23 @@ static void window_load(Window *window) {
 	bg_layer = layer_create(bounds);
 	heading_layer = layer_create(GRect(x_pad, y_pad, window_width - x_pad * 3, 25));
 	sidebar_layer = layer_create(GRect(window_width - x_pad, 0, x_pad, window_height));
-	icon_layer = bitmap_layer_create(GRect(x_pad, y_pad * 2, window_width - x_pad * 3, window_height - y_pad * 2));
+	icon_layer = layer_create(GRect(x_pad, y_pad * 2, window_width - x_pad * 3, window_height - y_pad * 2));
 
 
 	layer_set_update_proc(bg_layer, bg_layer_callback);
 	layer_set_update_proc(heading_layer, heading_layer_callback);
 	layer_set_update_proc(sidebar_layer, sidebar_layer_callback);
+	layer_set_update_proc(icon_layer, icon_layer_callback);
 
 
-	bitmap_layer_set_alignment(icon_layer, GAlignCenter);
-	bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
-	bitmap_layer_set_bitmap(icon_layer, icon);
+	// bitmap_layer_set_alignment(icon_layer, GAlignCenter);
+	// bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
+	// bitmap_layer_set_bitmap(icon_layer, icon);
 
 	layer_add_child(window_layer, bg_layer);
 	layer_add_child(window_layer, heading_layer);
 	layer_add_child(window_layer, sidebar_layer);
-	layer_add_child(window_layer, bitmap_layer_get_layer(icon_layer));
+	layer_add_child(window_layer, icon_layer);
 
 }
 
@@ -148,13 +198,18 @@ static void init(void) {
   	});
   	window_set_click_config_provider(window, (ClickConfigProvider)click_config_provider);
 
+  	app_message_register_inbox_received(inbox);
+  	app_message_open(128,128);
+
 	ubuntu18 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_18));
 	ubuntu10 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_10));
 	icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BULB);
+
 	colors[GOOD][MAIN] = GColorIslamicGreen;
 	colors[GOOD][HIGHLIGHT] = GColorMayGreen;
 	colors[BAD][MAIN] = GColorFolly;
 	colors[BAD][HIGHLIGHT] = GColorSunsetOrange;
+	color = persist_read_int(ENDPOINT_STATE);
 
   	window_stack_push(window, true);
 
@@ -165,6 +220,9 @@ static void deinit(void) {
 	fonts_unload_custom_font(ubuntu18);
 	fonts_unload_custom_font(ubuntu10);
 
+	free(icon);
+
+	app_message_deregister_callbacks();
 
 	window_destroy(window);
 }

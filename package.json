@@ -20,7 +20,9 @@
       "watchface": false
     },
     "messageKeys": [
-      "dummy"
+      "endpoint",
+      "param",
+      "status"
     ],
     "resources": {
       "media": [
