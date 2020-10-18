@@ -22,7 +22,14 @@
     "messageKeys": [
       "endpoint",
       "param",
-      "status"
+      "status",
+      "TransferComplete",
+      "TransferIndex",
+      "TransferLength",
+      "TransferChunk",
+      "TransferChunkLength",
+      "TransferType",
+      "ClayJSON"
     ],
     "resources": {
       "media": [
@@ -40,6 +47,12 @@
           "file": "fonts/Ubuntu-B.ttf",
           "name": "FONT_UBUNTU_BOLD_10",
           "type": "font"
+        },
+        {
+          "menuIcon": true,
+          "type": "png",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/small_icon.png"
         }
      ]
     }
