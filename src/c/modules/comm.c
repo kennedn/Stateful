@@ -40,35 +40,36 @@ static void tileDone(uint8_t **data, int size){
     APP_LOG(APP_LOG_LEVEL_DEBUG, "title: %s", tile->title);
     //toggle_window_set_tile_data(tile);
   }
-void processData(DictionaryIterator *dict, uint8_t **data, int *size, void (*f)(uint8_t **data, int size)) {
+void processData(DictionaryIterator **dict, uint8_t **data, int *size, void (*f)(uint8_t **data, int size)) {
     // Get the received image chunk
-    Tuple *size_t = dict_find(dict, MESSAGE_KEY_TransferLength);
+    Tuple *size_t = dict_find(*dict, MESSAGE_KEY_TransferLength);
     if(size_t) {
       *size = size_t->value->int32;
 
       // Allocate buffer for image data
       *data = (uint8_t*)malloc((*size) * sizeof(uint8_t));
     }
-    Tuple *chunk_t = dict_find(dict, MESSAGE_KEY_TransferChunk);
+    Tuple *chunk_t = dict_find(*dict, MESSAGE_KEY_TransferChunk);
     if(chunk_t) {
       uint8_t *chunk_data = chunk_t->value->data;
 
-      Tuple *chunk_size_t = dict_find(dict, MESSAGE_KEY_TransferChunkLength);
+      Tuple *chunk_size_t = dict_find(*dict, MESSAGE_KEY_TransferChunkLength);
       int chunk_size = chunk_size_t->value->int32;
 
-      Tuple *index_t = dict_find(dict, MESSAGE_KEY_TransferIndex);
+      Tuple *index_t = dict_find(*dict, MESSAGE_KEY_TransferIndex);
       int index = index_t->value->int32;
 
       // Save the chunk
-      memcpy(data[index], chunk_data, chunk_size);
+      memcpy(*data + index, chunk_data, chunk_size);
+     // data[index+chunk_size+1]
     }
 
     // Complete?
-    Tuple *complete_t = dict_find(dict, MESSAGE_KEY_TransferComplete);
+    Tuple *complete_t = dict_find(*dict, MESSAGE_KEY_TransferComplete);
     if(complete_t) {
       // Show the image
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed transfer, setting data");
-      (*f)(&(*data), (*size));
+      (*f)(data, (*size));
     }
 
 }
@@ -79,10 +80,10 @@ static void inbox(DictionaryIterator *dict, void *context) {
     Tuple *type_t = dict_find(dict, MESSAGE_KEY_TransferType);
     switch(type_t->value->int32) {
       case 0:
-        processData(dict, &icon_data, &icon_size, toggle_window_set_image_data);
+        processData(&dict, &icon_data, &icon_size, toggle_window_set_image_data);
         break;
       case 1:
-        processData(dict, &tile_data, &tile_size, toggle_window_set_tile_data);
+        processData(&dict, &tile_data, &tile_size, toggle_window_set_tile_data);
         break;
     }
 }

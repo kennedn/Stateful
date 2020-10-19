@@ -6,7 +6,7 @@ var rest_data = [["PUT", "tvcom/power", ["off", "on", "status"]],
 
 var DEBUG = 1;
 var IMG_URL = 'https://i.imgur.com/gzLWQXf.png';
-var MAX_CHUNK_SIZE = 8000;  // From app_message_inbox_size_maximum()
+var MAX_CHUNK_SIZE = 7800;  // From app_message_inbox_size_maximum()
 var messageKeys = require('message_keys');
 // // Called when the message send attempt succeeds
 // function messageSuccessHandler() {
@@ -140,15 +140,13 @@ function packTile(tile) {
 function sendChunk(array, index, arrayLength, type) {
   console.log("Entered sendChunk");
   // Determine the next chunk size
-  var chunkSize;
+  var chunkSize = MAX_CHUNK_SIZE;
+  console.log(arrayLength + " - " + index + " < " + MAX_CHUNK_SIZE + " = " + (arrayLength - index < MAX_CHUNK_SIZE));
   if(arrayLength - index < MAX_CHUNK_SIZE) {
     // Will only need one more chunk
     chunkSize = arrayLength - index;
-  } else {
-    // Will require multiple chunks for remaining data
-    chunkSize = MAX_CHUNK_SIZE;
-  }
-
+  } 
+  console.log("Index: " + index + "\nChunkSize: " +chunkSize);
   // Prepare the dictionary
   var dict = {
     'TransferChunk': array.slice(index, index + chunkSize),
@@ -170,10 +168,10 @@ function sendChunk(array, index, arrayLength, type) {
       Pebble.sendAppMessage({
         'TransferComplete': 0,
         'TransferType': type});
-      if (console.timeEnd) console.timeEnd('Send Image');
+      if (console.time) console.timeEnd('Send Image');
     }
-  }, function(e) {
-    console.log('Failed to send chunk with index ' + index);
+  }, function(obj, error) {
+    console.log(error + ": " + JSON.stringify(dict));
   });
 }
 
