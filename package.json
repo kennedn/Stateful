@@ -20,9 +20,10 @@
       "watchface": false
     },
     "messageKeys": [
-      "endpoint",
-      "param",
-      "status",
+      "RequestID",
+      "RequestButton",
+      "XHRStatus",
+      "XHRData",
       "TransferComplete",
       "TransferIndex",
       "TransferLength",
@@ -34,8 +35,8 @@
     "resources": {
       "media": [
         {
-          "file": "images/bulb.png",
-          "name": "IMAGE_BULB",
+          "file": "images/default.png",
+          "name": "IMAGE_DEFAULT",
           "type": "bitmap"
         },
         {

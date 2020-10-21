@@ -4,6 +4,7 @@
 #ifndef HEADER_FILE
 #define HEADER_FILE
 #include "c/modules/data.h"
+#include "c/modules/comm.h"
 #endif
 static Window *window;
 
@@ -97,13 +98,15 @@ static void icon_layer_callback(Layer *layer, GContext *ctx) {
 }
 
 static void up_click_callback(ClickRecognizerRef recognizer, void *ctx) {
+    outbox(ctx, 0, 0);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Up clicked!");
 }
 static void select_click_callback(ClickRecognizerRef recognizer, void *ctx) {
-   // outbox(ctx, 0, !persist_read_int(ENDPOINT_STATE));
+    outbox(ctx, 0, 1);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Up clicked!");
 }
 static void down_click_callback(ClickRecognizerRef recognizer, void *ctx) {
+    outbox(ctx, 0, 2);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Down clicked!");
 }
 
@@ -177,12 +180,16 @@ void toggle_window_push(void) {
 
     ubuntu18 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_18));
     ubuntu10 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_10));
-    icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BULB);
+    icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_DEFAULT);
 
-    colors[GOOD][MAIN] = GColorIslamicGreen;
-    colors[GOOD][HIGHLIGHT] = GColorMayGreen;
-    colors[BAD][MAIN] = GColorFolly;
-    colors[BAD][HIGHLIGHT] = GColorSunsetOrange;
+    // colors[GOOD][MAIN] = GColorIslamicGreen;
+    // colors[GOOD][HIGHLIGHT] = GColorMayGreen;
+    // colors[BAD][MAIN] = GColorFolly;
+    // colors[BAD][HIGHLIGHT] = GColorSunsetOrange;
+    colors[GOOD][MAIN] = GColorBlack;
+    colors[GOOD][HIGHLIGHT] = GColorBlack;
+    colors[BAD][MAIN] = GColorBlack;
+    colors[BAD][HIGHLIGHT] = GColorBlack;
     color = 0; //!persist_read_int(ENDPOINT_STATE);
 
     window_stack_push(window, true);
@@ -242,6 +249,12 @@ void toggle_window_set_image_data(uint8_t **data, int size) {
 }
 
 void toggle_window_set_tile_data(uint8_t **data, int size)  {
-  strncpy(title, ((Tile*) *data)->title, sizeof(title));
+  Tile *tile = (Tile*) *data;
+  strncpy(title, tile->title, sizeof(title));
   layer_mark_dirty(heading_layer);
+  colors[GOOD][MAIN] = (GColor8)tile->color_good;
+  colors[GOOD][HIGHLIGHT] = (GColor8)tile->color_good_hi;
+  colors[BAD][MAIN] = (GColor8)tile->color_bad;
+  colors[BAD][HIGHLIGHT] = (GColor8)tile->color_bad_hi;
+  layer_mark_dirty(bg_layer);
 }

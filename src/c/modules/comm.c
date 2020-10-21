@@ -27,12 +27,13 @@ VibePattern short_vibe = {
 
 static void tileDone(uint8_t **data, int size){
     Tile *tile = (Tile*) *data;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "id:"BIN_PATTERN, BIN(tile->id));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "type:"BIN_PATTERN, BIN(tile->type));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "base_resource:"BIN_PATTERN, BIN(tile->base_resource));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "up_call:"BIN_PATTERN,BIN(tile->up_call));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "mid_call:"BIN_PATTERN ,BIN(tile->mid_call));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "down_call:"BIN_PATTERN ,BIN(tile->down_call));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "status_call:"BIN_PATTERN ,BIN(tile->status_call));
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "base_resource:"BIN_PATTERN, BIN(tile->base_resource));
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "up_call:"BIN_PATTERN,BIN(tile->up_call));
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "mid_call:"BIN_PATTERN ,BIN(tile->mid_call));
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "down_call:"BIN_PATTERN ,BIN(tile->down_call));
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "status_call:"BIN_PATTERN ,BIN(tile->status_call));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "color_good:"BIN_PATTERN ,BIN(tile->color_good));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "color_good_hi:"BIN_PATTERN ,BIN(tile->color_good_hi));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "color_bad:"BIN_PATTERN ,BIN(tile->color_bad));
@@ -85,6 +86,15 @@ static void inbox(DictionaryIterator *dict, void *context) {
       case 1:
         processData(&dict, &tile_data, &tile_size, toggle_window_set_tile_data);
         break;
+      case 2:
+        ;
+        Tuple *status_t = dict_find(dict, MESSAGE_KEY_XHRStatus);
+        if (status_t)
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "Status: %d", (int)status_t->value->int32);
+        Tuple *data_t = dict_find(dict, MESSAGE_KEY_XHRData);
+        if (data_t)
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "Data:%s", data_t->value->cstring);
+        break;
     }
 }
 
@@ -106,13 +116,13 @@ static void inbox(DictionaryIterator *dict, void *context) {
     // }
 
 // Make a request for the national debt number
-static void outbox(void *context, uint8_t endpoint, uint8_t param) {
+void outbox(void *context, uint8_t id, uint8_t button) {
     DictionaryIterator *dict;
     
     uint32_t result = app_message_outbox_begin(&dict);
     if (result == APP_MSG_OK) {
-        dict_write_uint8(dict, MESSAGE_KEY_endpoint, endpoint);  // Gotta have a payload
-        dict_write_uint8(dict, MESSAGE_KEY_param, param);
+        dict_write_uint8(dict, MESSAGE_KEY_RequestID, id);  // Gotta have a payload
+        dict_write_uint8(dict, MESSAGE_KEY_RequestButton, button);
         dict_write_end(dict);
         app_message_outbox_send();
     }
