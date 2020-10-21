@@ -1,10 +1,17 @@
 {
   "name": "Stateful",
-  "author": "MakeAwesomeHappen",
+  "author": "kennedn",
   "version": "1.0.0",
-  "keywords": ["pebble-app"],
+  "keywords": [
+    "pebble-app"
+  ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "buffer": "^5.6.0",
+    "core-js": "^3.6.5",
+    "regenerator-runtime": "^0.13.7",
+    "whatwg-fetch": "^3.4.1"
+  },
   "pebble": {
     "displayName": "Stateful",
     "uuid": "cde1025b-6dac-45f5-bd4a-7b5f83153184",
@@ -55,7 +62,14 @@
           "name": "IMAGE_MENU_ICON",
           "file": "images/small_icon.png"
         }
-     ]
+      ]
     }
+  },
+  "devDependencies": {
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
+    "babel-loader": "^8.1.0",
+    "webpack": "^5.1.0",
+    "webpack-cli": "^4.0.0"
   }
 }

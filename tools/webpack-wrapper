@@ -1,0 +1,4 @@
+#!/bin/sh
+
+pwd
+./node_modules/.bin/webpack --config ./webpack.config.js > ~/PEP

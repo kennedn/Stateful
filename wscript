@@ -21,6 +21,7 @@ def configure(ctx):
     Universal configuration: add your change prior to calling ctx.load('pebble_sdk').
     """
     ctx.load('pebble_sdk')
+    ctx.env.WEBPACK = './tools/webpack-wrapper'
 
 
 def build(ctx):

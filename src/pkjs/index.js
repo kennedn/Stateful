@@ -1,134 +1,9 @@
-var rest_data = [["PUT", "tvcom/power", ["off", "on", "status"]],
-                 ["PUT", "pc",          ["status", "power"]],
-                 ["PUT", "bulb",        ["off", "on"]]];
-
-
+var Buffer = require('buffer/').Buffer;
 var DEBUG = 1;
 // var IMG_URL = 'https://i.imgur.com/gzLWQXf.png';
 var IMG_URL = 'http://pc.int:8080/tv.png';
 var MAX_CHUNK_SIZE = 7800;  // Needs to be slightly smaller than app_message_inbox_size_maximum()
-var messageKeys = require('message_keys');
 
-var chars = {
-    ascii: function () {
-      return 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-    },
-    indices: function () {
-      if (!this.cache) {
-        this.cache = {};
-        var ascii = chars.ascii();
-
-        for (var c = 0; c < ascii.length; c++) {
-          var chr = ascii[c];
-          this.cache[chr] = c;
-        }
-      }
-      return this.cache;
-    }
-  };
-
-function btoa(data) {
-  var ascii = chars.ascii(),
-    len = data.length - 1,
-    i = -1,
-    b64 = '';
-
-  while (i < len) {
-    var code = data.charCodeAt(++i) << 16 | data.charCodeAt(++i) << 8 | data.charCodeAt(++i);
-    b64 += ascii[(code >>> 18) & 63] + ascii[(code >>> 12) & 63] + ascii[(code >>> 6) & 63] + ascii[code & 63];
-  }
-
-  var pads = data.length % 3;
-  if (pads > 0) {
-    b64 = b64.slice(0, pads - 3);
-
-    while (b64.length % 4 !== 0) {
-      b64 += '=';
-    }
-  }
-
-  return b64;
-}
-function atob(b64) {
-  var indices = chars.indices(),
-    pos = b64.indexOf('='),
-    padded = pos > -1,
-    len = padded ? pos : b64.length,
-    i = -1,
-    data = '';
-
-  while (i < len) {
-    var code = indices[b64[++i]] << 18 | indices[b64[++i]] << 12 | indices[b64[++i]] << 6 | indices[b64[++i]];
-    if (code !== 0) {
-      data += String.fromCharCode((code >>> 16) & 255, (code >>> 8) & 255, code & 255);
-    }
-  }
-
-  if (padded) {
-    data = data.slice(0, pos - b64.length);
-  }
-
-  return data;
-}
-var Base64Binary = {
-  _keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
-  
-  /* will return a  Uint8Array type */
-  decodeArrayBuffer: function(input) {
-    var bytes = (input.length/4) * 3;
-    var ab = new ArrayBuffer(bytes);
-    this.decode(input, ab);
-    
-    return ab;
-  },
-
-  removePaddingChars: function(input){
-    var lkey = this._keyStr.indexOf(input.charAt(input.length - 1));
-    if(lkey == 64){
-      return input.substring(0,input.length - 1);
-    }
-    return input;
-  },
-
-  decode: function (input, arrayBuffer) {
-    //get last chars to see if are valid
-    input = this.removePaddingChars(input);
-    input = this.removePaddingChars(input);
-
-    var bytes = parseInt((input.length / 4) * 3, 10);
-    
-    var uarray;
-    var chr1, chr2, chr3;
-    var enc1, enc2, enc3, enc4;
-    var i = 0;
-    var j = 0;
-    
-    if (arrayBuffer)
-      uarray = new Uint8Array(arrayBuffer);
-    else
-      uarray = new Uint8Array(bytes);
-    
-    input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
-    
-    for (i=0; i<bytes; i+=3) {  
-      //get the 3 octects in 4 ascii chars
-      enc1 = this._keyStr.indexOf(input.charAt(j++));
-      enc2 = this._keyStr.indexOf(input.charAt(j++));
-      enc3 = this._keyStr.indexOf(input.charAt(j++));
-      enc4 = this._keyStr.indexOf(input.charAt(j++));
-  
-      chr1 = (enc1 << 2) | (enc2 >> 4);
-      chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
-      chr3 = ((enc3 & 3) << 6) | enc4;
-  
-      uarray[i] = chr1;     
-      if (enc3 != 64) uarray[i+1] = chr2;
-      if (enc4 != 64) uarray[i+2] = chr3;
-    }
-  
-    return uarray;  
-  }
-};
 // Called when the message send attempt succeeds
 function messageSuccessCallback() {
   console.log("Message send succeeded.");  
@@ -305,26 +180,19 @@ function processData(data, type) {
   // Send chunks to Pebble
   transmitData(array, type);
 }
-function imageToB64(data) {
-  var binary = '';
-  var bytes = new Uint8Array(data);
-  for (var i=0; i < bytes.byteLength; i++)
-    binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
 
 function downloadImage() {
   if (tile.icon !== "") {
     console.log("Icon stored locally");
-    processData(Base64Binary.decodeArrayBuffer(tile.icon), TransferType.ICON);
+    processData(Buffer.from(tile.icon, 'base64'), TransferType.ICON);
   } else {
     console.log("Icon need retrieved");
     var request = new XMLHttpRequest();
     request.onload = function() {
       console.log("Downloaded with return code " + this.status);
       if(this.status === 200) {
-        console.log("Saving icon to json: " + imageToB64(this.response));
-        tile.icon = imageToB64(this.response);
+        console.log("Saving icon to json");
+        tile.icon = Buffer.from(this.response).toString('base64');
         localStorage.setItem("tile", JSON.stringify(tile));
         console.log(localStorage.getItem("tile"));
         processData(this.response, TransferType.ICON);
@@ -338,6 +206,7 @@ function downloadImage() {
 
 Pebble.addEventListener('ready', function() {
   if (console.time) console.time('Send Image');
+  if (Buffer) console.log("Buffer exists: " + JSON.stringify(Buffer));
   downloadImage();
   packTile(tile);
   console.log("ready");
