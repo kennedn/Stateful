@@ -38,8 +38,10 @@ static void tileDone(uint8_t **data, int size){
     APP_LOG(APP_LOG_LEVEL_DEBUG, "color_good_hi:"BIN_PATTERN ,BIN(tile->color_good_hi));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "color_bad:"BIN_PATTERN ,BIN(tile->color_bad));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "color_bad_hi:"BIN_PATTERN,BIN(tile->color_bad_hi));                
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "color_error:"BIN_PATTERN ,BIN(tile->color_error));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "color_error_hi:"BIN_PATTERN,BIN(tile->color_error_hi));                
     APP_LOG(APP_LOG_LEVEL_DEBUG, "title: %s", tile->title);
-    //toggle_window_set_tile_data(tile);
+    toggle_window_set_tile_data(data, size);
   }
 void processData(DictionaryIterator **dict, uint8_t **data, int *size, void (*f)(uint8_t **data, int size)) {
     // Get the received image chunk
@@ -84,20 +86,32 @@ static void inbox(DictionaryIterator *dict, void *context) {
         processData(&dict, &icon_data, &icon_size, toggle_window_set_image_data);
         break;
       case 1:
-        processData(&dict, &tile_data, &tile_size, toggle_window_set_tile_data);
+        processData(&dict, &tile_data, &tile_size, tileDone);
         break;
       case 2:
         ;
         Tuple *status_t = dict_find(dict, MESSAGE_KEY_XHRStatus);
-        if (status_t)
+        if (status_t) {
           APP_LOG(APP_LOG_LEVEL_DEBUG, "Status: %d", (int)status_t->value->int32);
-        Tuple *data_t = dict_find(dict, MESSAGE_KEY_XHRData);
-        if (data_t)
-          APP_LOG(APP_LOG_LEVEL_DEBUG, "Data:%s", data_t->value->cstring);
+          toggle_window_set_color((uint8_t) status_t->value->uint8);
+        }
+        // Tuple *data_t = dict_find(dict, MESSAGE_KEY_XHRData);
+        // if (data_t) {
+        //   int length = (data_t->length<64) ? data_t->length : 64;
+        //   char *data = (char*)malloc(length);
+        //   strncpy(data, data_t->value->cstring,length);
+        //   APP_LOG(APP_LOG_LEVEL_DEBUG, "Data:%s", data);
+        // }
+        break;
+      case 3:
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Recived Error");
+        toggle_window_set_color(2);
+        break;
+      case 4:
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Recived acknowledge");
         break;
     }
 }
-
     // Tuple *status_t = dict_find(dict, MESSAGE_KEY_status);
     // if(status_t) {
     //     #if DEBUG > 1

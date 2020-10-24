@@ -1,17 +1,18 @@
 var Buffer = require('buffer/').Buffer;
 var DEBUG = 1;
-// var IMG_URL = 'https://i.imgur.com/gzLWQXf.png';
-var IMG_URL = 'http://pc.int:8080/tv.png';
+// var IMG_URL = 'https://i.imgur.com/gzLWQXf.png'; //bulb
+var IMG_URL = 'https://i.imgur.com/tQOn2aw.png'; //tv
+//var IMG_URL = 'http://pc.int:8080/tv.png';
 var MAX_CHUNK_SIZE = 7800;  // Needs to be slightly smaller than app_message_inbox_size_maximum()
 
 // Called when the message send attempt succeeds
 function messageSuccessCallback() {
-  console.log("Message send succeeded.");  
+  if (DEBUG > 1) console.log("Message send succeeded.");  
 }
 
 // Called when the message send attempt fails
 function messageFailureCallback() {
-  console.log("Message send failed.");
+  if (DEBUG > 1) console.log("Message send failed.");
 }
 
 
@@ -33,19 +34,27 @@ if(tile) {
       "down": {"code": "off"},
       "status": {"code": "status"},
     },
+    "states": {
+      "on": 0,
+      "off": 1
+    },
     "icon": "",
-    "type": 0x42,
-    "color_good": "aa00aa",
-    "color_good_hi": "aa00ff",
+    "type": 0,
+    "color_good": "00aa00",
+    "color_good_hi": "55aa55",
     "color_bad": "ff0055",
     "color_bad_hi": "ff5555",
+    "color_error": "ffaa55",
+    "color_error_hi": "ffff00",
     "title": "Tvcom"
   };
 
   const TransferType = {
     "ICON": 0,
     "TILE": 1,
-    "RESPONSE": 2
+    "RESPONSE": 2,
+    "ERROR": 3,
+    "ACK": 4
   };
   const Button = {
     "0": "up",
@@ -54,9 +63,14 @@ if(tile) {
     "3": "status"
   };
 
+  const XHRType = {
+    "NORMAL": 0,
+    "CALLBACK": 1
+  };
+
 function packTile(tile) {
   // Create buffer object, constrain title to a max of 12 chars
-  var buffer = new ArrayBuffer(5 + Math.min(12, tile.title.length) + 1);
+  var buffer = new ArrayBuffer(8 + (tile.title.length + 1));
   var uint8 = new Uint8Array(buffer);
   uint8[0] = tile.id;
   uint8[1] = tile.type;
@@ -64,13 +78,16 @@ function packTile(tile) {
   uint8[3] = toGColor(tile.color_good_hi);
   uint8[4] = toGColor(tile.color_bad);
   uint8[5] = toGColor(tile.color_bad_hi);
-  packString(uint8, tile.title, 6);
+  uint8[6] = toGColor(tile.color_error);
+  uint8[7] = toGColor(tile.color_error_hi);
+  packString(uint8, tile.title, 8);
 
   //packString(view, tile.title, 22);
   //console.log(toHexString(view));
   if (DEBUG > 1) {
     for (var key in tile)
       console.log(key + ": " + tile[key]);
+    console.log(Array.apply([], uint8).join(","));
   }
   processData(buffer, TransferType.TILE);
 
@@ -86,20 +103,8 @@ function packTile(tile) {
 function toGColor(hexString) {
   // Split hexString into 2 char array [r, g, b], bitshift and pad each element, 
   // then join and parse into uint8_t.
-  return parseInt("11" + hexString.match(/.{1,2}/g).map(function(hex, i) {
-    return("0" + (parseInt(hex, 16) >> 6).toString(2)).substr(-2);
-    }).join(''), 2);
-}
-
-/**
- * Returns a hexString for a given byteArray, 
- * @param {Uint8Array} uint8Array
- * @return {string}
- */
-function toHexString(uint8Array) {
-  return Array.prototype.map.call(uint8Array, function(byte) {
-    return ('0' + byte.toString(16)).slice(-2);
-  }).join('');
+  return parseInt("11" + hexString.match(/.{1,2}/g).map(hex => 
+    (parseInt(hex, 16) >> 6).toString(2).padStart(2, '0')).join(''), 2); 
 }
 
 /**
@@ -113,7 +118,10 @@ function packString(uint8Array, str, idx) {
   for (var c=0; c < str.length; c++)
     uint8Array[c+idx] = str.charCodeAt(c);
   // Null terminate string
-  uint8Array[c+idx] = 0x00;
+  uint8Array[c+idx+1] = 0x00;
+  if (DEBUG > 1) {
+    console.log("String: " + str + ", Length: " + str.length + ", c + idx: " + (c + idx) + ", uint8Length: " + uint8Array.length);
+  }
 }
 
 
@@ -210,21 +218,18 @@ Pebble.addEventListener('ready', function() {
   downloadImage();
   packTile(tile);
   console.log("ready");
+  xhrRequest(method, url, headers, data, data.code);
 });
 
-// // Called when JavaScript is ready
-// Pebble.addEventListener("ready", function(e) {
-//   if (DEBUG > 0)
-//     console.log("JS is ready!");
-// });
-function xhrRequest(method, url, headers, data) {
+function xhrRequest(method, url, headers, data, type, typeData={}) {
   var request = new XMLHttpRequest();
   request.onload = function() {
     var returnData = "";
     try { 
       returnData = JSON.parse(this.response); 
-      if(typeof returnData !== "string")
+      if(typeof returnData !== "string") {
         returnData = returnData[Object.keys(returnData)[0]]; 
+      }
     } catch(e) { 
       if (typeof returnData=== "string")
         returnData = this.response;
@@ -234,23 +239,41 @@ function xhrRequest(method, url, headers, data) {
     }
 
     if (DEBUG > 0) {
-      console.log("XHRStatus: " + this.status);
       console.log("XHRData: " + returnData);
+      console.log("Status: " + this.status);
     }
+    switch(type) {
+      case XHRType.NORMAL:
+        if(this.status == 200) {
+          if (DEBUG > 0) console.log("In States: " + (returnData in tile.states));
+         
+          if (returnData in tile.states)
+            Pebble.sendAppMessage({"TransferType": TransferType.RESPONSE, "XHRStatus": tile.states[returnData] }, messageSuccessCallback, messageFailureCallback);
+          else {
+            Pebble.sendAppMessage({"TransferType": TransferType.ACK}, messageSuccessCallback, messageFailureCallback);
+            if(tile.type == 0)
+              xhrRequest(method, url, headers, tile.buttons.status, XHRType.CALLBACK, {"targetState": data.code});
+          }
+        }
+        else
+          Pebble.sendAppMessage({"TransferType": TransferType.ERROR}, messageSuccessCallback, messageFailureCallback);
+        break;
+      case XHRType.CALLBACK:
+        if(this.status == 200) {
+          if (DEBUG > 0) console.log("Met Target State: " + (returnData == typeData.targetState));
+         
+          if (returnData == typeData.targetState)
+            Pebble.sendAppMessage({"TransferType": TransferType.RESPONSE, "XHRStatus": tile.states[returnData] }, messageSuccessCallback, messageFailureCallback);
+          else
+            setTimeout(function() {xhrRequest(method, url, headers, data, XHRType.CALLBACK, {"targetState": typeData.targetState});}, 500);
+        }
+        else
+          setTimeout(function() {xhrRequest(method, url, headers, data, XHRType.CALLBACK, {"targetState": typeData.targetState});}, 500);
+      break;
 
-    if(this.status == 200)
-      Pebble.sendAppMessage({"TransferType": TransferType.RESPONSE, "XHRStatus": this.status, "XHRData": returnData}, messageSuccessCallback, messageFailureCallback);
-    else
-      Pebble.sendAppMessage({"TransferType": TransferType.RESPONSE, "XHRStatus": this.status}, messageSuccessCallback, messageFailureCallback);
-  };
-  request.ontimeout = function(e) {
-    if (DEBUG > 0) {
-      console.log("Timed out request");
     }
-    Pebble.sendAppMessage({"TransferType": TransferType.RESPONSE, "XHRStatus": "408"});
   };
-  // if (DEBUG > 0)
-  //   console.log("Trying " +url +"?"+params + " with method " + method);
+  request.ontimeout = function(e) { console.log("Timed out");};
   request.open(method, url);
   request.timeout = 4000;
   for (var key in headers) {
@@ -262,6 +285,7 @@ function xhrRequest(method, url, headers, data) {
   }
   request.send(JSON.stringify(data));  
 }				
+
 
 // Called when incoming message from the Pebble is received
 Pebble.addEventListener("appmessage", function(e) {
@@ -279,5 +303,6 @@ Pebble.addEventListener("appmessage", function(e) {
   var url = tile.url;
   var headers = tile.headers;
   var data = tile.buttons[Button[dict.RequestButton]];
-  xhrRequest(method, url, headers, data);
+  xhrRequest(method, url, headers, data, XHRType.NORMAL);
+  //xhrRequest(method, url, headers, tile.buttons.status, data.code);
 });

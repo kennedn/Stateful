@@ -16,14 +16,15 @@ static uint8_t x_pad, y_pad;
 
 GFont ubuntu18, ubuntu10;
 GBitmap *icon;
-GColor colors[2][2];
+GColor colors[3][2];
 char title[32];
 int color;
 
 
 typedef enum {
     GOOD,
-    BAD
+    BAD,
+    ERROR
 } Colorset;
 
 typedef enum {
@@ -256,5 +257,13 @@ void toggle_window_set_tile_data(uint8_t **data, int size)  {
   colors[GOOD][HIGHLIGHT] = (GColor8)tile->color_good_hi;
   colors[BAD][MAIN] = (GColor8)tile->color_bad;
   colors[BAD][HIGHLIGHT] = (GColor8)tile->color_bad_hi;
+  colors[ERROR][MAIN] = (GColor8)tile->color_error;
+  colors[ERROR][HIGHLIGHT] = (GColor8)tile->color_error_hi;
   layer_mark_dirty(bg_layer);
+}
+
+void toggle_window_set_color(uint8_t sColor) {
+   color = sColor;
+   layer_mark_dirty(bg_layer);
+   layer_mark_dirty(sidebar_layer); 
 }

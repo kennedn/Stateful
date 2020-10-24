@@ -5,5 +5,7 @@ typedef struct {
   uint8_t color_good_hi;
   uint8_t color_bad;
   uint8_t color_bad_hi;
+  uint8_t color_error;
+  uint8_t color_error_hi;
   char title[32];
 } Tile;
