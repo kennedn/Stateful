@@ -18,97 +18,98 @@
   byte 
 
 static uint8_t *tile_data;
-static int tile_size;
-static uint8_t *icon_data;
-static int icon_size;
 VibePattern short_vibe = { 
     .durations = (uint32_t []) {50},
     .num_segments = 1,};
 
-static void tileDone(uint8_t **data, int size){
-    Tile *tile = (Tile*) *data;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "id:"BIN_PATTERN, BIN(tile->id));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "type:"BIN_PATTERN, BIN(tile->type));
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "base_resource:"BIN_PATTERN, BIN(tile->base_resource));
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "up_call:"BIN_PATTERN,BIN(tile->up_call));
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "mid_call:"BIN_PATTERN ,BIN(tile->mid_call));
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "down_call:"BIN_PATTERN ,BIN(tile->down_call));
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "status_call:"BIN_PATTERN ,BIN(tile->status_call));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "color_good:"BIN_PATTERN ,BIN(tile->color_good));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "color_good_hi:"BIN_PATTERN ,BIN(tile->color_good_hi));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "color_bad:"BIN_PATTERN ,BIN(tile->color_bad));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "color_bad_hi:"BIN_PATTERN,BIN(tile->color_bad_hi));                
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "color_error:"BIN_PATTERN ,BIN(tile->color_error));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "color_error_hi:"BIN_PATTERN,BIN(tile->color_error_hi));                
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "title: %s", tile->title);
-    toggle_window_set_tile_data(data, size);
+// Packs raw tile packet into a struct
+static void tileDone(uint8_t *data){
+    uint16_t ptr = 0;
+    uint8_t text_size = 0;
+    tile.id = (uint8_t) data[ptr++];
+    tile.color = (GColor) data[ptr++];
+    tile.highlight = (GColor) data[ptr++];
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "color:"BIN_PATTERN, BIN(tile.id));
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "color:"BIN_PATTERN, BIN((uint8_t) tile.color));
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "up_text: %s", tile.up_text);
+    
+    for(uint8_t i=0; i < ARRAY_LENGTH(tile.texts); i++) {
+      text_size = data[ptr++];
+      tile.texts[i] = (char*) malloc(text_size * sizeof(char*));
+      strncpy(tile.texts[i], (char*) &data[ptr], text_size);
+      ptr += text_size;
+    }
+
+    for(uint8_t i=0; i < ARRAY_LENGTH(tile.icons); i++) {
+      // data length can be much bigger than the max uint8_t size (255), so as a workaround 
+      // we can read in two uint8_t values with a cast to uint16_t
+      uint16_t icon_size = *(uint16_t*) &data[ptr];
+      ptr +=2;
+      tile.icons[i] = (icon_size == 1) ? gbitmap_create_with_resource(data[ptr]) : gbitmap_create_from_png_data(&data[ptr], icon_size);
+      ptr += icon_size;
+    }
+
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed tile assignment");
+    toggle_window_push();
+
   }
-void processData(DictionaryIterator **dict, uint8_t **data, int *size, void (*f)(uint8_t **data, int size)) {
+void processData(DictionaryIterator *dict, uint8_t **data) {
     // Get the received image chunk
-    Tuple *size_t = dict_find(*dict, MESSAGE_KEY_TransferLength);
+    Tuple *size_t = dict_find(dict, MESSAGE_KEY_TransferLength);
     if(size_t) {
-      *size = size_t->value->int32;
+      int size = size_t->value->int32;
 
       // Allocate buffer for image data
-      *data = (uint8_t*)malloc((*size) * sizeof(uint8_t));
+      *data = (uint8_t*)malloc(size * sizeof(uint8_t));
     }
-    Tuple *chunk_t = dict_find(*dict, MESSAGE_KEY_TransferChunk);
+    Tuple *chunk_t = dict_find(dict, MESSAGE_KEY_TransferChunk);
     if(chunk_t) {
       uint8_t *chunk_data = chunk_t->value->data;
 
-      Tuple *chunk_size_t = dict_find(*dict, MESSAGE_KEY_TransferChunkLength);
+      Tuple *chunk_size_t = dict_find(dict, MESSAGE_KEY_TransferChunkLength);
       int chunk_size = chunk_size_t->value->int32;
 
-      Tuple *index_t = dict_find(*dict, MESSAGE_KEY_TransferIndex);
+      Tuple *index_t = dict_find(dict, MESSAGE_KEY_TransferIndex);
       int index = index_t->value->int32;
 
       // Save the chunk
       memcpy(*data + index, chunk_data, chunk_size);
-     // data[index+chunk_size+1]
     }
 
     // Complete?
-    Tuple *complete_t = dict_find(*dict, MESSAGE_KEY_TransferComplete);
+    Tuple *complete_t = dict_find(dict, MESSAGE_KEY_TransferComplete);
     if(complete_t) {
       // Show the image
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed transfer, setting data");
-      (*f)(data, (*size));
+      tileDone(*data);
     }
 
 }
 
 // Called when a message is received from the JavaScript side
 static void inbox(DictionaryIterator *dict, void *context) {
-    SHORT_VIBE();
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Free bytes: %d", heap_bytes_free());
     Tuple *type_t = dict_find(dict, MESSAGE_KEY_TransferType);
+    Tuple *status_t = dict_find(dict, MESSAGE_KEY_XHRStatus);
     switch(type_t->value->int32) {
-      case 0:
-        processData(&dict, &icon_data, &icon_size, toggle_window_set_image_data);
-        break;
+      // case 0:
+      //   processData(&dict, &icon_data, &icon_size, toggle_window_set_image_data);
+      //   break;
       case 1:
-        processData(&dict, &tile_data, &tile_size, tileDone);
+        processData(dict, &tile_data);
         break;
       case 2:
-        ;
-        Tuple *status_t = dict_find(dict, MESSAGE_KEY_XHRStatus);
+        SHORT_VIBE();
         if (status_t) {
           APP_LOG(APP_LOG_LEVEL_DEBUG, "Status: %d", (int)status_t->value->int32);
           toggle_window_set_color((uint8_t) status_t->value->uint8);
         }
-        // Tuple *data_t = dict_find(dict, MESSAGE_KEY_XHRData);
-        // if (data_t) {
-        //   int length = (data_t->length<64) ? data_t->length : 64;
-        //   char *data = (char*)malloc(length);
-        //   strncpy(data, data_t->value->cstring,length);
-        //   APP_LOG(APP_LOG_LEVEL_DEBUG, "Data:%s", data);
-        // }
         break;
       case 3:
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Recived Error");
-        toggle_window_set_color(2);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Error");
         break;
       case 4:
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Recived acknowledge");
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received acknowledge");
         break;
     }
 }
@@ -147,6 +148,7 @@ void comm_init() {
   app_message_register_inbox_received(inbox);
 
   const int inbox_size = app_message_inbox_size_maximum();
+  // const int inbox_size = 64;
   const int outbox_size = 64;
   app_message_open(inbox_size, outbox_size);
 }

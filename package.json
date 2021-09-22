@@ -10,7 +10,8 @@
     "buffer": "^5.6.0",
     "core-js": "^3.6.5",
     "regenerator-runtime": "^0.13.7",
-    "whatwg-fetch": "^3.4.1"
+    "whatwg-fetch": "^3.4.1",
+    "xhr2": "^0.2.1"
   },
   "pebble": {
     "displayName": "Stateful",
@@ -42,9 +43,29 @@
     "resources": {
       "media": [
         {
-          "file": "images/default.png",
-          "name": "IMAGE_DEFAULT",
-          "type": "bitmap"
+          "type": "png",
+          "name": "ICON_DEFAULT",
+          "file": "icons/default.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_TV",
+          "file": "icons/tv.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_BULB",
+          "file": "icons/bulb.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_MONITOR",
+          "file": "icons/monitor.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_TEST",
+          "file": "icons/test.png"
         },
         {
           "file": "fonts/Ubuntu-B.ttf",
