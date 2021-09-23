@@ -1,6 +1,6 @@
 var Buffer = require('buffer/').Buffer;
 var headers = require('../../headers.json');
-var DEBUG = 2;
+var DEBUG = 3;
 //var IMG_URL = 'https://i.imgur.com/gzLWQXf.png'; //bulb
 //var IMG_URL = 'https://i.imgur.com/tQOn2aw.png'; //tv
 //var IMG_URL = 'http://pc.int:8080/tv.png';
@@ -52,142 +52,759 @@ const XHRType = {
   "NORMAL": 0,
   "CALLBACK": 1
 };
-tile = {
-  "headers": headers,
-  "payload": {
-    "id": 101,
-    "color": "0055aa",
-    "highlight": "00aaff",
-    "texts": [
-      "office",
-      "attic",
-      "bedroom",
-      "hall up",
-      "tv",
-      "hall down"
-    ],
-    "icons": [
-      Icons.ICON_BULB,
-      Icons.ICON_BULB,
-      Icons.ICON_BULB,
-      Icons.ICON_BULB,
-      Icons.ICON_TV,
-      'https://kennedn.com/images/radio.png'
-    ]
-  },
-  "buttons": {
-    "base_url": "https://kennedn.com/api/v1.0/",
-    "up": {
-      "method": "PUT",
-      "url": "wifi_bulb/office",
-      "data": {"code": "toggle"},
-      "status": {
+tiles = [
+   {
+    "headers": headers,
+    "payload": {
+      "id": 1,
+      "color": "0055aa",
+      "highlight": "00aaff",
+      "texts": [
+        "office",
+        "attic",
+        "bedroom",
+        "hall up",
+        "tv",
+        "hall down",
+        "lights"
+      ],
+      "icons": [
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_DEFAULT,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB
+      ]
+    },
+    "buttons": {
+      "base_url": "https://kennedn.com/api/v1.0/",
+      "up": {
         "method": "PUT",
         "url": "wifi_bulb/office",
-        "data": {"code": "status"},
-        "variable": "onoff",
-        "good": 1,
-        "bad": 0
-      }
-    },
-    "up_hold": {
-      "method": "PUT",
-      "url": "wifi_bulb/attic",
-      "data": {"code": "toggle"},
-      "status": {
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/office",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "up_hold": {
         "method": "PUT",
         "url": "wifi_bulb/attic",
-        "data": {"code": "status"},
-        "variable": "onoff",
-        "good": 1,
-        "bad": 0
-      }
-    },
-    "mid": {
-      "method": "PUT",
-      "url": "wifi_bulb/bedroom",
-      "data": {"code": "toggle"},
-      "status": {
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/attic",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "mid": {
         "method": "PUT",
         "url": "wifi_bulb/bedroom",
-        "data": {"code": "status"},
-        "variable": "onoff",
-        "good": 1,
-        "bad": 0
-      }
-    },
-    "mid_hold": {
-      "method": "PUT",
-      "url": "wifi_bulb/hall_up",
-      "data": {"code": "toggle"},
-      "status": {
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/bedroom",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "mid_hold": {
         "method": "PUT",
         "url": "wifi_bulb/hall_up",
-        "data": {"code": "status"},
-        "variable": "onoff",
-        "good": 1,
-        "bad": 0
-      }
-    },
-    "down": {
-      "method": "PUT",
-      "url": "tvcom/ir_key",
-      "data": {"code": "power"},
-      "status": {
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/hall_up",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "down": {
         "method": "PUT",
-        "url": "tvcom/power",
-        "data": {"code": "status"},
-        "variable": "status",
-        "good": 'on',
-        "bad": 'off'
-      }
-    },
-    "down_hold": {
-      "method": "PUT",
-      "url": "wifi_bulb/hall_down",
-      "data": {"code": "toggle"},
-      "status": {
+        "url": "tvcom/ir_key",
+        "data": {"code": "power"},
+        "status": {
+          "method": "PUT",
+          "url": "tvcom/power",
+          "data": {"code": "status"},
+          "variable": "status",
+          "good": 'on',
+          "bad": 'off'
+        }
+      },
+      "down_hold": {
         "method": "PUT",
         "url": "wifi_bulb/hall_down",
-        "data": {"code": "status"},
-        "variable": "onoff",
-        "good": 1,
-        "bad": 0
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/hall_down",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      }
+    }
+  },
+  {
+    "headers": headers,
+    "payload": {
+      "id": 2,
+      "color": "550055",
+      "highlight": "5500aa",
+      "texts": [
+        "bulb on",
+        "bulb off",
+        "lamp on",
+        "lamp off",
+        "tv",
+        "input",
+        "livingroom"
+      ],
+      "icons": [
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_TV,
+        Icons.ICON_TV,
+        Icons.ICON_TV
+      ]
+    },
+    "buttons": {
+      "base_url": "https://kennedn.com/api/v1.0/",
+      "up": {
+        "method": "PUT",
+        "url": "bulb_old",
+        "multi_data": {
+          "index": 0,
+          "good": 0,
+          "bad": 1,
+          "data": [
+            {"code": "on"},
+            {"code": "off"}
+          ]
+        }
+      },
+      "up_hold": {
+        "method": "PUT",
+        "url": "bulb_old",
+        "data": {"code": "off"},
+      },
+      "mid": {
+        "method": "PUT",
+        "url": "bulb",
+        "data": {"code": "on"},
+      },
+      "mid_hold": {
+        "method": "PUT",
+        "url": "bulb",
+        "data": {"code": "off"},
+      },
+      "down": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "power"},
+        "status": {
+          "method": "PUT",
+          "url": "tvcom/power",
+          "data": {"code": "status"},
+          "variable": "status",
+          "good": 'on',
+          "bad": 'off'
+        }
+      },
+      "down_hold": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "input"}
+      }
+    }
+  },
+  {
+    "headers": headers,
+    "payload": {
+      "id": 1,
+      "color": "0055aa",
+      "highlight": "00aaff",
+      "texts": [
+        "office",
+        "attic",
+        "bedroom",
+        "hall up",
+        "tv",
+        "hall down",
+        "lights"
+      ],
+      "icons": [
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_DEFAULT,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB
+      ]
+    },
+    "buttons": {
+      "base_url": "https://kennedn.com/api/v1.0/",
+      "up": {
+        "method": "PUT",
+        "url": "wifi_bulb/office",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/office",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "up_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/attic",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/attic",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "mid": {
+        "method": "PUT",
+        "url": "wifi_bulb/bedroom",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/bedroom",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "mid_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/hall_up",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/hall_up",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "down": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "power"},
+        "status": {
+          "method": "PUT",
+          "url": "tvcom/power",
+          "data": {"code": "status"},
+          "variable": "status",
+          "good": 'on',
+          "bad": 'off'
+        }
+      },
+      "down_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/hall_down",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/hall_down",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      }
+    }
+  },
+  {
+    "headers": headers,
+    "payload": {
+      "id": 2,
+      "color": "550055",
+      "highlight": "5500aa",
+      "texts": [
+        "bulb on",
+        "bulb off",
+        "lamp on",
+        "lamp off",
+        "tv",
+        "input",
+        "livingroom"
+      ],
+      "icons": [
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_TV,
+        Icons.ICON_TV,
+        Icons.ICON_TV
+      ]
+    },
+    "buttons": {
+      "base_url": "https://kennedn.com/api/v1.0/",
+      "up": {
+        "method": "PUT",
+        "url": "bulb_old",
+        "multi_data": {
+          "index": 0,
+          "good": -1,
+          "bad": -1,
+          "data": [
+            {"code": "on"},
+            {"code": "off"}
+          ]
+        }
+      },
+      "up_hold": {
+        "method": "PUT",
+        "url": "bulb_old",
+        "data": {"code": "off"},
+      },
+      "mid": {
+        "method": "PUT",
+        "url": "bulb",
+        "data": {"code": "on"},
+      },
+      "mid_hold": {
+        "method": "PUT",
+        "url": "bulb",
+        "data": {"code": "off"},
+      },
+      "down": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "power"},
+        "status": {
+          "method": "PUT",
+          "url": "tvcom/power",
+          "data": {"code": "status"},
+          "variable": "status",
+          "good": 'on',
+          "bad": 'off'
+        }
+      },
+      "down_hold": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "input"}
+      }
+    }
+  },
+  {
+    "headers": headers,
+    "payload": {
+      "id": 1,
+      "color": "0055aa",
+      "highlight": "00aaff",
+      "texts": [
+        "office",
+        "attic",
+        "bedroom",
+        "hall up",
+        "tv",
+        "hall down",
+        "lights"
+      ],
+      "icons": [
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_DEFAULT,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB
+      ]
+    },
+    "buttons": {
+      "base_url": "https://kennedn.com/api/v1.0/",
+      "up": {
+        "method": "PUT",
+        "url": "wifi_bulb/office",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/office",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "up_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/attic",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/attic",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "mid": {
+        "method": "PUT",
+        "url": "wifi_bulb/bedroom",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/bedroom",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "mid_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/hall_up",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/hall_up",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "down": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "power"},
+        "status": {
+          "method": "PUT",
+          "url": "tvcom/power",
+          "data": {"code": "status"},
+          "variable": "status",
+          "good": 'on',
+          "bad": 'off'
+        }
+      },
+      "down_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/hall_down",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/hall_down",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      }
+    }
+  },
+  {
+    "headers": headers,
+    "payload": {
+      "id": 2,
+      "color": "550055",
+      "highlight": "5500aa",
+      "texts": [
+        "bulb on",
+        "bulb off",
+        "lamp on",
+        "lamp off",
+        "tv",
+        "input",
+        "livingroom"
+      ],
+      "icons": [
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_TV,
+        Icons.ICON_TV,
+        Icons.ICON_TV
+      ]
+    },
+    "buttons": {
+      "base_url": "https://kennedn.com/api/v1.0/",
+      "up": {
+        "method": "PUT",
+        "url": "bulb_old",
+        "multi_data": {
+          "index": 0,
+          "good": -1,
+          "bad": -1,
+          "data": [
+            {"code": "on"},
+            {"code": "off"}
+          ]
+        }
+      },
+      "up_hold": {
+        "method": "PUT",
+        "url": "bulb_old",
+        "data": {"code": "off"},
+      },
+      "mid": {
+        "method": "PUT",
+        "url": "bulb",
+        "data": {"code": "on"},
+      },
+      "mid_hold": {
+        "method": "PUT",
+        "url": "bulb",
+        "data": {"code": "off"},
+      },
+      "down": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "power"},
+        "status": {
+          "method": "PUT",
+          "url": "tvcom/power",
+          "data": {"code": "status"},
+          "variable": "status",
+          "good": 'on',
+          "bad": 'off'
+        }
+      },
+      "down_hold": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "input"}
+      }
+    }
+  },
+  {
+    "headers": headers,
+    "payload": {
+      "id": 1,
+      "color": "0055aa",
+      "highlight": "00aaff",
+      "texts": [
+        "office",
+        "attic",
+        "bedroom",
+        "hall up",
+        "tv",
+        "hall down",
+        "lights"
+      ],
+      "icons": [
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_DEFAULT,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB
+      ]
+    },
+    "buttons": {
+      "base_url": "https://kennedn.com/api/v1.0/",
+      "up": {
+        "method": "PUT",
+        "url": "wifi_bulb/office",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/office",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "up_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/attic",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/attic",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "mid": {
+        "method": "PUT",
+        "url": "wifi_bulb/bedroom",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/bedroom",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "mid_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/hall_up",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/hall_up",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      },
+      "down": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "power"},
+        "status": {
+          "method": "PUT",
+          "url": "tvcom/power",
+          "data": {"code": "status"},
+          "variable": "status",
+          "good": 'on',
+          "bad": 'off'
+        }
+      },
+      "down_hold": {
+        "method": "PUT",
+        "url": "wifi_bulb/hall_down",
+        "data": {"code": "toggle"},
+        "status": {
+          "method": "PUT",
+          "url": "wifi_bulb/hall_down",
+          "data": {"code": "status"},
+          "variable": "onoff",
+          "good": 1,
+          "bad": 0
+        }
+      }
+    }
+  },
+  {
+    "headers": headers,
+    "payload": {
+      "id": 2,
+      "color": "550055",
+      "highlight": "5500aa",
+      "texts": [
+        "bulb on",
+        "bulb off",
+        "lamp on",
+        "lamp off",
+        "tv",
+        "input",
+        "livingroom"
+      ],
+      "icons": [
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_BULB,
+        Icons.ICON_TV,
+        Icons.ICON_TV,
+        Icons.ICON_TV
+      ]
+    },
+    "buttons": {
+      "base_url": "https://kennedn.com/api/v1.0/",
+      "up": {
+        "method": "PUT",
+        "url": "bulb_old",
+        "multi_data": {
+          "index": 0,
+          "good": -1,
+          "bad": -1,
+          "data": [
+            {"code": "on"},
+            {"code": "off"}
+          ]
+        }
+      },
+      "up_hold": {
+        "method": "PUT",
+        "url": "bulb_old",
+        "data": {"code": "off"},
+      },
+      "mid": {
+        "method": "PUT",
+        "url": "bulb",
+        "data": {"code": "on"},
+      },
+      "mid_hold": {
+        "method": "PUT",
+        "url": "bulb",
+        "data": {"code": "off"},
+      },
+      "down": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "power"},
+        "status": {
+          "method": "PUT",
+          "url": "tvcom/power",
+          "data": {"code": "status"},
+          "variable": "status",
+          "good": 'on',
+          "bad": 'off'
+        }
+      },
+      "down_hold": {
+        "method": "PUT",
+        "url": "tvcom/ir_key",
+        "data": {"code": "input"}
       }
     }
   }
-}
+]
 
-function packTile() {
-  let payload = tile.payload;
-  var buffer = new ArrayBuffer(10000);
+function packTile(tiles) {
+  var buffer = new ArrayBuffer(1000000);
   var uint8 = new Uint8Array(buffer);
-
   let ptr = 0;
-  uint8[ptr++] = payload.id;
-  uint8[ptr++] = toGColor(payload.color);
-  uint8[ptr++] = toGColor(payload.highlight);
+  let payload;
+  for (tile of tiles) {
+    payload = tile.payload;
 
-  for (t of payload.texts) {
-    uint8[ptr++] = t.length+ 1;
-    ptr = packString(uint8, t, ptr);
-  }
+    uint8[ptr++] = payload.id;
+    uint8[ptr++] = toGColor(payload.color);
+    uint8[ptr++] = toGColor(payload.highlight);
 
-  for (i of payload.icons) {
-    uint8[ptr++] = 1;
-    uint8[ptr++] = 0;
-    uint8[ptr++] = i;
-  }
+    for (t of payload.texts) {
+      uint8[ptr++] = t.length+ 1;
+      ptr = packString(uint8, t, ptr);
+    }
 
-  ptr -= 3;
-
-  let tmp_buff = Buffer.from(tile.payload.icons[5], 'base64');
-  let tmp_uint8 = new Uint8Array(tmp_buff);
-  uint8[ptr++] = tmp_uint8.length & 0xff;
-  uint8[ptr++] = tmp_uint8.length >> 8;
-
-  for (let i=0; i < tmp_uint8.length; i++) {
-    uint8[ptr++] = tmp_uint8[i];
+    for (i of payload.icons) {
+      uint8[ptr++] = 1;
+      uint8[ptr++] = 0;
+      uint8[ptr++] = i;
+    }
   }
 
   var buffer_2 = buffer.slice(0,ptr);
@@ -326,15 +943,6 @@ function downloadImage(i, callback) {
   // }
 }
 
-Pebble.addEventListener('ready', function() {
-  if (console.time) console.time('Send Image');
-  // if (Buffer) console.log("Buffer exists: " + JSON.stringify(Buffer));
-  // downloadImage();
-  // packTile(tile);
-  downloadImage(5, packTile);
-  console.log("ready");
-});
-
 function xhrRequest(method, base_url, url, headers, data, callback) {
   var request = new XMLHttpRequest();
   request.onload = function() {
@@ -404,6 +1012,7 @@ function xhrStatus(method, base_url, url, headers, data, variable, good, bad, ma
     }
   };
 
+
   request.ontimeout = function(e) { console.log("Timed out");};
   request.open(method, base_url + url);
   request.timeout = 4000;
@@ -416,6 +1025,18 @@ function xhrStatus(method, base_url, url, headers, data, variable, good, bad, ma
   request.send(JSON.stringify(data));  
 }				
 
+function idxHighlight(index, good, bad) {
+  switch(index) {
+    case good:
+      Pebble.sendAppMessage({"TransferType": TransferType.RESPONSE, "XHRStatus": TransferStatus.GOOD }, messageSuccessCallback, messageFailureCallback);
+      break;
+    case bad:
+      Pebble.sendAppMessage({"TransferType": TransferType.RESPONSE, "XHRStatus": TransferStatus.BAD }, messageSuccessCallback, messageFailureCallback);
+      break;
+    default:
+      Pebble.sendAppMessage({"TransferType": TransferType.RESPONSE, "XHRStatus": -1 }, messageSuccessCallback, messageFailureCallback);
+  }
+}
 
 // Called when incoming message from the Pebble is received
 Pebble.addEventListener("appmessage", function(e) {
@@ -430,26 +1051,34 @@ Pebble.addEventListener("appmessage", function(e) {
   }
 
   let id = dict.RequestID;
+  let tile = tiles.find(t => t.payload.id == id);
+  if (tile == null) { 
+    console.log("Could not locate tile with id " + id);
+    return;
+  }
   let button = tile.buttons[Button[dict.RequestButton]];
   let base_url = tile.buttons.base_url;
   let headers = tile.headers;
 
-
-  let method = button.method;
-  let url = button.url;
-  let data = button.data;
-
   if ("status" in button) {
-    let status_method = button.status.method;
-    let status_url = button.status.url;
-    let status_data = button.status.data;
-    let variable = button.status.variable;
-    let good = button.status.good;
-    let bad = button.status.bad;
-// function xhrStatus(method, base_url, url, headers, data, variable, good, bad, maxRetries=10) {
-    xhrRequest(method, base_url, url, headers, data, 
-               xhrStatus.bind(null, status_method, base_url, status_url, headers, status_data, variable, good, bad));
+    let status = button.status
+    xhrRequest(button.method, base_url, button.url, headers, button.data, 
+               xhrStatus.bind(null, status.method, base_url, status.url, headers, status.data, status.variable, status.good, status.bad));
+  } else if("multi_data" in button) {
+    let multi_data = button.multi_data;
+    let data = multi_data.data[multi_data.index];
+    xhrRequest(button.method, base_url, button.url, headers, data, idxHighlight.bind(null, multi_data.index, multi_data.good, multi_data.bad));
+    button.multi_data.index = (multi_data.index + 1) % multi_data.data.length;
   } else {
-    xhrRequest(method, base_url, url, headers, data);
+    xhrRequest(button.method, base_url, button.url, headers, button.data);
   }
+});
+
+Pebble.addEventListener('ready', function() {
+  console.log("ready");
+  setTimeout(function() { Pebble.sendAppMessage({"TransferType": TransferType.ACK}, messageSuccessCallback, messageFailureCallback);}, 1000);
+  if (console.time) console.time('Send Image');
+  // tiles.forEach(t => packTile(t));
+  packTile(tiles);
+  // setTimeout(() => packTile(tiles[1]), 3000);
 });

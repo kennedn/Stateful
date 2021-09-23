@@ -4,7 +4,6 @@
 #define HEADER_FILE
 #include "c/modules/data.h"
 #endif
-Tile tile;
 void comm_init();
 
 void comm_deinit();

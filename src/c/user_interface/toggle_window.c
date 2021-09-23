@@ -5,31 +5,32 @@
 #define HEADER_FILE
 #define DEBUG 1
 #include "c/modules/data.h"
-#include "c/modules/comm.h"
 #endif
+#include "c/modules/comm.h"
 static Window *s_main_window;
 static GFont ubuntu18, ubuntu10;
 static ActionBarLayer *s_action_bar_layer;
 static TextLayer *s_up_label_layer, *s_mid_label_layer, *s_down_label_layer;
 static GRect s_label_bounds;
 static uint8_t tap_toggle = 0;
+Tile *tile;
 
 static void up_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     toggle_window_set_color(3);
     toggle_window_inset_highlight(BUTTON_ID_UP);
-    outbox(ctx, tile.id, 0 + tap_toggle);
+    outbox(ctx, tile->id, 0 + tap_toggle);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Up clicked!");
 }
 static void mid_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     toggle_window_set_color(3);
     toggle_window_inset_highlight(BUTTON_ID_SELECT);
-    outbox(ctx, tile.id, 2 + tap_toggle);
+    outbox(ctx, tile->id, 2 + tap_toggle);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "mid clicked!");
 }
 static void down_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     toggle_window_set_color(3);
     toggle_window_inset_highlight(BUTTON_ID_DOWN);
-    outbox(ctx, tile.id, 4 + tap_toggle);
+    outbox(ctx, tile->id, 4 + tap_toggle);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Down clicked!");
 }
 
@@ -41,16 +42,16 @@ static void click_config_provider(void *ctx) {
 
 void toggle_window_swap_buttons() {
     // toggle_window_set_color(3);
-    window_set_background_color(s_main_window, (tap_toggle) ? tile.color :tile.highlight);
-    action_bar_layer_set_background_color(s_action_bar_layer, (tap_toggle) ? tile.highlight : tile.color );
+    window_set_background_color(s_main_window, (tap_toggle) ? tile->color :tile->highlight);
+    action_bar_layer_set_background_color(s_action_bar_layer, (tap_toggle) ? tile->highlight : tile->color );
     toggle_window_inset_highlight(BUTTON_ID_BACK);
     tap_toggle = !tap_toggle;
-    text_layer_set_text(s_up_label_layer, tile.texts[tap_toggle]);
-    text_layer_set_text(s_mid_label_layer, tile.texts[2 + tap_toggle]);
-    text_layer_set_text(s_down_label_layer, tile.texts[4 + tap_toggle]);
-    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, tile.icons[tap_toggle], true);
-    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, tile.icons[2 + tap_toggle], true);
-    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, tile.icons[4 + tap_toggle], true);
+    text_layer_set_text(s_up_label_layer, tile->texts[tap_toggle]);
+    text_layer_set_text(s_mid_label_layer, tile->texts[2 + tap_toggle]);
+    text_layer_set_text(s_down_label_layer, tile->texts[4 + tap_toggle]);
+    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, tile->icons[tap_toggle], true);
+    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, tile->icons[2 + tap_toggle], true);
+    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, tile->icons[4 + tap_toggle], true);
     layer_mark_dirty(text_layer_get_layer(s_up_label_layer));
     layer_mark_dirty(text_layer_get_layer(s_mid_label_layer));
     layer_mark_dirty(text_layer_get_layer(s_down_label_layer));
@@ -72,9 +73,9 @@ static void window_load(Window *window) {
     s_mid_label_layer = text_layer_create(grect_inset(bounds, mid_label_insets));
     s_down_label_layer = text_layer_create(grect_inset(bounds, down_label_insets));
     s_label_bounds = layer_get_frame(text_layer_get_layer(s_up_label_layer));
-    text_layer_set_text(s_up_label_layer, tile.texts[0]);
-    text_layer_set_text(s_mid_label_layer, tile.texts[2]);
-    text_layer_set_text(s_down_label_layer, tile.texts[4]);
+    text_layer_set_text(s_up_label_layer, tile->texts[0]);
+    text_layer_set_text(s_mid_label_layer, tile->texts[2]);
+    text_layer_set_text(s_down_label_layer, tile->texts[4]);
     text_layer_set_background_color(s_up_label_layer, GColorClear);
     text_layer_set_background_color(s_mid_label_layer, GColorClear);
     text_layer_set_background_color(s_down_label_layer, GColorClear);
@@ -93,10 +94,10 @@ static void window_load(Window *window) {
     layer_add_child(window_layer, text_layer_get_layer(s_down_label_layer));
 
     s_action_bar_layer = action_bar_layer_create();
-    action_bar_layer_set_background_color(s_action_bar_layer, tile.highlight);
-    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, tile.icons[0]);
-    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, tile.icons[2]);
-    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, tile.icons[4]);
+    action_bar_layer_set_background_color(s_action_bar_layer, tile->highlight);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, tile->icons[0]);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, tile->icons[2]);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, tile->icons[4]);
     action_bar_layer_add_to_window(s_action_bar_layer, window);
     action_bar_layer_set_click_config_provider(s_action_bar_layer, click_config_provider);
     accel_tap_service_subscribe(tap_handler);
@@ -109,20 +110,19 @@ static void window_unload(Window *window) {
 
     action_bar_layer_destroy(s_action_bar_layer);
 
-    for(uint8_t i=0; i < ARRAY_LENGTH(tile.texts); i++) {
-        free(tile.texts[i]);
-    }
+    // for(uint8_t i=0; i < ARRAY_LENGTH(tile->texts); i++) {
+    //     free(tile->texts[i]);
+    // }
 
-    for(uint8_t i=0; i < ARRAY_LENGTH(tile.icons); i++) {
-        free(tile.icons[i]);
-    }
+    // for(uint8_t i=0; i < ARRAY_LENGTH(tile->icons); i++) {
+    //     free(tile->icons[i]);
+    // }
 
-    //free(&tile);
+    // //free(&tile);
+    // free(tile);
 
     fonts_unload_custom_font(ubuntu18);
     fonts_unload_custom_font(ubuntu10);
-
-    app_message_deregister_callbacks();
 
     window_destroy(window);
 }
@@ -131,10 +131,12 @@ void app_timer_callback(void *data) {
     toggle_window_set_color(*(uint8_t*) data);
     free(data);
 }
-void toggle_window_set_color(uint8_t type) {
+void toggle_window_set_color(int type) {
     // uint8_t *val = (uint8_t*) malloc(sizeof(uint8_t));
     // *val = 3;
     // AppTimer *app_timer = app_timer_register(1000, app_timer_callback, (void*) val);
+
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Entered set_color with value: %d", type);
     switch(type) {
         case 0:
             window_set_background_color(s_main_window, GColorIslamicGreen);
@@ -150,8 +152,8 @@ void toggle_window_set_color(uint8_t type) {
             break;
         default:
             // app_timer_cancel(app_timer);
-            window_set_background_color(s_main_window, tile.color);
-            action_bar_layer_set_background_color(s_action_bar_layer, tile.highlight);
+            window_set_background_color(s_main_window, tile->color);
+            action_bar_layer_set_background_color(s_action_bar_layer, tile->highlight);
             break;
     }
     layer_mark_dirty(window_get_root_layer(s_main_window));
@@ -189,9 +191,10 @@ void toggle_window_inset_highlight(ButtonId button_id) {
 }
 
 
-void toggle_window_push() {
+void toggle_window_push(Tile *currentTile) {
+    tile = currentTile;
     s_main_window = window_create();
-    window_set_background_color(s_main_window, tile.color);
+    window_set_background_color(s_main_window, tile->color);
     window_set_window_handlers(s_main_window, (WindowHandlers) {
         .load = window_load,
         .unload = window_unload,

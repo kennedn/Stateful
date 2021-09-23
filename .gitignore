@@ -2,3 +2,4 @@ build/
 backup/
 node_modules/
 .lock-waf*
+headers.json

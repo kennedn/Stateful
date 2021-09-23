@@ -1,0 +1,1 @@
+void stateful_reinit_list();

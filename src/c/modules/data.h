@@ -13,6 +13,18 @@ typedef struct {
   uint8_t id;
   GColor color;
   GColor highlight;
-  char* texts[6];
-  GBitmap* icons[6];
+  char* texts[7];
+  GBitmap* icons[7];
 } Tile;
+
+typedef struct {
+  Tile *tiles;
+  uint8_t used;
+  uint8_t size;
+} TileArray;
+
+TileArray *tileArray;
+
+void data_array_init(uint8_t size);
+void data_array_add_tile(Tile *tile);
+void data_array_free();
