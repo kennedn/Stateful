@@ -1,1 +1,1 @@
-void stateful_reinit_list();
+void stateful_reload_menu();

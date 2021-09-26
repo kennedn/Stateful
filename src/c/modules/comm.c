@@ -1,77 +1,27 @@
 #include "c/modules/comm.h"
-#ifndef HEADER_FILE
-#define HEADER_FILE
 #include "c/modules/data.h"
-#endif
-#include "c/user_interface/toggle_window.h"
-#include "c/stateful.h"
+#include "c/user_interface/action_window.h"
 #define SHORT_VIBE() vibes_enqueue_custom_pattern(short_vibe);
-#define BIN_PATTERN "%c%c%c%c%c%c%c%c:%d"
-#define BIN(byte)  \
-  (byte & 0x80 ? '1' : '0'), \
-  (byte & 0x40 ? '1' : '0'), \
-  (byte & 0x20 ? '1' : '0'), \
-  (byte & 0x10 ? '1' : '0'), \
-  (byte & 0x08 ? '1' : '0'), \
-  (byte & 0x04 ? '1' : '0'), \
-  (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0'), \
-  byte 
+static uint8_t *raw_data;
+static AppTimer *s_retry_timer;
+static bool outbox_lock = false;
+typedef struct {
+  char iconKey[41];
+  uint8_t iconIndex;
+} RetryTimerData;
+RetryTimerData retryData;
 
-static uint8_t *tile_data;
-static int data_size;
 VibePattern short_vibe = { 
     .durations = (uint32_t []) {50},
     .num_segments = 1,};
 
-// Packs raw tile packet into a struct
-static void tileDone(uint8_t *data){
-    Tile *tile;
-    int ptr = 0;
-
-    while (ptr < data_size) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "ptr: %d, size: %d", ptr, data_size);
-      tile = (Tile*) malloc(sizeof(Tile));
-      uint8_t text_size = 0;
-      tile->id = (uint8_t) data[ptr++];
-      tile->color = (GColor) data[ptr++];
-      tile->highlight = (GColor) data[ptr++];
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "id:"BIN_PATTERN, BIN(tile->id));
-      
-      for(uint8_t i=0; i < ARRAY_LENGTH(tile->texts); i++) {
-        text_size = data[ptr++];
-        tile->texts[i] = (char*) malloc(text_size * sizeof(char*));
-        strncpy(tile->texts[i], (char*) &data[ptr], text_size);
-        ptr += text_size;
-      }
-
-      for(uint8_t i=0; i < ARRAY_LENGTH(tile->icons); i++) {
-        // data length can be much bigger than the max uint8_t size (255), so as a workaround 
-        // we can read in two uint8_t values with a cast to uint16_t
-        uint16_t icon_size = *(uint16_t*) &data[ptr];
-        ptr +=2;
-        tile->icons[i] = (icon_size == 1) ? gbitmap_create_with_resource(data[ptr]) : gbitmap_create_from_png_data(&data[ptr], icon_size);
-        ptr += icon_size;
-      }
-
-      data_array_add_tile(tile);
-    }
-
-    for (int i=0; i < tileArray->used; i++) {
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "id:"BIN_PATTERN, BIN(tileArray->tiles[i].id));
-    }
-    stateful_reinit_list();
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed tile assignment");
-
-  }
-void processData(DictionaryIterator *dict, uint8_t **data) {
+void processData(DictionaryIterator *dict, uint8_t **data, uint8_t transferType ) {
     // Get the received image chunk
     Tuple *size_t = dict_find(dict, MESSAGE_KEY_TransferLength);
     if(size_t) {
       int size = size_t->value->int32;
-      data_size = size;
       // Allocate buffer for image data
-      *data = (uint8_t*)malloc(size * sizeof(uint8_t));
+      *data = (uint8_t*) malloc(size * sizeof(uint8_t));
     }
     Tuple *chunk_t = dict_find(dict, MESSAGE_KEY_TransferChunk);
     if(chunk_t) {
@@ -79,55 +29,113 @@ void processData(DictionaryIterator *dict, uint8_t **data) {
 
       Tuple *chunk_size_t = dict_find(dict, MESSAGE_KEY_TransferChunkLength);
       int chunk_size = chunk_size_t->value->int32;
-
       Tuple *index_t = dict_find(dict, MESSAGE_KEY_TransferIndex);
       int index = index_t->value->int32;
 
       // Save the chunk
-      memcpy(*data + index, chunk_data, chunk_size);
+      memcpy(&(*data)[index], chunk_data, chunk_size);
     }
 
     // Complete?
     Tuple *complete_t = dict_find(dict, MESSAGE_KEY_TransferComplete);
     if(complete_t) {
-      // Show the image
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed transfer, setting data with id %d", (uint8_t) *data[0]);
-      tileDone(*data);
-    }
 
+      switch(transferType) {
+        case 0:
+          data_icon_array_add_icon(*data);
+        break;
+        case 1:
+          data_tile_array_pack_tiles(*data, complete_t->value->int32);
+        break;
+      }
+      free(*data);
+      outbox_lock = false;
+    }
 }
 
 // Called when a message is received from the JavaScript side
 static void inbox(DictionaryIterator *dict, void *context) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Free bytes: %d", heap_bytes_free());
     Tuple *type_t = dict_find(dict, MESSAGE_KEY_TransferType);
-    Tuple *status_t = dict_find(dict, MESSAGE_KEY_XHRStatus);
+    Tuple *color_t = dict_find(dict, MESSAGE_KEY_Color);
     switch(type_t->value->int32) {
-      case 1:
-        processData(dict, &tile_data);
+      case 0: // TransferType.ICON
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received icon data");
+        processData(dict, &raw_data, 0);
         break;
-      case 2:
+      case 1: // TransferType.TILE
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received tile data");
+        processData(dict, &raw_data, 1);
+        break;
+      case 2: // TransferType.XHR
+        break;
+      case 3: // TransferType.COLOR
         SHORT_VIBE();
-        if (status_t) {
-          APP_LOG(APP_LOG_LEVEL_DEBUG, "Status: %d", (int)status_t->value->int32);
-          toggle_window_set_color(status_t->value->int32);
+        if (color_t) {
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "Status: %d", (int)color_t->value->int32);
+          action_window_set_color(color_t->value->int32);
         }
         break;
-      case 3:
+      case 4: // TransferType.ERROR
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Error");
         break;
-      case 4:
+      case 5: // TransferType.ACK
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received acknowledge");
+        break;
+      case 6: // TransferType.READY
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "JS Environment Ready");
+        comm_data_request(1); // Request Icon Payload
         break;
     }
 }
+void retry_timer_callback(void *data) {
+  RetryTimerData *timerData = (RetryTimerData*) data;
+  comm_icon_request(timerData->iconKey, timerData->iconIndex);
+  free(data);
+}
 
-void outbox(void *context, uint8_t id, uint8_t button) {
+void comm_icon_request(char* iconKey, uint8_t iconIndex) {
+    DictionaryIterator *dict;
+    // uint32_t size = dict_calc_buffer_size(3, sizeof(uint8_t), sizeof(uint8_t), strlen(iconKey) + 1);
+    // uint8_t buffer[size];
+    if (!outbox_lock) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Outbox is unlocked");
+      uint32_t result = app_message_outbox_begin(&dict);
+      if (result == APP_MSG_OK) {
+        dict_write_uint8(dict, MESSAGE_KEY_TransferType, 0);
+        dict_write_uint8(dict, MESSAGE_KEY_IconIndex, iconIndex);
+        dict_write_cstring(dict, MESSAGE_KEY_IconKey, iconKey);
+        dict_write_end(dict);
+        app_message_outbox_send();
+        outbox_lock = true;
+      }
+    } else {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Outbox currently locked, retrying");
+      RetryTimerData *retryData = malloc(sizeof(RetryTimerData));
+      retryData->iconIndex = iconIndex;
+      strcpy(retryData->iconKey, iconKey);
+      s_retry_timer = app_timer_register(50, retry_timer_callback, (void*) retryData);
+    }
+
+}
+
+void comm_data_request(uint8_t transferType) {
     DictionaryIterator *dict;
     
     uint32_t result = app_message_outbox_begin(&dict);
     if (result == APP_MSG_OK) {
-        dict_write_uint8(dict, MESSAGE_KEY_RequestID, id);  // Gotta have a payload
+      dict_write_uint8(dict, MESSAGE_KEY_TransferType, transferType);
+      dict_write_end(dict);
+      app_message_outbox_send();
+    } 
+}
+
+void comm_xhr_request(void *context, uint8_t id, uint8_t button) {
+    DictionaryIterator *dict;
+    
+    uint32_t result = app_message_outbox_begin(&dict);
+    if (result == APP_MSG_OK) {
+        dict_write_uint8(dict, MESSAGE_KEY_TransferType, 2); // TransferType.XHR
+        dict_write_uint8(dict, MESSAGE_KEY_RequestID, id);
         dict_write_uint8(dict, MESSAGE_KEY_RequestButton, button);
         dict_write_end(dict);
         app_message_outbox_send();
@@ -136,19 +144,17 @@ void outbox(void *context, uint8_t id, uint8_t button) {
 
 
 void comm_init() {
+  data_icon_array_init(4);
   app_message_register_inbox_received(inbox);
 
-  data_array_init(1);
   const int inbox_size = app_message_inbox_size_maximum();
-  // const int inbox_size = 64;
-  const int outbox_size = 64;
+  const int outbox_size = app_message_outbox_size_maximum();
   app_message_open(inbox_size, outbox_size);
 }
 
 void comm_deinit() {
   // Free image data buffer
-  if(tile_data) {
-    free(tile_data);
-  }
+  data_tile_array_free();
+  data_icon_array_free();
   app_message_deregister_callbacks();
 }

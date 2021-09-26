@@ -4,6 +4,7 @@
         "string": "cpp",
         "string_view": "cpp",
         "toggle_window.h": "c",
-        "data.h": "c"
+        "data.h": "c",
+        "action_window.h": "c"
     }
 }
