@@ -50,6 +50,8 @@ void processData(DictionaryIterator *dict, uint8_t **data, uint8_t transferType 
       }
       free(*data);
       outbox_lock = false;
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Free bytes: %d", heap_bytes_free());
+      
     }
 }
 
@@ -94,11 +96,12 @@ void retry_timer_callback(void *data) {
 }
 
 void comm_icon_request(char* iconKey, uint8_t iconIndex) {
-    DictionaryIterator *dict;
     // uint32_t size = dict_calc_buffer_size(3, sizeof(uint8_t), sizeof(uint8_t), strlen(iconKey) + 1);
     // uint8_t buffer[size];
     if (!outbox_lock) {
+      outbox_lock = true;
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Outbox is unlocked");
+      DictionaryIterator *dict;
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, 0);
@@ -106,14 +109,13 @@ void comm_icon_request(char* iconKey, uint8_t iconIndex) {
         dict_write_cstring(dict, MESSAGE_KEY_IconKey, iconKey);
         dict_write_end(dict);
         app_message_outbox_send();
-        outbox_lock = true;
       }
     } else {
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Outbox currently locked, retrying");
       RetryTimerData *retryData = malloc(sizeof(RetryTimerData));
       retryData->iconIndex = iconIndex;
       strcpy(retryData->iconKey, iconKey);
-      s_retry_timer = app_timer_register(50, retry_timer_callback, (void*) retryData);
+      s_retry_timer = app_timer_register(100, retry_timer_callback, (void*) retryData);
     }
 
 }
@@ -144,11 +146,11 @@ void comm_xhr_request(void *context, uint8_t id, uint8_t button) {
 
 
 void comm_init() {
-  data_icon_array_init(4);
+  data_icon_array_init(10);
   app_message_register_inbox_received(inbox);
 
   const int inbox_size = app_message_inbox_size_maximum();
-  const int outbox_size = app_message_outbox_size_maximum();
+  const int outbox_size = 64;
   app_message_open(inbox_size, outbox_size);
 }
 
