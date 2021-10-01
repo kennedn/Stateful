@@ -20,6 +20,7 @@ def configure(ctx):
     change after calling ctx.load('pebble_sdk') and make sure to set the correct environment first.
     Universal configuration: add your change prior to calling ctx.load('pebble_sdk').
     """
+    ctx.env.append_unique("CFLAGS", "-Wno-error=unused-but-set-variable")
     ctx.load('pebble_sdk')
     ctx.env.WEBPACK = './tools/webpack-wrapper'
 
@@ -31,6 +32,8 @@ def build(ctx):
     binaries = []
 
     cached_env = ctx.env
+
+
     for platform in ctx.env.TARGET_PLATFORMS:
         ctx.env = ctx.all_envs[platform]
         ctx.set_group(ctx.env.PLATFORM_NAME)

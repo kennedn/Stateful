@@ -1,11 +1,12 @@
 var Buffer = require('buffer/').Buffer;
 var headers = require('../../headers.json');
-var DEBUG = 3;
+var DEBUG = 2;
 //var IMG_URL = 'https://i.imgur.com/gzLWQXf.png'; //bulb
 //var IMG_URL = 'https://i.imgur.com/tQOn2aw.png'; //tv
 //var IMG_URL = 'http://pc.int:8080/tv.png';
 var IMG_URL = 'https://kennedn.com/images/deleted.png'
-var MAX_CHUNK_SIZE = 8000;
+var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.includes('aplite')) ? 256: 4096;
+var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.includes('aplite')) ? 4 : 10;
 
 // Called when the message send attempt succeeds
 function messageSuccessCallback() {
@@ -20,13 +21,12 @@ function messageFailureCallback() {
 //todo find out how uploaded icons and pre-packaged differ on c side
 // Fade status color back to default?
 const Icons = {
-  "ICON_DEFAULT": 0,
-  "ICON_TV": 1,
-  "ICON_BULB": 2,
-  "ICON_MONITOR": 3,
-  "ICON_TEST": 4
+  "ICON_DEFAULT": 1,
+  "ICON_TV": 2,
+  "ICON_BULB": 3,
+  "ICON_MONITOR": 4,
+  "ICON_TEST": 5
 }
-const text_size = 12
 const TransferType = {
   "ICON": 0,
   "TILE": 1,
@@ -100,7 +100,7 @@ let icons = {
 
 let tiles = {
   "default_idx": 0, 
-  "open_default": false,
+  "open_default": true,
   "tiles": [
      {
       "headers": headers,
@@ -112,8 +112,8 @@ let tiles = {
           "office",
           "attic",
           "bedroom",
-          "tv",
           "hall up",
+          "tv",
           "hall down",
           "lights"
         ],
@@ -122,9 +122,10 @@ let tiles = {
           "77de68dabb",
           "77de68dabb",
           "77de68dabb",
-          "da4b9237b0",
           "77de68dabb",
+          // "da4b9237b0",
           "77de68dabb",
+          "ac3478d6c4",
         ]
       },
       "buttons": {
@@ -231,7 +232,8 @@ let tiles = {
           "77de68dabb",
           "da4b9237b0",
           "77de68dabb",
-          "da4b9237b0",
+          // "da4b9237b0",
+          "ac3478d6c4",
         ]
       },
       "buttons": {
@@ -300,9 +302,9 @@ let tiles = {
           "thermostat"
         ],
         "icon_keys": [
-          "356a192bab",
+          "ac3478d6c4",
           "da4b9237b0",
-          "1b6453897a",
+          "ac3478d6c4",
           "77de68dabb",
           "ac3478d6c4",
           "1b6453897a",
@@ -981,17 +983,25 @@ function packIcon(key, index) {
   let icon = icons[key];
 
   uint8[ptr++] = index;
-
+  
+  if (DEBUG > 1) { console.log("Sending icon " + key); }
   if (typeof(icon) == 'string') {
-    let buff = Buffer.from(icon, 'base64');
-    if (DEBUG > 2) { console.log("icon_size: " + buff.length); }
-    uint8[ptr++] = buff.length & 0xff;
-    uint8[ptr++] = buff.length >> 8;
-    for (let i=0; i < buff.length; i++) {
-      uint8[ptr++] = buff[i];
+    if(Pebble.getActiveWatchInfo().model.includes('aplite')) {
+      if (DEBUG > 1) { console.log("aplite detected, icon_size: " + 1); }
+      uint8[ptr++] = 1;
+      uint8[ptr++] = 0;
+      uint8[ptr++] = 1;
+    } else {
+      let buff = Buffer.from(icon, 'base64');
+      if (DEBUG > 1) { console.log("icon_size: " + buff.length); }
+      uint8[ptr++] = buff.length & 0xff;
+      uint8[ptr++] = buff.length >> 8;
+      for (let i=0; i < buff.length; i++) {
+        uint8[ptr++] = buff[i];
+      }
     }
   } else {
-    if (DEBUG > 2) { console.log("icon_size: " + 1); }
+    if (DEBUG > 1) { console.log("icon_size: " + 1); }
     uint8[ptr++] = 1;
     uint8[ptr++] = 0;
     uint8[ptr++] = icon;
@@ -1011,10 +1021,14 @@ function packTiles(tiles) {
   var uint8 = new Uint8Array(buffer);
   let ptr = 0;
   let payload;
+  var unique_keys = [];
+  uint8[ptr++] = tiles.tiles.length;
   uint8[ptr++] = tiles.default_idx;
   uint8[ptr++] = tiles.open_default;
   for (tile of tiles.tiles) {
     payload = tile.payload;
+    unique_keys = unique_keys.concat(payload.icon_keys);
+    // unique_keys = unique_keys.filter((v, i, s) => { return s.indexOf(v) === i});
 
     uint8[ptr++] = payload.id;
     uint8[ptr++] = toGColor(payload.color);
@@ -1030,7 +1044,15 @@ function packTiles(tiles) {
       ptr = packString(uint8, k, ptr);
     }
   }
-
+  if (!Pebble.getActiveWatchInfo().model.includes('aplite')) {
+    // Generate a unique list of icon_keys and pack as many as the buffer can store to send alongside the tiles
+    // This ensures that at least some icons show up a bit faster on the watch after first launch
+    unique_keys = [... new Set(unique_keys)];
+    for (key of unique_keys.slice(0, ICON_BUFFER_SIZE)) {
+      uint8[ptr++] = key.length + 1;
+      ptr = packString(uint8, key, ptr);
+    }
+  }
   var buffer_2 = buffer.slice(0,ptr);
   var uint8_2 = new Uint8Array(buffer_2);
 
@@ -1081,8 +1103,8 @@ function packString(uint8Array, str, idx) {
 }
 
 function sendChunk(array, index, arrayLength, type) {
-  // Determine the next chunk size
-  var chunkSize = MAX_CHUNK_SIZE;
+  // Determine the next chunk size, theres needs to be 5 bits of padding for every key sent to stay under threshold
+  var chunkSize = MAX_CHUNK_SIZE - (5 * 4);
   if(arrayLength - index < MAX_CHUNK_SIZE) {
     // Will only need one more chunk
     chunkSize = arrayLength - index;
@@ -1112,7 +1134,7 @@ function sendChunk(array, index, arrayLength, type) {
         'TransferType': type});
     }
   }, function(obj, error) {
-    console.log(error + ": " + JSON.stringify(dict));
+    if (DEBUG > 1) { console.log('Failed to send chunk'); }
   });
 }
 
@@ -1127,7 +1149,7 @@ function transmitData(array, type) {
     // Success, begin sending chunks
     sendChunk(array, index, arrayLength, type);
   }, function(e) {
-    console.log('Failed to send data length to Pebble!');
+   if (DEBUG > 1) { console.log('Failed to send data length to Pebble!'); }
   });
 }
 
@@ -1151,7 +1173,7 @@ function downloadImage(i, callback) {
     var request = new XMLHttpRequest();
     request.onload = function() {
       console.log("Downloaded with return code " + this.status);
-      if(this.status === 200) {
+      if(this.status < 400) {
         console.log("Saving icon to json");
         tile.payload.icons[i] = Buffer.from(this.response).toString('base64');
         callback()
@@ -1169,13 +1191,20 @@ function downloadImage(i, callback) {
 function xhrRequest(method, base_url, url, headers, data, callback) {
   var request = new XMLHttpRequest();
   request.onload = function() {
-    let returnData = JSON.parse(this.response);
-    if (DEBUG > 1) {
-      console.log("Response data: " + JSON.stringify(returnData));
-      console.log("Status: " + this.status);
-    }
-    if(this.status == 200) {
+    console.log("in onload");
+    if(this.status < 400) {
+      let returnData = {};
+      try {
+        returnData = JSON.parse(this.response);
+        if (DEBUG > 1) {
+          console.log("Response data: " + JSON.stringify(returnData));
+        }
+      } catch {
+        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+        return;
+      }
       Pebble.sendAppMessage({"TransferType": TransferType.ACK}, messageSuccessCallback, messageFailureCallback);
+      if (DEBUG > 1) { console.log("Status: " + this.status); }
       if (callback) { callback(); }
     } else {
       // Pebble.sendAppMessage({"TransferType": TransferType.ERROR}, messageSuccessCallback, messageFailureCallback);
@@ -1188,8 +1217,14 @@ function xhrRequest(method, base_url, url, headers, data, callback) {
     console.log("Method: " + method);
     console.log("Data: " + JSON.stringify(data));
   }
-
-  request.ontimeout = function(e) { console.log("Timed out");};
+  request.onerror = function(e) { 
+    if (DEBUG > 1 ) { console.log("Timed out"); }
+    Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+  };
+  request.ontimeout  = function(e) { 
+    if (DEBUG > 1 ) { console.log("Timed out"); }
+    Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+  };
   request.open(method, base_url + url);
   request.timeout = 4000;
   for (let key in headers) {
@@ -1204,18 +1239,26 @@ function xhrRequest(method, base_url, url, headers, data, callback) {
 function xhrStatus(method, base_url, url, headers, data, variable, good, bad, maxRetries=40) {
   var request = new XMLHttpRequest();
   request.onload = function() {
-    let returnData = JSON.parse(this.response);
-    if (DEBUG > 1) {
-      console.log("Response Data: " + JSON.stringify(returnData));
-      console.log("Status: " + this.status);
-    }
-    if(this.status == 200) {
-      let r = returnData
-      for (let j of variable.split(".")) {
-        r = r[j];
+    if(this.status < 400) {
+      let returnData = {};
+      try {
+        returnData = JSON.parse(this.response);
+        for (let j of variable.split(".")) {
+          returnData = returnData[j];
+        }
+        if (DEBUG > 1) {
+          console.log("Response data: " + JSON.stringify(returnData));
+          console.log("Status: " + this.status);
+        }
+      } catch {
+        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+        return;
       }
-      if (DEBUG > 1) { console.log("result: " + r + " maxRetries: " + maxRetries)}
-      switch(r) {
+      if (DEBUG > 1) { 
+        console.log("Status: " + this.status);
+        console.log("result: " + returnData + " maxRetries: " + maxRetries)
+      }
+      switch(returnData) {
         case good:
           Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.GOOD }, messageSuccessCallback, messageFailureCallback);
           break;
@@ -1245,7 +1288,11 @@ function xhrStatus(method, base_url, url, headers, data, variable, good, bad, ma
     console.log("Data: " + JSON.stringify(data));
   }
 
-  request.ontimeout = function(e) { console.log("Timed out");};
+  request.ontimeout = request.onerror = function(e) { 
+    if (DEBUG > 1 ) { console.log("Timed out"); }
+    Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+  };
+
   request.open(method, base_url + url);
   request.timeout = 4000;
   for (let key in headers) {
@@ -1258,71 +1305,76 @@ function xhrStatus(method, base_url, url, headers, data, variable, good, bad, ma
 }				
 
 function idxHighlight(index, good, bad) {
-  switch(index) {
-    case good:
-      Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.GOOD }, messageSuccessCallback, messageFailureCallback);
-      break;
-    case bad:
-      Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.BAD }, messageSuccessCallback, messageFailureCallback);
-      break;
-    default:
-      Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": -1 }, messageSuccessCallback, messageFailureCallback);
-  }
+switch(index) {
+  case good:
+    Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.GOOD }, messageSuccessCallback, messageFailureCallback);
+    break;
+  case bad:
+    Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.BAD }, messageSuccessCallback, messageFailureCallback);
+    break;
+  default:
+    Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": -1 }, messageSuccessCallback, messageFailureCallback);
+}
 }
 
 // Called when incoming message from the Pebble is received
 Pebble.addEventListener("appmessage", function(e) {
-  var dict = e.payload;
-  if (DEBUG > 1) 
-    console.log('Got message: ' + JSON.stringify(dict));
+var dict = e.payload;
+if (DEBUG > 1) 
+  console.log('Got message: ' + JSON.stringify(dict));
 
-  switch(dict.TransferType) {
-    case TransferType.ICON:
-      if (!("IconKey" in dict) || !("IconIndex" in dict)) {
-        if (DEBUG > 0)
-          console.log("didn't receive expected data");
-        return;
-      }
-      packIcon(dict.IconKey, dict.IconIndex);
-    break;
-    case TransferType.TILE:
-      packTiles(tiles);
-    break;
-    case TransferType.XHR:
-      if (!("RequestID" in dict) || !("RequestButton" in dict)) {
-        if (DEBUG > 0)
-          console.log("didn't receive expected data");
-        return;
-      }
+switch(dict.TransferType) {
+  case TransferType.ICON:
+    if (!("IconKey" in dict) || !("IconIndex" in dict)) {
+      if (DEBUG > 0)
+        console.log("didn't receive expected data");
+      return;
+    }
+    packIcon(dict.IconKey, dict.IconIndex);
+  break;
+  case TransferType.TILE:
+    packTiles(tiles);
+  break;
+  case TransferType.READY:
+    console.log("monkey ack ready");
+    Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
+  break;
 
-      let id = dict.RequestID;
-      let tile = tiles.tiles.find(t => t.payload.id == id);
-      if (tile == null) { 
-        console.log("Could not locate tile with id " + id);
-        return;
-      }
-      let button = tile.buttons[Button[dict.RequestButton]];
-      let base_url = tile.buttons.base_url;
-      let headers = tile.headers;
+  case TransferType.XHR:
+    if (!("RequestID" in dict) || !("RequestButton" in dict)) {
+      if (DEBUG > 0)
+        console.log("didn't receive expected data");
+      return;
+    }
 
-      if ("status" in button) {
-        let status = button.status
-        xhrRequest(button.method, base_url, button.url, headers, button.data, 
-                  xhrStatus.bind(null, status.method, base_url, status.url, headers, status.data, status.variable, status.good, status.bad));
-      } else if("multi_data" in button) {
-        let multi_data = button.multi_data;
-        let data = multi_data.data[multi_data.index];
-        xhrRequest(button.method, base_url, button.url, headers, data, idxHighlight.bind(null, multi_data.index, multi_data.good, multi_data.bad));
-        button.multi_data.index = (multi_data.index + 1) % multi_data.data.length;
-      } else {
-        xhrRequest(button.method, base_url, button.url, headers, button.data);
-      }
-    break;
-  }
-  
+    let id = dict.RequestID;
+    let tile = tiles.tiles.find(t => t.payload.id == id);
+    if (tile == null) { 
+      if (DEBUG > 1) { console.log("Could not locate tile with id " + id); }
+      return;
+    }
+    let button = tile.buttons[Button[dict.RequestButton]];
+    let base_url = tile.buttons.base_url;
+    let headers = tile.headers;
+
+    if ("status" in button) {
+      let status = button.status
+      xhrRequest(button.method, base_url, button.url, headers, button.data, 
+                xhrStatus.bind(null, status.method, base_url, status.url, headers, status.data, status.variable, status.good, status.bad));
+    } else if("multi_data" in button) {
+      let multi_data = button.multi_data;
+      let data = multi_data.data[multi_data.index];
+      xhrRequest(button.method, base_url, button.url, headers, data, idxHighlight.bind(null, multi_data.index, multi_data.good, multi_data.bad));
+      button.multi_data.index = (multi_data.index + 1) % multi_data.data.length;
+    } else {
+      xhrRequest(button.method, base_url, button.url, headers, button.data);
+    }
+  break;
+}
+
 });
 
 Pebble.addEventListener('ready', function() {
-  console.log("ready");
-  Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
+console.log("monkey :)");
+Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
 });

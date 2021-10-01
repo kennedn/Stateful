@@ -1,57 +1,68 @@
 #include <pebble.h>
 
 #include "c/user_interface/action_window.h"
+#include "c/user_interface/loading_window.h"
 #include "c/modules/data.h"
 #include "c/modules/comm.h"
+#include "c/stateful.h"
 static Window *s_action_window;
-static GFont ubuntu18, ubuntu10;
 static ActionBarLayer *s_action_bar_layer;
 static TextLayer *s_up_label_layer, *s_mid_label_layer, *s_down_label_layer;
 static GRect s_label_bounds;
 static uint8_t tap_toggle = 0;
+
 Tile *tile;
+void action_window_swap_buttons();
 
 static void up_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     action_window_set_color(3);
     action_window_inset_highlight(BUTTON_ID_UP);
     comm_xhr_request(ctx, tile->id, 0 + tap_toggle);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Up clicked!");
 }
 static void mid_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     action_window_set_color(3);
     action_window_inset_highlight(BUTTON_ID_SELECT);
     comm_xhr_request(ctx, tile->id, 2 + tap_toggle);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "mid clicked!");
 }
 static void down_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     action_window_set_color(3);
     action_window_inset_highlight(BUTTON_ID_DOWN);
     comm_xhr_request(ctx, tile->id, 4 + tap_toggle);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Down clicked!");
 }
 
+static void mid_hold_click_callback(ClickRecognizerRef recognizer, void *ctx) {
+    action_window_swap_buttons();
+}
 static void click_config_provider(void *ctx) {
     window_single_click_subscribe(BUTTON_ID_UP, up_click_callback);
     window_single_click_subscribe(BUTTON_ID_SELECT, mid_click_callback);
+    window_long_click_subscribe(BUTTON_ID_SELECT, 400, mid_hold_click_callback, NULL);
     window_single_click_subscribe(BUTTON_ID_DOWN, down_click_callback);
 } 
 
 void action_window_swap_buttons() {
-    window_set_background_color(s_action_window, (tap_toggle) ? tile->color :tile->highlight);
-    action_bar_layer_set_background_color(s_action_bar_layer, (tap_toggle) ? tile->highlight : tile->color );
+    SHORT_VIBE();
     action_window_inset_highlight(BUTTON_ID_BACK);
     tap_toggle = !tap_toggle;
     text_layer_set_text(s_up_label_layer, tile->texts[tap_toggle]);
     text_layer_set_text(s_mid_label_layer, tile->texts[2 + tap_toggle]);
     text_layer_set_text(s_down_label_layer, tile->texts[4 + tap_toggle]);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, defaultIcon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile->icon_key[tap_toggle]), true);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, defaultIcon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile->icon_key[2 + tap_toggle]), true);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, defaultIcon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile->icon_key[4 + tap_toggle]), true);
     layer_mark_dirty(text_layer_get_layer(s_up_label_layer));
     layer_mark_dirty(text_layer_get_layer(s_mid_label_layer));
     layer_mark_dirty(text_layer_get_layer(s_down_label_layer));
-    layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
-    layer_mark_dirty(window_get_root_layer(s_action_window));
+
+    #ifdef PBL_COLOR
+        window_set_background_color(s_action_window, (!tap_toggle) ? tile->color :tile->highlight);
+        action_bar_layer_set_background_color(s_action_bar_layer, (!tap_toggle) ? tile->highlight : tile->color );
+        layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
+        layer_mark_dirty(window_get_root_layer(s_action_window));
+    #endif
 }
 
 void action_window_refresh_icons() {
@@ -63,19 +74,34 @@ void action_window_refresh_icons() {
     }
 }
 
-static void tap_handler(AccelAxisType axis, int32_t direction) {
-    action_window_swap_buttons();
-}
 
-static void window_load(Window *window) {
+static void action_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
-    GEdgeInsets up_label_insets = {.top = bounds.size.h * .135, .right = ACTION_BAR_WIDTH * 1.3 };
-    GEdgeInsets mid_label_insets = {.top = bounds.size.h * .43, .right = ACTION_BAR_WIDTH * 1.3};
-    GEdgeInsets down_label_insets = {.top = bounds.size.h * .735, .right = ACTION_BAR_WIDTH * 1.3};
-    s_up_label_layer = text_layer_create(grect_inset(bounds, up_label_insets));
-    s_mid_label_layer = text_layer_create(grect_inset(bounds, mid_label_insets));
-    s_down_label_layer = text_layer_create(grect_inset(bounds, down_label_insets));
+    s_action_bar_layer = action_bar_layer_create();
+    tap_toggle = 0;
+
+    // 5 pixel y pad on top
+   GRect up_label_bounds = GRect(bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h / 3);
+    GRect mid_label_bounds = GRect(bounds.origin.x, bounds.origin.y + (up_label_bounds.origin.y + up_label_bounds.size.h),
+                                   bounds.size.w, bounds.size.h / 3);
+    GRect down_label_bounds = GRect(bounds.origin.x, bounds.origin.y + (mid_label_bounds.origin.y + mid_label_bounds.size.h),
+                                   bounds.size.w, bounds.size.h / 3);
+    GSize text_size = GSize(0, 24);
+    uint8_t pad = PBL_IF_RECT_ELSE(5, 30);
+    GEdgeInsets up_label_insets = {.top = pad  + ((up_label_bounds.size.h - (text_size.h)) /2), .right = ACTION_BAR_WIDTH * 1.3, .bottom = -pad};
+    GEdgeInsets mid_label_insets = {.top = ((mid_label_bounds.size.h - (text_size.h)) /2), .right = ACTION_BAR_WIDTH * 1.3 };
+    GEdgeInsets down_label_insets = {.top = -pad + ((down_label_bounds.size.h - (text_size.h)) /2), .right = ACTION_BAR_WIDTH * 1.3, .bottom = pad };
+
+
+    
+    // GEdgeInsets up_label_insets = {.top = bounds.size.h * .131, .right = ACTION_BAR_WIDTH * 1.3 };
+    // GEdgeInsets mid_label_insets = {.top = bounds.size.h * .43, .right = ACTION_BAR_WIDTH * 1.3};
+    // // 5 pixel y pad on bottom
+    // GEdgeInsets down_label_insets = {.top = bounds.size.h * .728, .right = ACTION_BAR_WIDTH * 1.3};
+    s_up_label_layer = text_layer_create(grect_inset(up_label_bounds, up_label_insets));
+    s_mid_label_layer = text_layer_create(grect_inset(mid_label_bounds, mid_label_insets));
+    s_down_label_layer = text_layer_create(grect_inset(down_label_bounds, down_label_insets));
     s_label_bounds = layer_get_frame(text_layer_get_layer(s_up_label_layer));
     text_layer_set_text(s_up_label_layer, tile->texts[0]);
     text_layer_set_text(s_mid_label_layer, tile->texts[2]);
@@ -97,50 +123,58 @@ static void window_load(Window *window) {
     layer_add_child(window_layer, text_layer_get_layer(s_mid_label_layer));
     layer_add_child(window_layer, text_layer_get_layer(s_down_label_layer));
 
-    s_action_bar_layer = action_bar_layer_create();
     action_bar_layer_set_background_color(s_action_bar_layer, tile->highlight);
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile->icon_key[0]));
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile->icon_key[2]));
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile->icon_key[4]));
-    action_bar_layer_add_to_window(s_action_bar_layer, window);
+    
     action_bar_layer_set_click_config_provider(s_action_bar_layer, click_config_provider);
-    accel_tap_service_subscribe(tap_handler);
+    // accel_tap_service_subscribe(tap_handler);
+
+    action_bar_layer_add_to_window(s_action_bar_layer, window);
 }
 
-static void window_unload(Window *window) {
-    text_layer_destroy(s_up_label_layer);
-    text_layer_destroy(s_mid_label_layer);
-    text_layer_destroy(s_down_label_layer);
 
-    action_bar_layer_destroy(s_action_bar_layer);
+static void action_window_unload(Window *window) {
+    if (s_action_window) {
+        text_layer_destroy(s_up_label_layer);
+        text_layer_destroy(s_mid_label_layer);
+        text_layer_destroy(s_down_label_layer);
 
-    fonts_unload_custom_font(ubuntu18);
-    fonts_unload_custom_font(ubuntu10);
+        action_bar_layer_destroy(s_action_bar_layer);
+        // accel_tap_service_unsubscribe();
 
-    window_destroy(window);
+        window_destroy(s_action_window);
+        s_action_window = NULL;
+    }
 }
 void app_timer_callback(void *data) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "data: %d", *(uint8_t*) data);
     action_window_set_color(*(uint8_t*) data);
     free(data);
 }
 void action_window_set_color(int type) {
-
     light_enable_interaction();
+    #ifndef PBL_COLOR
+        return;
+    #endif
     switch(type) {
         case 0:
+            LONG_VIBE();
             window_set_background_color(s_action_window, GColorIslamicGreen);
             action_bar_layer_set_background_color(s_action_bar_layer, GColorMayGreen);
             break;
         case 1:
+            LONG_VIBE();
             window_set_background_color(s_action_window, GColorFolly);
             action_bar_layer_set_background_color(s_action_bar_layer, GColorSunsetOrange);
             break;
         case 2:
+            LONG_VIBE();
             window_set_background_color(s_action_window, GColorChromeYellow);
             action_bar_layer_set_background_color(s_action_bar_layer, GColorRajah);
             break;
         default:
+            SHORT_VIBE();
             // app_timer_cancel(app_timer);
             window_set_background_color(s_action_window, tile->color);
             action_bar_layer_set_background_color(s_action_bar_layer, tile->highlight);
@@ -180,22 +214,23 @@ void action_window_inset_highlight(ButtonId button_id) {
     layer_mark_dirty(text_layer_get_layer(s_down_label_layer));
 }
 
+void action_window_pop() {
+  window_stack_remove(s_action_window, false);
+  action_window_unload(s_action_window);
+}
 
 void action_window_push(Tile *currentTile) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Free bytes: %d", heap_bytes_free());
-    tile = currentTile;
-    s_action_window = window_create();
-    window_set_background_color(s_action_window, tile->color);
-    window_set_window_handlers(s_action_window, (WindowHandlers) {
-        .load = window_load,
-        .unload = window_unload,
-    });
+    if (!s_action_window) {
+        tile = currentTile;
+        s_action_window = window_create();
+        window_set_background_color(s_action_window, tile->color);
+        window_set_window_handlers(s_action_window, (WindowHandlers) {
+            .load = action_window_load,
+            .unload = action_window_unload,
+        });
 
-
-    ubuntu18 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_18));
-    ubuntu10 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_10));
-
-    window_stack_push(s_action_window, true);
+        window_stack_push(s_action_window, true);
+    }
 
 }
 

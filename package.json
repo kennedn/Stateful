@@ -77,12 +77,14 @@
         {
           "file": "fonts/Ubuntu-B.ttf",
           "name": "FONT_UBUNTU_BOLD_18",
-          "type": "font"
+          "type": "font",
+          "compatibility": "2.7"
         },
         {
           "file": "fonts/Ubuntu-B.ttf",
           "name": "FONT_UBUNTU_BOLD_10",
-          "type": "font"
+          "type": "font",
+          "compatibility": "2.7"
         },
         {
           "menuIcon": true,

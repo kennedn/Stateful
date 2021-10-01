@@ -48,6 +48,7 @@ typedef struct {
 
 TileArray *tileArray;
 IconArray *iconArray;
+GBitmap *defaultIcon;
 
 void data_icon_array_add_icon(uint8_t *data);
 GBitmap *data_icon_array_search(char* key);

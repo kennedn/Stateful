@@ -5,6 +5,8 @@
         "string_view": "cpp",
         "toggle_window.h": "c",
         "data.h": "c",
-        "action_window.h": "c"
-    }
+        "action_window.h": "c",
+        "loading_window.h": "c"
+    },
+    "C_Cpp.dimInactiveRegions": false
 }

@@ -3,6 +3,7 @@
 #include "c/user_interface/menu_window.h"
 #include "c/user_interface/action_window.h"
 #include "c/modules/comm.h"
+#include "c/stateful.h"
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 static void data_tile_array_init(uint8_t size) {
@@ -33,21 +34,22 @@ void data_tile_array_free() {
   free(tileArray);
 }
 
-
 void data_tile_array_pack_tiles(uint8_t *data, int data_size){
     data_tile_array_init(1);
     Tile *tile;
     int ptr = 0;
     int tile_counter = 0;
+    uint8_t tile_count = data[ptr++];
     tileArray->default_idx = data[ptr++];
     tileArray->open_default = data[ptr++];
-    while (ptr < data_size) {
+    uint8_t i = 0;
+    while (i < tile_count) {
       tile = (Tile*) malloc(sizeof(Tile));
       uint8_t text_size = 0;
       uint8_t key_size = 0;
       tile->id = (uint8_t) data[ptr++];
-      tile->color = (GColor) data[ptr++];
-      tile->highlight = (GColor) data[ptr++];
+      tile->color = PBL_IF_COLOR_ELSE((GColor) data[ptr], GColorBlack); ptr++;
+      tile->highlight = PBL_IF_COLOR_ELSE((GColor) data[ptr], GColorWhite); ptr++;
       
       for(uint8_t i=0; i < ARRAY_LENGTH(tile->texts); i++) {
         text_size = data[ptr++];
@@ -62,41 +64,27 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
         strncpy(tile->icon_key[i], (char*) &data[ptr], key_size);
         ptr += key_size;
       }
+      #ifdef DEBUG 
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Tile size: %d", ptr - tile_counter);
+      #endif
       tile_counter = ptr;
       data_tile_array_add_tile(tile);
+      i++;
+    }
+    while (ptr < data_size) {
+      uint8_t str_size = data[ptr++];
+      char *tmp_str = (char*) malloc(str_size * sizeof(char));
+      strncpy(tmp_str, (char*) &data[ptr], str_size);
+      data_icon_array_search(tmp_str);
+      free(tmp_str);
+      ptr += str_size;
     }
 
-    // char *used_keys[iconArray->size];
-    // for (uint8_t i=0; i < iconArray->size; i++) {
-    //   used_keys[i] = malloc(sizeof(char) * 9);
-    //   used_keys[i] = "";
-    // }
-
-    // // bool slots_filled = false;
-    // for (uint8_t i=0; i < tileArray->used; i++) {
-    //   bool slots_filled = false;
-    //   for (uint8_t j=0; j < ARRAY_LENGTH(tileArray->tiles[i].icon_key); j++) {
-    //     bool already_used = false;
-    //     for (uint8_t k=0; k < ARRAY_LENGTH(used_keys); k++) {
-    //       if (strcmp(used_keys[k], tileArray->tiles[i].icon_key[j]) == 0) {
-    //         already_used = true;
-    //         break;
-    //       }
-    //     }
-    //     if (already_used) { break; }
-    //     strcpy(used_keys[iconArray->ptr], tileArray->tiles[i].icon_key[j]);
-    //     data_icon_array_search(tileArray->tiles[i].icon_key[j]);
-    //     if (iconArray->ptr == 0) { 
-    //       slots_filled = true;
-    //       break;
-    //      }
-    //   }
-    //   if (slots_filled) { break; }
-    // }
-
     menu_window_push();
+
+    #ifdef DEBUG 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed tile assignment");
+    #endif
 
   }
   
@@ -110,29 +98,34 @@ void data_icon_array_init(uint8_t size) {
     iconArray->icons[i].icon = NULL;
     iconArray->icons[i].key = NULL;
   }
+  defaultIcon = gbitmap_create_with_resource(RESOURCE_ID_ICON_DEFAULT);
 }
 
 void data_icon_array_free() {
   for(uint8_t i=0; i < iconArray->size; i++) {
+      gbitmap_destroy(iconArray->icons[i].icon);
       free(iconArray->icons[i].key);
-      free(iconArray->icons[i].icon);
   }
   free(iconArray->icons);
   free(iconArray);
+  gbitmap_destroy(defaultIcon);
 }
 
 void data_icon_array_add_icon(uint8_t *data) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Free bytes: %d", heap_bytes_free());
   int ptr = 0;
   uint8_t index = data[ptr++];
   Icon *icon = &iconArray->icons[index];
 
   uint16_t icon_size = *(uint16_t*) &data[ptr];
+  if (heap_bytes_free() < icon_size) { return; }
   ptr +=2;
-  gbitmap_destroy(icon->icon);
+  if (icon->icon) { gbitmap_destroy(icon->icon); }
+  icon->icon = NULL;
   icon->icon = (icon_size == 1) ? gbitmap_create_with_resource(data[ptr]) : gbitmap_create_from_png_data(&data[ptr], icon_size);
 
+  #ifdef DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Created icon at index %d", index);
+  #endif
   menu_window_refresh_icons();
   action_window_refresh_icons();
 }
@@ -144,14 +137,18 @@ GBitmap *data_icon_array_search(char* key){
       return icon->icon;
     }
   }
+  #ifdef DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Couldnt find %s locally, asking JS environment", key);
+  #endif 
   Icon *icon = &iconArray->icons[iconArray->ptr];
 
   free(icon->key);
-  icon->key = (char*) malloc(strlen(key) * sizeof(char*));
+  icon->key = NULL;
+  icon->key = (char*) malloc(strlen(key) * sizeof(char));
   strcpy(icon->key, key);
 
-  gbitmap_destroy(icon->icon);
+  if (icon->icon) { gbitmap_destroy(icon->icon); }
+  icon->icon = NULL;
   icon->icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_DEFAULT);
 
   comm_icon_request(key, iconArray->ptr);
