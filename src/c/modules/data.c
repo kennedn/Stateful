@@ -4,7 +4,6 @@
 #include "c/user_interface/action_window.h"
 #include "c/modules/comm.h"
 #include "c/stateful.h"
-#define MIN(a,b) (((a)<(b))?(a):(b))
 
 static void data_tile_array_init(uint8_t size) {
   tileArray = malloc(sizeof(TileArray));
@@ -27,15 +26,22 @@ void data_tile_array_free() {
   for(uint8_t i=0; i < tileArray->used; i++) {
     for(uint8_t j=0; j < ARRAY_LENGTH(tileArray->tiles[i].texts); j++) {
       free(tileArray->tiles[i].texts[j]);
+      free(tileArray->tiles[i].icon_key[j]);
     }
   }
 
   free(tileArray->tiles);
+  tileArray->tiles = NULL;
   free(tileArray);
+  tileArray = NULL;
 }
 
 void data_tile_array_pack_tiles(uint8_t *data, int data_size){
+    if (tileArray) {
+      data_tile_array_free();
+    }
     data_tile_array_init(1);
+
     Tile *tile;
     int ptr = 0;
     int tile_counter = 0;

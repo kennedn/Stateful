@@ -1,16 +1,19 @@
 #pragma once
 #include <pebble.h>
 GFont ubuntu18, ubuntu10;
+
 #define DEBUG 0
 #define ICON_ARRAY_SIZE 10
-
 #ifdef PBL_APLITE
 #define ICON_ARRAY_SIZE 4
 #endif
 
-void pebblekit_connection_callback(bool connected);
 #define SHORT_VIBE() vibes_enqueue_custom_pattern(short_vibe);
 #define LONG_VIBE() vibes_enqueue_custom_pattern(long_vibe);
+inline char * BOOL(bool b) {
+  return b ? "true" : "false";
+}
+#define MIN(a,b) (((a)<(b))?(a):(b))
 VibePattern short_vibe; 
 VibePattern long_vibe; 
 

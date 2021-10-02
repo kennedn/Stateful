@@ -5,6 +5,8 @@
 static uint8_t *raw_data;
 static AppTimer *s_retry_timer, *s_ready_timer;
 static bool data_transfer_lock = false;
+static bool is_ready = false;
+static int outbox_attempts = 0;
 typedef struct {
   char iconKey[41];
   uint8_t iconIndex;
@@ -88,9 +90,9 @@ static void inbox(DictionaryIterator *dict, void *context) {
       case TRANSFER_TYPE_READY:
         #ifdef DEBUG
         APP_LOG(APP_LOG_LEVEL_DEBUG, "JS Environment Ready");
+        is_ready = true;
+        comm_tile_request();
         #endif
-        pebblekit_connection_callback(true);
-        comm_tile_request(); 
         break;
     }
 }
@@ -100,32 +102,29 @@ void retry_timer_callback(void *data) {
   free(data);
 }
 
-// ask for a ready message and reset timer
+// ask for a tile data after ready
 void comm_ready_callback(void *data) {
-  DictionaryIterator *dict;
-  uint32_t result = app_message_outbox_begin(&dict);
-  if (result == APP_MSG_OK) {
-    dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_READY);
-    dict_write_end(dict);
-    app_message_outbox_send();
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "Entered ready_callback, locked: %s, ready: %s", BOOL(data_transfer_lock), BOOL(is_ready));
+  if (!is_ready) {
+    DictionaryIterator *dict;
+    uint32_t result = app_message_outbox_begin(&dict);
+    if (result == APP_MSG_OK) {
+      dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_READY);
+      dict_write_end(dict);
+      app_message_outbox_send();
+    }
+    outbox_attempts = MIN(100, outbox_attempts + 1);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Not ready, waiting %d ms", 300 * outbox_attempts);
+    s_ready_timer = app_timer_register(300 * outbox_attempts, comm_ready_callback, NULL);
+  } else {
+    s_ready_timer = NULL;
   }
-  if (!data_transfer_lock) { s_ready_timer = app_timer_register(5000, comm_ready_callback, NULL); }
-}
-
-// kicks of loop to ask pebblekit for a ready message every x seconds until we get a response
-void comm_callback_start() {
-  // data_transfer_lock = false;
-  // if (s_retry_timer) {app_timer_cancel(s_retry_timer);}
-  // if (s_ready_timer) {app_timer_cancel(s_ready_timer);}
-  // s_retry_timer = NULL;
-  // s_ready_timer = NULL;
-  // s_ready_timer = app_timer_register(5000, comm_ready_callback, NULL);
-  return;
 }
 
 // ask pebblekit to lookup and send a related icon based on hash key
 void comm_icon_request(char* iconKey, uint8_t iconIndex) {
     if (!data_transfer_lock) {
+      s_retry_timer = NULL;
       // Asks pebblekit for an icon based on a hash key, to be inserted at provided index in data_icon_array
       data_transfer_lock = true;
       DictionaryIterator *dict;
@@ -149,8 +148,6 @@ void comm_icon_request(char* iconKey, uint8_t iconIndex) {
 
 // ask pebblekit to send down its tile data
 void comm_tile_request() {
-    if (s_ready_timer) { APP_LOG(APP_LOG_LEVEL_DEBUG, "cancel ready timer"); app_timer_cancel(s_ready_timer); }
-    s_ready_timer = NULL;
     if (!data_transfer_lock) {
       data_transfer_lock = true;
       DictionaryIterator *dict;
@@ -178,6 +175,18 @@ void comm_xhr_request(void *context, uint8_t id, uint8_t button) {
     }
 }
 
+// kicks of loop to wait for pebblekit ready and then request tile data
+void comm_callback_start() {
+  is_ready = false;
+  data_transfer_lock = false;
+  outbox_attempts = 0;
+  if (s_retry_timer) {app_timer_cancel(s_retry_timer);}
+  if (s_ready_timer) {app_timer_cancel(s_ready_timer);}
+  s_retry_timer = NULL;
+  s_ready_timer = NULL;
+  comm_ready_callback(NULL);
+}
+
 
 void comm_init() {
   s_ready_timer = NULL;
@@ -185,7 +194,7 @@ void comm_init() {
   data_icon_array_init(ICON_ARRAY_SIZE);
   app_message_register_inbox_received(inbox);
 
-  int inbox_size = 4096;
+  int inbox_size = 8192;
   #ifdef PBL_PLATFORM_APLITE
     inbox_size = 256;
   #endif

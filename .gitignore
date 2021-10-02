@@ -1,5 +1,6 @@
 build/
 backup/
 node_modules/
+tests/
 .lock-waf*
 headers.json

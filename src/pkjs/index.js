@@ -5,7 +5,7 @@ var DEBUG = 2;
 //var IMG_URL = 'https://i.imgur.com/tQOn2aw.png'; //tv
 //var IMG_URL = 'http://pc.int:8080/tv.png';
 var IMG_URL = 'https://kennedn.com/images/deleted.png'
-var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.includes('aplite')) ? 256: 4096;
+var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.includes('aplite')) ? 256: 8192;
 var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.includes('aplite')) ? 4 : 10;
 
 // Called when the message send attempt succeeds
@@ -99,7 +99,7 @@ let icons = {
 // icons = tmp_icons;
 
 let tiles = {
-  "default_idx": 0, 
+  "default_idx": 3, 
   "open_default": true,
   "tiles": [
      {
@@ -1192,7 +1192,7 @@ function xhrRequest(method, base_url, url, headers, data, callback) {
   var request = new XMLHttpRequest();
   request.onload = function() {
     console.log("in onload");
-    if(this.status < 400) {
+    if(this.status == 200) {
       let returnData = {};
       try {
         returnData = JSON.parse(this.response);
@@ -1239,7 +1239,7 @@ function xhrRequest(method, base_url, url, headers, data, callback) {
 function xhrStatus(method, base_url, url, headers, data, variable, good, bad, maxRetries=40) {
   var request = new XMLHttpRequest();
   request.onload = function() {
-    if(this.status < 400) {
+    if(this.status == 200) {
       let returnData = {};
       try {
         returnData = JSON.parse(this.response);
@@ -1338,6 +1338,7 @@ switch(dict.TransferType) {
   case TransferType.READY:
     console.log("monkey ack ready");
     Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
+    // packTiles(tiles);
   break;
 
   case TransferType.XHR:
@@ -1376,5 +1377,4 @@ switch(dict.TransferType) {
 
 Pebble.addEventListener('ready', function() {
 console.log("monkey :)");
-Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
 });

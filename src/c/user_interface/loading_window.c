@@ -106,7 +106,8 @@ static void draw_text(char *text, Layer* window_layer, GRect bounds, bool loadin
 }
 
 static void timeout_timer_callback(void *data) {
-    layer_set_hidden(text_layer_get_layer(s_text_layer), false);
+  timeout_timer = NULL;
+  layer_set_hidden(text_layer_get_layer(s_text_layer), false);
 }
 
 static void window_load(Window *window) {

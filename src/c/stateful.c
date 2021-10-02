@@ -14,26 +14,25 @@ VibePattern long_vibe = {
     .durations = (uint32_t []) {100},
     .num_segments = 1,};
 
-// static void loading_window(void *data) {
-//   loading_window_push();
-// }
-
+// called whenever connection state changes (for some reason var passed to this callback is always true)
 void pebblekit_connection_callback(bool connected) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Connected: %s", (connected) ? "true" : "false");
+  connected = connection_service_peek_pebblekit_connection();
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Connected: %s", BOOL(connected));
   loading_window_pop();
   action_window_pop();
   menu_window_pop();
   loading_window_push();
+  comm_callback_start();
 }
 
 static void init() {
   ubuntu18 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_18));
   ubuntu10 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_10));
+  comm_init();
   connection_service_subscribe((ConnectionHandlers) {
     .pebblekit_connection_handler = pebblekit_connection_callback
   });
-  pebblekit_connection_callback(connection_service_peek_pebblekit_connection());
-  comm_init();
+  pebblekit_connection_callback(true);
 }
 
 static void deinit() { 
