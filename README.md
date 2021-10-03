@@ -1,2 +1,2 @@
 # Stateful
-![](mockups/Stateful.gif)
+![](resources/images/stateful.gif)
