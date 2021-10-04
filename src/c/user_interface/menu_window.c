@@ -34,7 +34,7 @@ static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex 
     GSize text_size = GSize(0, 24);
     GRect text_rect = GRect(bounds.origin.x, (bounds.size.h - text_size.h) /2, bounds.size.w, bounds.size.h);
 
-    graphics_draw_text(ctx, tile->texts[6], ubuntu18, text_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+    graphics_draw_text(ctx, tile->texts[6], ubuntu18, text_rect, GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 
   }
 }

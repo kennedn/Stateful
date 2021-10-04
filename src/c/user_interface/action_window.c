@@ -118,6 +118,9 @@ static void action_window_load(Window *window) {
     text_layer_set_font(s_up_label_layer, ubuntu18);
     text_layer_set_font(s_mid_label_layer, ubuntu18);
     text_layer_set_font(s_down_label_layer, ubuntu18);
+    text_layer_set_overflow_mode(s_up_label_layer,GTextOverflowModeFill);
+    text_layer_set_overflow_mode(s_mid_label_layer,GTextOverflowModeFill);
+    text_layer_set_overflow_mode(s_down_label_layer,GTextOverflowModeFill);
 
     layer_add_child(window_layer, text_layer_get_layer(s_up_label_layer));
     layer_add_child(window_layer, text_layer_get_layer(s_mid_label_layer));
@@ -153,6 +156,7 @@ void app_timer_callback(void *data) {
     free(data);
 }
 void action_window_set_color(int type) {
+    if (!s_action_window) { return; }
     light_enable_interaction();
     #ifndef PBL_COLOR
         return;

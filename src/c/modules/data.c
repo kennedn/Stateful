@@ -5,6 +5,10 @@
 #include "c/modules/comm.h"
 #include "c/stateful.h"
 
+TileArray *tileArray = NULL;
+IconArray *iconArray = NULL;
+GBitmap *defaultIcon = NULL;
+
 static void data_tile_array_init(uint8_t size) {
   tileArray = malloc(sizeof(TileArray));
   tileArray->tiles = malloc(size * sizeof(Tile));
@@ -15,6 +19,7 @@ static void data_tile_array_init(uint8_t size) {
 }
 
 static void data_tile_array_add_tile(Tile *tile) {
+  if (!tileArray) { return; }
   if (tileArray->used == tileArray->size) {
     tileArray->size *=2;
     tileArray->tiles = realloc(tileArray->tiles, tileArray->size * sizeof(Tile));
@@ -23,6 +28,7 @@ static void data_tile_array_add_tile(Tile *tile) {
 }
 
 void data_tile_array_free() {
+  if (!tileArray) { return; }
   for(uint8_t i=0; i < tileArray->used; i++) {
     for(uint8_t j=0; j < ARRAY_LENGTH(tileArray->tiles[i].texts); j++) {
       free(tileArray->tiles[i].texts[j]);
@@ -37,9 +43,7 @@ void data_tile_array_free() {
 }
 
 void data_tile_array_pack_tiles(uint8_t *data, int data_size){
-    if (tileArray) {
-      data_tile_array_free();
-    }
+    data_tile_array_free();
     data_tile_array_init(1);
 
     Tile *tile;
@@ -108,6 +112,7 @@ void data_icon_array_init(uint8_t size) {
 }
 
 void data_icon_array_free() {
+  if (!iconArray) { return; }
   for(uint8_t i=0; i < iconArray->size; i++) {
       gbitmap_destroy(iconArray->icons[i].icon);
       free(iconArray->icons[i].key);
@@ -118,6 +123,7 @@ void data_icon_array_free() {
 }
 
 void data_icon_array_add_icon(uint8_t *data) {
+  if (!iconArray) { return; }
   int ptr = 0;
   uint8_t index = data[ptr++];
   Icon *icon = &iconArray->icons[index];
@@ -137,6 +143,7 @@ void data_icon_array_add_icon(uint8_t *data) {
 }
 
 GBitmap *data_icon_array_search(char* key){
+  if (!iconArray || strlen(key) == 0) { return NULL; }
   for (int i=0; i < iconArray->size; i++) {
     Icon *icon = &iconArray->icons[i];
     if (icon->key && strcmp(key, icon->key) == 0) {

@@ -7,7 +7,8 @@
   ],
   "private": true,
   "dependencies": {
-    "buffer": "^6.0.3"
+    "buffer": "^4.9.2",
+    "pebble-clay": "file:../clay"
   },
   "pebble": {
     "displayName": "Stateful",
@@ -73,20 +74,18 @@
         {
           "file": "fonts/Ubuntu-B.ttf",
           "name": "FONT_UBUNTU_BOLD_18",
-          "type": "font",
-          "compatibility": "2.7"
+          "type": "font"
         },
         {
           "file": "fonts/Ubuntu-B.ttf",
           "name": "FONT_UBUNTU_BOLD_10",
-          "type": "font",
-          "compatibility": "2.7"
+          "type": "font"
         },
         {
           "menuIcon": true,
           "type": "png",
           "name": "IMAGE_MENU_ICON",
-          "file": "images/small_icon.png"
+          "file": "images/menu_icon.png"
         }
       ]
     }

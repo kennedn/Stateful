@@ -1,14 +1,20 @@
 window.global = window;
 var Buffer = require('buffer/').Buffer;
 var headers = require('../../headers.json');
-var DEBUG = 2;
+var Clay = require('pebble-clay');
+var customClay = require('./custom-clay');
+var clayConfig = require('./config');
+var messageKeys = require('message_keys')
+var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
+var base_url = (Pebble.getActiveWatchInfo().model.indexOf('emu') != -1) ? "http://thinboy.int" : "https://kennedn.com"
+var DEBUG = 3;
 // //var IMG_URL = 'https://i.imgur.com/gzLWQXf.png'; //bulb
 // //var IMG_URL = 'https://i.imgur.com/tQOn2aw.png'; //tv
 // //var IMG_URL = 'http://pc.int:8080/tv.png';
 // var IMG_URL = 'https://kennedn.com/images/deleted.png'
-var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 256: 8192;
+var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 256: 8200;
 var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 4 : 10;
-
+var MAX_TEXT_SIZE = 24;
  
 if (!String.prototype.padStart) {
 	String.prototype.padStart = function padStart(targetLength,padString) {
@@ -119,7 +125,7 @@ var icons = {
 // icons = tmp_icons;
 
 var tiles = {
-  "default_idx": 3, 
+  "default_idx": 0, 
   "open_default": true,
   "tiles": [
      {
@@ -143,13 +149,12 @@ var tiles = {
           "77de68dabb",
           "77de68dabb",
           "77de68dabb",
-          // "da4b9237b0",
           "77de68dabb",
-          "ac3478d6c4",
+          "77de68dabb",
         ]
       },
       "buttons": {
-        "base_url": "https://kennedn.com/api/v1.0/",
+        "base_url": base_url + "/api/v1.0/",
         "up": {
           "method": "PUT",
           "url": "wifi_bulb/office",
@@ -238,11 +243,11 @@ var tiles = {
         "highlight": "5500aa",
         "texts": [
           "bulb",
-          "bulb off",
-          "lamp on",
-          "lamp off",
-          "tv",
+          "vol up",
+          "lamp",
           "input",
+          "tv",
+          "vol down",
           "livingroom"
         ],
         "icon_keys": [
@@ -252,12 +257,11 @@ var tiles = {
           "77de68dabb",
           "da4b9237b0",
           "77de68dabb",
-          // "da4b9237b0",
-          "ac3478d6c4",
+          "da4b9237b0",
         ]
       },
       "buttons": {
-        "base_url": "https://kennedn.com/api/v1.0/",
+        "base_url": base_url + "/api/v1.0/",
         "up": {
           "method": "PUT",
           "url": "bulb_old",
@@ -273,18 +277,26 @@ var tiles = {
         },
         "up_hold": {
           "method": "PUT",
-          "url": "bulb_old",
-          "data": {"code": "off"},
+          "url": "tvcom/ir_key",
+          "data": {"code": "vol_up"},
         },
         "mid": {
           "method": "PUT",
           "url": "bulb",
-          "data": {"code": "on"},
+          "multi_data": {
+            "index": 0,
+            "good": 0,
+            "bad": 1,
+            "data": [
+              {"code": "on"},
+              {"code": "off"}
+            ]
+          }
         },
         "mid_hold": {
           "method": "PUT",
-          "url": "bulb",
-          "data": {"code": "off"},
+          "url": "tvcom/ir_key",
+          "data": {"code": "input"},
         },
         "down": {
           "method": "PUT",
@@ -302,7 +314,7 @@ var tiles = {
         "down_hold": {
           "method": "PUT",
           "url": "tvcom/ir_key",
-          "data": {"code": "input"}
+          "data": {"code": "vol_down"}
         }
       }
     },
@@ -310,182 +322,65 @@ var tiles = {
       "headers": headers,
       "payload": {
         "id": 3,
-        "color": "00aa00",
-        "highlight": "55aa00",
+        "color": "000000",
+        "highlight": "aaaaaa",
         "texts": [
-          "office",
-          "attic",
-          "bedroom",
-          "hall up",
-          "tv",
-          "hall down",
-          "thermostat"
+          "pc",
+          "shitcube",
+          "pc status",
+          "shitcube status",
+          "",
+          "",
+          "computers"
         ],
         "icon_keys": [
-          "ac3478d6c4",
-          "da4b9237b0",
-          "ac3478d6c4",
-          "77de68dabb",
-          "ac3478d6c4",
           "1b6453897a",
-          "ac3478d6c4",
+          "1b6453897a",
+          "1b6453897a",
+          "1b6453897a",
+          "",
+          "",
+          "1b6453897a",
         ]
       },
       "buttons": {
-        "base_url": "https://kennedn.com/api/v1.0/",
+        "base_url": base_url + "/api/v1.0/",
         "up": {
           "method": "PUT",
-          "url": "wifi_bulb/office",
-          "data": {"code": "toggle"},
-          "status": {
-            "method": "PUT",
-            "url": "wifi_bulb/office",
-            "data": {"code": "status"},
-            "variable": "onoff",
-            "good": 1,
-            "bad": 0
-          }
+          "url": "pc",
+          "data": {"code": "power"},
         },
         "up_hold": {
           "method": "PUT",
-          "url": "wifi_bulb/attic",
-          "data": {"code": "toggle"},
+          "url": "shitcube",
+          "data": {"code": "status"},
           "status": {
             "method": "PUT",
-            "url": "wifi_bulb/attic",
-            "data": {"code": "status"},
-            "variable": "onoff",
-            "good": 1,
-            "bad": 0
-          }
-        },
-        "mid": {
-          "method": "PUT",
-          "url": "wifi_bulb/bedroom",
-          "data": {"code": "toggle"},
-          "status": {
-            "method": "PUT",
-            "url": "wifi_bulb/bedroom",
-            "data": {"code": "status"},
-            "variable": "onoff",
-            "good": 1,
-            "bad": 0
-          }
-        },
-        "mid_hold": {
-          "method": "PUT",
-          "url": "wifi_bulb/hall_up",
-          "data": {"code": "toggle"},
-          "status": {
-            "method": "PUT",
-            "url": "wifi_bulb/hall_up",
-            "data": {"code": "status"},
-            "variable": "onoff",
-            "good": 1,
-            "bad": 0
-          }
-        },
-        "down": {
-          "method": "PUT",
-          "url": "tvcom/ir_key",
-          "data": {"code": "power"},
-          "status": {
-            "method": "PUT",
-            "url": "tvcom/power",
+            "url": "shitcube",
             "data": {"code": "status"},
             "variable": "status",
             "good": 'on',
             "bad": 'off'
           }
         },
-        "down_hold": {
-          "method": "PUT",
-          "url": "wifi_bulb/hall_down",
-          "data": {"code": "toggle"},
-          "status": {
-            "method": "PUT",
-            "url": "wifi_bulb/hall_down",
-            "data": {"code": "status"},
-            "variable": "onoff",
-            "good": 1,
-            "bad": 0
-          }
-        }
-      }
-    },
-    {
-      "headers": headers,
-      "payload": {
-        "id": 4,
-        "color": "ff00ff",
-        "highlight": "ff55ff",
-        "texts": [
-          "bulb",
-          "bulb off",
-          "lamp on",
-          "lamp off",
-          "tv",
-          "input",
-          "attic"
-        ],
-        "icon_keys": [
-          "b1e98808b2",
-          "b1e98808b2",
-          "202eb9f1ba",
-          "202eb9f1ba",
-          "84d30b574f",
-          "84d30b574f",
-          "84d30b574f",
-        ]
-      },
-      "buttons": {
-        "base_url": "https://kennedn.com/api/v1.0/",
-        "up": {
-          "method": "PUT",
-          "url": "bulb_old",
-          "multi_data": {
-            "index": 0,
-            "good": 0,
-            "bad": 1,
-            "data": [
-              {"code": "on"},
-              {"code": "off"}
-            ]
-          }
-        },
-        "up_hold": {
-          "method": "PUT",
-          "url": "bulb_old",
-          "data": {"code": "off"},
-        },
         "mid": {
           "method": "PUT",
-          "url": "bulb",
-          "data": {"code": "on"},
+          "url": "shitcube",
+          "data": {"code": "power"},
         },
         "mid_hold": {
           "method": "PUT",
-          "url": "bulb",
-          "data": {"code": "off"},
-        },
-        "down": {
-          "method": "PUT",
-          "url": "tvcom/ir_key",
-          "data": {"code": "power"},
+          "url": "shitcube",
+          "data": {"code": "status"},
           "status": {
             "method": "PUT",
-            "url": "tvcom/power",
+            "url": "shitcube",
             "data": {"code": "status"},
             "variable": "status",
             "good": 'on',
             "bad": 'off'
           }
         },
-        "down_hold": {
-          "method": "PUT",
-          "url": "tvcom/ir_key",
-          "data": {"code": "input"}
-        }
       }
     }
   ]
@@ -701,7 +596,7 @@ function packTiles(tiles) {
 
     for (var idx in payload.texts) {
       t = payload.texts[idx];
-      uint8[ptr++] = t.length + 1;
+      uint8[ptr++] = Math.min(255, t.length + 1);
       ptr = packString(uint8, t, ptr);
     }
 
@@ -712,7 +607,7 @@ function packTiles(tiles) {
     }
   }
   // Aplite doesn't have the memory capacity to support external icons
-  if (!Pebble.getActiveWatchInfo().model.includes('aplite')) {
+  if (!Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) {
     // Generate a unique list of icon_keys and pack as many as the icon buffer can store without looping to 
     // send alongside the tile data. This is just to try and speed up icon download a little on initial app open
     icon_keys = icon_keys.filter(function(v, i, s) {return s.indexOf(v) === i});
@@ -801,7 +696,8 @@ function sendChunk(array, index, arrayLength, type) {
         'TransferType': type});
     }
   }, function(obj, error) {
-    if (DEBUG > 1) { console.log('Failed to send chunk'); }
+    if (DEBUG > 1) { console.log('Failed to send chunk, reattempting'); }
+    setTimeout(1000, function() {sendChunk(array, index, arrayLength, type);});
   });
 }
 
@@ -868,7 +764,11 @@ function xhrRequest(method, base_url, url, headers, data, callback) {
       }
       Pebble.sendAppMessage({"TransferType": TransferType.ACK}, messageSuccessCallback, messageFailureCallback);
       if (DEBUG > 1) { console.log("Status: " + this.status); }
-      if (callback) { callback(); }
+      if (callback) { 
+        callback(); 
+      } else {
+        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.GOOD }, messageSuccessCallback, messageFailureCallback);
+      }
     } else {
       // Pebble.sendAppMessage({"TransferType": TransferType.ERROR}, messageSuccessCallback, messageFailureCallback);
       Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
@@ -989,7 +889,7 @@ if (DEBUG > 1)
 
 switch(dict.TransferType) {
   case TransferType.ICON:
-    if (!("IconKey" in dict) || !("IconIndex" in dict)) {
+    if (!(dict.hasOwnProperty("IconKey")) || !(dict.hasOwnProperty("IconIndex"))) {
       if (DEBUG > 0)
         console.log("didn't receive expected data");
       return;
@@ -1006,7 +906,7 @@ switch(dict.TransferType) {
   break;
 
   case TransferType.XHR:
-    if (!("RequestID" in dict) || !("RequestButton" in dict)) {
+    if (!(dict.hasOwnProperty("RequestID")) || !(dict.hasOwnProperty("RequestButton"))) {
       if (DEBUG > 0)
         console.log("didn't receive expected data");
       return;
@@ -1039,8 +939,10 @@ switch(dict.TransferType) {
     } else if("multi_data" in button) {
       var multi_data = button.multi_data;
       var data = multi_data.data[multi_data.index];
-      xhrRequest(button.method, base_url, button.url, headers, data, function() { idxHighlight(multi_data.index, multi_data.good, multi_data.bad); });
-      button.multi_data.index = (multi_data.index + 1) % multi_data.data.length;
+      xhrRequest(button.method, base_url, button.url, headers, data, function() { 
+        idxHighlight(multi_data.index, multi_data.good, multi_data.bad); 
+        button.multi_data.index = (multi_data.index + 1) % multi_data.data.length;
+      });
     } else {
       xhrRequest(button.method, base_url, button.url, headers, button.data, false);
     }
@@ -1050,5 +952,58 @@ switch(dict.TransferType) {
 });
 
 Pebble.addEventListener('ready', function() {
-console.log("monkey :)");
+  console.log("monkey :)");
+  Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
+});
+
+
+Pebble.addEventListener('showConfiguration', function(e) {
+  Pebble.openURL(clay.generateUrl());
+});
+
+Pebble.addEventListener('webviewclosed', function(e) {
+  if (e && !e.response) {
+    return;
+  }
+  // Get the keys and values from each config item
+  console.log(JSON.stringify(e.response));
+  var dict = clay.getSettings(e.response);
+  console.log(JSON.stringify(dict));
+  var clayJSON = JSON.parse(dict[messageKeys.ClayJSON]);
+
+  switch(clayJSON.action) {
+    // case "AddTile":
+    //   insertTile(tileIdx);
+    //   tileIdx++;
+    //   Pebble.openURL(clay.generateUrl());
+    //   break;
+    // case "LoadIcon":
+    //   //Attempt a clayConfig data URI insert with provided payload (url)
+    //   //Re-open config page when promise returns.
+    //   insertDataURL(clayJSON.payload).then(function () {
+    //       console.log("Image parse Success, Re-opening pebbleURL");
+    //       Pebble.openURL(clay.generateUrl());
+    //     },function () {
+    //       console.log("Image parse Failure, Re-opening pebbleURL");
+    //       Pebble.openURL(clay.generateUrl());
+    //     });
+    //   break;
+    case "Submit":
+      // Decode and parse config data as JSON
+      var settings = clayJSON.payload;
+      console.log(settings);
+
+      // flatten the settings for localStorage
+      var settingsStorage = {};
+      settings.forEach(function(e) {
+        if (typeof e === 'object' && e.id) {
+          settingsStorage[e.id] = e.value;
+        } else {
+          settingsStorage[e.id] = e;
+        }
+      });
+      localStorage.setItem('clay-settings', JSON.stringify(settingsStorage));
+      console.log(JSON.stringify(settingsStorage));
+      break;
+  }
 });
