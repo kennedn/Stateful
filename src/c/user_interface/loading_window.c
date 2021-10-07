@@ -81,7 +81,7 @@ static void text_callback(void *data) {
   text_timer = app_timer_register(150, text_callback, NULL);
 }
 
-static void draw_text(char *text, Layer* window_layer, GRect bounds, bool loading) {
+static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool loading) {
     GSize text_size = graphics_text_layout_get_content_size(text, ubuntu18, bounds, GTextOverflowModeWordWrap, GTextAlignmentLeft);
     // GSize text_size = GSize(bounds.size.w, 48);
     // text_size.h = 24;
@@ -120,7 +120,7 @@ static void window_load(Window *window) {
   text_timer = NULL;
   timeout_timer = NULL;
   #ifdef PBL_BW
-    draw_text("Loading...", window_layer, bounds, true);
+    setup_text_layer("Loading...", window_layer, bounds, true);
     return;
   #endif 
 
@@ -132,8 +132,8 @@ static void window_load(Window *window) {
   bounds.origin.y = bounds.size.h *.7;
   bounds.size.h = bounds.size.h *.25;
   char *texts[] = {"hmm...", "um...", "maybe...", "(;-_-)", "(¬_¬)"};
-  draw_text(texts[rand() % ARRAY_LENGTH(texts)], window_layer, bounds, false); 
-  timeout_timer = app_timer_register(3000, timeout_timer_callback, NULL);
+  setup_text_layer(texts[rand() % ARRAY_LENGTH(texts)], window_layer, bounds, false); 
+  timeout_timer = app_timer_register(RETRY_READY_TIMEOUT, timeout_timer_callback, NULL);
 
 }
 
@@ -143,9 +143,9 @@ void window_unload(Window *window) {
     if (s_text_layer) { text_layer_destroy(s_text_layer); }
     if (loading_bitmap_layer) { bitmap_layer_destroy(loading_bitmap_layer); }
     if (loading_bitmap) { gbitmap_destroy(loading_bitmap); }
-    loading_window_stop_animation();
     if (timeout_timer) { app_timer_cancel(timeout_timer); timeout_timer = NULL;}
     if (text_timer) { app_timer_cancel(text_timer); text_timer = NULL;}
+    loading_window_stop_animation();
     window_destroy(s_window);
     s_window = NULL;
   }

@@ -48,7 +48,7 @@ void processData(DictionaryIterator *dict, uint8_t **data, uint8_t transferType 
       free(*data);
       *data = NULL;
       data_transfer_lock = false;
-      #ifdef DEBUG
+      #if DEBUG > 0
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Transfer complete, free bytes: %d", heap_bytes_free());
       #endif
       
@@ -59,16 +59,15 @@ void processData(DictionaryIterator *dict, uint8_t **data, uint8_t transferType 
 static void inbox(DictionaryIterator *dict, void *context) {
     Tuple *type_t = dict_find(dict, MESSAGE_KEY_TransferType);
     Tuple *color_t = dict_find(dict, MESSAGE_KEY_Color);
-    Tuple *size_t = dict_find(dict, MESSAGE_KEY_TransferLength);
     switch(type_t->value->int32) {
       case TRANSFER_TYPE_ICON:
-        #ifdef DEBUG
+        #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received icon chunk");
         #endif
         processData(dict, &raw_data, TRANSFER_TYPE_ICON);
         break;
       case TRANSFER_TYPE_TILE:
-        #ifdef DEBUG
+        #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received tile chunk");
         #endif
         processData(dict, &raw_data, TRANSFER_TYPE_TILE);
@@ -79,22 +78,22 @@ static void inbox(DictionaryIterator *dict, void *context) {
         if (color_t) { action_window_set_color(color_t->value->int32); }
         break;
       case TRANSFER_TYPE_ERROR:
-        #ifdef DEBUG
+        #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Error");
         #endif
 
         break;
       case TRANSFER_TYPE_ACK:
-        #ifdef DEBUG
+        #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received acknowledge");
         #endif
         break;
       case TRANSFER_TYPE_READY:
-        #ifdef DEBUG
+        #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "JS Environment Ready");
+        #endif
         is_ready = true;
         comm_tile_request();
-        #endif
         break;
     }
 }
@@ -111,15 +110,19 @@ void comm_ready_callback(void *data) {
     if (is_ready && data_transfer_lock) {data_transfer_lock = false;}
     DictionaryIterator *dict;
     uint32_t result = app_message_outbox_begin(&dict);
+    #if DEBUG > 1
     APP_LOG(APP_LOG_LEVEL_DEBUG, "result: %d", (int)result);
+    #endif
     if (result == APP_MSG_OK) {
       dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_READY);
       dict_write_end(dict);
       app_message_outbox_send();
     }
     outbox_attempts = MIN(30, outbox_attempts + 1);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Not ready, waiting %d ms", 1000 * outbox_attempts);
-    s_ready_timer = app_timer_register(1000 * outbox_attempts, comm_ready_callback, NULL);
+    #if DEBUG > 1
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Not ready, waiting %d ms", 500 * outbox_attempts);
+    #endif
+    s_ready_timer = app_timer_register(500 * outbox_attempts, comm_ready_callback, NULL);
   } else {
     s_ready_timer = NULL;
   }
@@ -189,12 +192,11 @@ void comm_callback_start() {
   if (s_ready_timer) {app_timer_cancel(s_ready_timer);}
   s_retry_timer = NULL;
   s_ready_timer = NULL;
-  app_timer_register(5000, comm_ready_callback, NULL);
+  app_timer_register(RETRY_READY_TIMEOUT, comm_ready_callback, NULL);
 }
 
 
 void comm_init() {
-  app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
   s_ready_timer = NULL;
   s_retry_timer = NULL;
   data_icon_array_init(ICON_ARRAY_SIZE);
@@ -204,12 +206,13 @@ void comm_init() {
 }
 
 void comm_deinit() {
+  app_message_deregister_callbacks();
+  if (raw_data) { free(raw_data);}
+  data_tile_array_free();
+  data_icon_array_free();
   if (s_retry_timer) {app_timer_cancel(s_retry_timer);}
   if (s_ready_timer) {app_timer_cancel(s_ready_timer);}
   s_ready_timer = NULL;
   s_retry_timer = NULL;
   // Free image data buffer
-  data_tile_array_free();
-  data_icon_array_free();
-  app_message_deregister_callbacks();
 }

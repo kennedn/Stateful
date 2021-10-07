@@ -1,12 +1,14 @@
 #pragma once
 #include <pebble.h>
-GFont ubuntu18, ubuntu10;
+GFont ubuntu18;
 
-#define DEBUG 0
+#define DEBUG 2
 #define ICON_ARRAY_SIZE 10
 #ifdef PBL_APLITE
 #define ICON_ARRAY_SIZE 4
 #endif
+
+#define RETRY_READY_TIMEOUT 5000
 
 #define SHORT_VIBE() vibes_enqueue_custom_pattern(short_vibe);
 #define LONG_VIBE() vibes_enqueue_custom_pattern(long_vibe);
@@ -25,4 +27,5 @@ enum transferType {
   TRANSFER_TYPE_ERROR = 4,
   TRANSFER_TYPE_ACK = 5,
   TRANSFER_TYPE_READY = 6,
+  TRANSFER_TYPE_FAST_ICON = 7,
 };

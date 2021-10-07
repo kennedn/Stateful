@@ -19,28 +19,27 @@
 #define DOWN 4
 #define DOWN_HOLD 5
 
-typedef struct {
-  uint8_t id;
+typedef struct __attribute__((__packed__)) {
   GColor color;
   GColor highlight;
   char* texts[7];
   char* icon_key[7];
 } Tile;
 
-typedef struct {
-  Tile *tiles;
+typedef struct __attribute__((__packed__)) {
+  Tile **tiles;
   uint8_t used;
   uint8_t size;
   uint8_t default_idx;
   bool open_default;
 } TileArray;
 
-typedef struct {
-  char* key;
+typedef struct __attribute__((__packed__)) {
+  char *key;
   GBitmap *icon;
 } Icon;
 
-typedef struct {
+typedef struct __attribute__((__packed__)) {
   Icon *icons;
   uint8_t ptr;
   uint8_t size;

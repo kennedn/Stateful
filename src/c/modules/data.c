@@ -11,7 +11,10 @@ GBitmap *defaultIcon = NULL;
 
 static void data_tile_array_init(uint8_t size) {
   tileArray = malloc(sizeof(TileArray));
-  tileArray->tiles = malloc(size * sizeof(Tile));
+  tileArray->tiles = malloc(size * sizeof(Tile*));
+  for (uint8_t i=0; i < size; i ++) {
+    tileArray->tiles[i] = malloc(sizeof(Tile));
+  }
   tileArray->used = 0;
   tileArray->size = size;
   tileArray->default_idx = 0;
@@ -21,64 +24,59 @@ static void data_tile_array_init(uint8_t size) {
 static void data_tile_array_add_tile(Tile *tile) {
   if (!tileArray) { return; }
   if (tileArray->used == tileArray->size) {
-    tileArray->size *=2;
+    tileArray->size  *= 2;
     tileArray->tiles = realloc(tileArray->tiles, tileArray->size * sizeof(Tile));
   }
-  tileArray->tiles[tileArray->used++] = *tile;
+  tileArray->tiles[tileArray->used++] = tile;
 }
 
 void data_tile_array_free() {
   if (!tileArray) { return; }
   for(uint8_t i=0; i < tileArray->used; i++) {
-    for(uint8_t j=0; j < ARRAY_LENGTH(tileArray->tiles[i].texts); j++) {
-      free(tileArray->tiles[i].texts[j]);
-      free(tileArray->tiles[i].icon_key[j]);
+    for(uint8_t j=0; j < ARRAY_LENGTH((*tileArray->tiles[i]).texts); j++) {
+      if ((*tileArray->tiles[i]).texts[j]) { free((*tileArray->tiles[i]).texts[j]); }
+      if ((*tileArray->tiles[i]).icon_key[j]) { free((*tileArray->tiles[i]).icon_key[j]); }
     }
+    free(tileArray->tiles[i]);
   }
-
   free(tileArray->tiles);
-  tileArray->tiles = NULL;
   free(tileArray);
   tileArray = NULL;
 }
 
 void data_tile_array_pack_tiles(uint8_t *data, int data_size){
     data_tile_array_free();
-    data_tile_array_init(1);
+    data_tile_array_init(4);
 
     Tile *tile;
     int ptr = 0;
-    int tile_counter = 0;
     uint8_t tile_count = data[ptr++];
     tileArray->default_idx = data[ptr++];
     tileArray->open_default = data[ptr++];
     uint8_t i = 0;
+    int tile_counter = 0;
     while (i < tile_count) {
       tile = (Tile*) malloc(sizeof(Tile));
       uint8_t text_size = 0;
       uint8_t key_size = 0;
-      tile->id = (uint8_t) data[ptr++];
       tile->color = PBL_IF_COLOR_ELSE((GColor) data[ptr], GColorBlack); ptr++;
       tile->highlight = PBL_IF_COLOR_ELSE((GColor) data[ptr], GColorWhite); ptr++;
       
       for(uint8_t i=0; i < ARRAY_LENGTH(tile->texts); i++) {
         text_size = data[ptr++];
-        tile->texts[i] = (char*) malloc(text_size * sizeof(char*));
+        tile->texts[i] = (char*) malloc(text_size * sizeof(char));
         strncpy(tile->texts[i], (char*) &data[ptr], text_size);
         ptr += text_size;
       }
 
       for(uint8_t i=0; i < ARRAY_LENGTH(tile->icon_key); i++) {
         key_size = data[ptr++];
-        tile->icon_key[i] = (char*) malloc(key_size * sizeof(char*));
+        tile->icon_key[i] = (char*) malloc(key_size * sizeof(char));
         strncpy(tile->icon_key[i], (char*) &data[ptr], key_size);
         ptr += key_size;
       }
-      #ifdef DEBUG 
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Tile size: %d", ptr - tile_counter);
-      #endif
+      data_tile_array_add_tile(tile); 
       tile_counter = ptr;
-      data_tile_array_add_tile(tile);
       i++;
     }
     while (ptr < data_size) {
@@ -92,7 +90,7 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
 
     menu_window_push();
 
-    #ifdef DEBUG 
+    #if DEBUG > 1 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed tile assignment");
     #endif
 
@@ -135,7 +133,7 @@ void data_icon_array_add_icon(uint8_t *data) {
   icon->icon = NULL;
   icon->icon = (icon_size == 1) ? gbitmap_create_with_resource(data[ptr]) : gbitmap_create_from_png_data(&data[ptr], icon_size);
 
-  #ifdef DEBUG
+  #if DEBUG > 1
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Created icon at index %d", index);
   #endif
   menu_window_refresh_icons();
@@ -150,7 +148,7 @@ GBitmap *data_icon_array_search(char* key){
       return icon->icon;
     }
   }
-  #ifdef DEBUG
+  #if DEBUG > 1
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Couldnt find %s locally, asking JS environment", key);
   #endif 
   Icon *icon = &iconArray->icons[iconArray->ptr];

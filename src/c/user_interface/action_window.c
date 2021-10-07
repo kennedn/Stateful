@@ -10,24 +10,25 @@ static ActionBarLayer *s_action_bar_layer;
 static TextLayer *s_up_label_layer, *s_mid_label_layer, *s_down_label_layer;
 static GRect s_label_bounds;
 static uint8_t tap_toggle = 0;
+static Tile *tile;
+static uint8_t tile_index;
 
-Tile *tile;
 void action_window_swap_buttons();
 
 static void up_click_callback(ClickRecognizerRef recognizer, void *ctx) {
-    action_window_set_color(3);
+    (strlen(tile->texts[tap_toggle + 0]) == 0) ? action_window_set_color(-2) : action_window_set_color(-1);
     action_window_inset_highlight(BUTTON_ID_UP);
-    comm_xhr_request(ctx, tile->id, 0 + tap_toggle);
+    comm_xhr_request(ctx, tile_index, 0 + tap_toggle);
 }
 static void mid_click_callback(ClickRecognizerRef recognizer, void *ctx) {
-    action_window_set_color(3);
+    (strlen(tile->texts[tap_toggle + 2]) == 0) ? action_window_set_color(-2) : action_window_set_color(-1);
     action_window_inset_highlight(BUTTON_ID_SELECT);
-    comm_xhr_request(ctx, tile->id, 2 + tap_toggle);
+    comm_xhr_request(ctx, tile_index, 2 + tap_toggle);
 }
 static void down_click_callback(ClickRecognizerRef recognizer, void *ctx) {
-    action_window_set_color(3);
+    (strlen(tile->texts[tap_toggle + 4]) == 0) ? action_window_set_color(-2) : action_window_set_color(-1);
     action_window_inset_highlight(BUTTON_ID_DOWN);
-    comm_xhr_request(ctx, tile->id, 4 + tap_toggle);
+    comm_xhr_request(ctx, tile_index, 4 + tap_toggle);
 }
 
 static void mid_hold_click_callback(ClickRecognizerRef recognizer, void *ctx) {
@@ -44,6 +45,26 @@ void action_window_swap_buttons() {
     SHORT_VIBE();
     action_window_inset_highlight(BUTTON_ID_BACK);
     tap_toggle = !tap_toggle;
+
+    GRect bounds = layer_get_bounds(window_get_root_layer(s_action_window));
+    GRect up_label_bounds = GRect(bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h / 3);
+    GRect mid_label_bounds = GRect(bounds.origin.x, bounds.origin.y + (up_label_bounds.origin.y + up_label_bounds.size.h),
+                                   bounds.size.w, bounds.size.h / 3);
+    GRect down_label_bounds = GRect(bounds.origin.x, bounds.origin.y + (mid_label_bounds.origin.y + mid_label_bounds.size.h),
+                                   bounds.size.w, bounds.size.h / 3);
+    GSize up_text_size = graphics_text_layout_get_content_size(tile->texts[0 + tap_toggle], ubuntu18, GRect(bounds.origin.x, bounds.origin.y, bounds.size.w - (ACTION_BAR_WIDTH * 1.6), bounds.size.h), GTextOverflowModeFill, GTextAlignmentRight);
+    up_text_size.h *= 1.332;
+    GSize mid_text_size = graphics_text_layout_get_content_size(tile->texts[2 + tap_toggle], ubuntu18, GRect(bounds.origin.x, bounds.origin.y, bounds.size.w - (ACTION_BAR_WIDTH * 1.6), bounds.size.h), GTextOverflowModeFill, GTextAlignmentRight);
+    mid_text_size.h *= 1.332;
+    GSize down_text_size = graphics_text_layout_get_content_size(tile->texts[4 + tap_toggle], ubuntu18, GRect(bounds.origin.x, bounds.origin.y, bounds.size.w - (ACTION_BAR_WIDTH * 1.6), bounds.size.h), GTextOverflowModeFill, GTextAlignmentRight);
+    down_text_size.h *= 1.332;
+    uint8_t pad = PBL_IF_RECT_ELSE(5, 30);
+    GEdgeInsets up_label_insets = {.top = pad  + ((up_label_bounds.size.h - (up_text_size.h)) /2), .left = ACTION_BAR_WIDTH * 0.3, .right = ACTION_BAR_WIDTH * 1.3, .bottom = -pad};
+    GEdgeInsets mid_label_insets = {.top = ((mid_label_bounds.size.h - (mid_text_size.h)) /2), .left = ACTION_BAR_WIDTH * 0.3, .right = ACTION_BAR_WIDTH * 1.3 };
+    GEdgeInsets down_label_insets = {.top = -pad + ((down_label_bounds.size.h - (down_text_size.h)) /2), .left = ACTION_BAR_WIDTH * 0.3, .right = ACTION_BAR_WIDTH * 1.3, .bottom = pad};
+    layer_set_frame(text_layer_get_layer(s_up_label_layer), grect_inset(up_label_bounds, up_label_insets));
+    layer_set_frame(text_layer_get_layer(s_mid_label_layer), grect_inset(mid_label_bounds, mid_label_insets));
+    layer_set_frame(text_layer_get_layer(s_up_label_layer), grect_inset(up_label_bounds, up_label_insets));
     text_layer_set_text(s_up_label_layer, tile->texts[tap_toggle]);
     text_layer_set_text(s_mid_label_layer, tile->texts[2 + tap_toggle]);
     text_layer_set_text(s_down_label_layer, tile->texts[4 + tap_toggle]);
@@ -83,16 +104,20 @@ static void action_window_load(Window *window) {
 
     // 5 pixel y pad on top
    GRect up_label_bounds = GRect(bounds.origin.x, bounds.origin.y, bounds.size.w, bounds.size.h / 3);
-    GRect mid_label_bounds = GRect(bounds.origin.x, bounds.origin.y + (up_label_bounds.origin.y + up_label_bounds.size.h),
+    GRect mid_label_bounds = GRect(bounds.origin.x, up_label_bounds.origin.y + up_label_bounds.size.h,
                                    bounds.size.w, bounds.size.h / 3);
-    GRect down_label_bounds = GRect(bounds.origin.x, bounds.origin.y + (mid_label_bounds.origin.y + mid_label_bounds.size.h),
+    GRect down_label_bounds = GRect(bounds.origin.x, mid_label_bounds.origin.y + mid_label_bounds.size.h,
                                    bounds.size.w, bounds.size.h / 3);
-    GSize text_size = GSize(0, 24);
+    GSize up_text_size = graphics_text_layout_get_content_size(tile->texts[0], ubuntu18, GRect(bounds.origin.x, bounds.origin.y, bounds.size.w - (ACTION_BAR_WIDTH * 1.6), bounds.size.h), GTextOverflowModeFill, GTextAlignmentRight);
+    up_text_size.h *= 1.332;
+    GSize mid_text_size = graphics_text_layout_get_content_size(tile->texts[2], ubuntu18, GRect(bounds.origin.x, bounds.origin.y, bounds.size.w - (ACTION_BAR_WIDTH * 1.6), bounds.size.h), GTextOverflowModeFill, GTextAlignmentRight);
+    mid_text_size.h *= 1.332;
+    GSize down_text_size = graphics_text_layout_get_content_size(tile->texts[4], ubuntu18, GRect(bounds.origin.x, bounds.origin.y, bounds.size.w - (ACTION_BAR_WIDTH * 1.6), bounds.size.h), GTextOverflowModeFill, GTextAlignmentRight);
+    down_text_size.h *= 1.332;
     uint8_t pad = PBL_IF_RECT_ELSE(5, 30);
-    GEdgeInsets up_label_insets = {.top = pad  + ((up_label_bounds.size.h - (text_size.h)) /2), .right = ACTION_BAR_WIDTH * 1.3, .bottom = -pad};
-    GEdgeInsets mid_label_insets = {.top = ((mid_label_bounds.size.h - (text_size.h)) /2), .right = ACTION_BAR_WIDTH * 1.3 };
-    GEdgeInsets down_label_insets = {.top = -pad + ((down_label_bounds.size.h - (text_size.h)) /2), .right = ACTION_BAR_WIDTH * 1.3, .bottom = pad };
-
+    GEdgeInsets up_label_insets = {.top = pad  + ((up_label_bounds.size.h - (up_text_size.h)) /2), .left = ACTION_BAR_WIDTH * 0.3, .right = ACTION_BAR_WIDTH * 1.3, .bottom = -pad};
+    GEdgeInsets mid_label_insets = {.top = ((mid_label_bounds.size.h - (mid_text_size.h)) /2), .left = ACTION_BAR_WIDTH * 0.3, .right = ACTION_BAR_WIDTH * 1.3 };
+    GEdgeInsets down_label_insets = {.top = -pad + ((down_label_bounds.size.h - (down_text_size.h)) /2), .left = ACTION_BAR_WIDTH * 0.3, .right = ACTION_BAR_WIDTH * 1.3, .bottom = pad};
 
     
     // GEdgeInsets up_label_insets = {.top = bounds.size.h * .131, .right = ACTION_BAR_WIDTH * 1.3 };
@@ -177,11 +202,15 @@ void action_window_set_color(int type) {
             window_set_background_color(s_action_window, GColorChromeYellow);
             action_bar_layer_set_background_color(s_action_bar_layer, GColorRajah);
             break;
-        default:
+        case -1:
             SHORT_VIBE();
             // app_timer_cancel(app_timer);
-            window_set_background_color(s_action_window, tile->color);
-            action_bar_layer_set_background_color(s_action_bar_layer, tile->highlight);
+            window_set_background_color(s_action_window, (tap_toggle) ? tile->highlight : tile->color);
+            action_bar_layer_set_background_color(s_action_bar_layer, (tap_toggle) ? tile->color : tile->highlight);
+            break;
+        default:
+            window_set_background_color(s_action_window, (tap_toggle) ? tile->highlight : tile->color);
+            action_bar_layer_set_background_color(s_action_bar_layer, (tap_toggle) ? tile->color : tile->highlight);
             break;
     }
     layer_mark_dirty(window_get_root_layer(s_action_window));
@@ -223,9 +252,10 @@ void action_window_pop() {
   action_window_unload(s_action_window);
 }
 
-void action_window_push(Tile *currentTile) {
+void action_window_push(Tile *currentTile, uint8_t index) {
     if (!s_action_window) {
         tile = currentTile;
+        tile_index = index;
         s_action_window = window_create();
         window_set_background_color(s_action_window, tile->color);
         window_set_window_handlers(s_action_window, (WindowHandlers) {
