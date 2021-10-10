@@ -10,7 +10,7 @@ module.exports =
       {
         "type": "input",
         "id": "pebblekit_message",
-        "defaultValue": "This is an error",
+        "defaultValue": "",
         "attributes": {
           "readonly": true
         }
@@ -22,7 +22,7 @@ module.exports =
     "items": [
       {
         "type": "heading",
-        "defaultValue": "Global Settings"
+        "defaultValue": "Tiles JSON"
       },
       {
         "type": "input",

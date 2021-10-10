@@ -6628,12 +6628,13 @@ function clayToTiles() {
 
   try {
     tiles = JSON.parse(claySettings['json_string']);
+    claySettings['pebblekit_message'] = "Current JSON loaded correctly";
   } catch(e) {
     claySettings['pebblekit_message'] = "Error: " + e;
-    localStorage.setItem('clay-settings', JSON.stringify(claySettings));
     Pebble.openURL(clay.generateUrl());
   }
 
+  localStorage.setItem('clay-settings', JSON.stringify(claySettings));
   localStorage.setItem('tiles', JSON.stringify(tiles));
   Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
     Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
@@ -6710,7 +6711,7 @@ function packTiles() {
 
   // pack tile variables into the buffer object, incrementing our pointer each time
   uint8[ptr++] = tiles.tiles.length;
-  uint8[ptr++] = tiles.default_idx;
+  uint8[ptr++] = Math.max(0, Math.min(tiles.tiles.length - 1, tiles.default_idx));
   uint8[ptr++] = tiles.open_default;
   for (var tileIdx in tiles.tiles) {
     payload = tiles.tiles[tileIdx].payload;
