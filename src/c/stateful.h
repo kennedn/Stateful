@@ -27,5 +27,8 @@ enum transferType {
   TRANSFER_TYPE_ERROR = 4,
   TRANSFER_TYPE_ACK = 5,
   TRANSFER_TYPE_READY = 6,
-  TRANSFER_TYPE_FAST_ICON = 7,
+  TRANSFER_TYPE_NO_CLAY = 7,
+  TRANSFER_TYPE_REFRESH = 8
 };
+
+void pebblekit_connection_callback(bool connected);

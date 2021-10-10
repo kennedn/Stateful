@@ -8,6 +8,7 @@
   "private": true,
   "dependencies": {
     "buffer": "^4.9.2",
+    "clone": "^2.1.2",
     "pebble-clay": "file:../clay"
   },
   "pebble": {

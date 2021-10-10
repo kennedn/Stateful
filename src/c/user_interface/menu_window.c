@@ -9,16 +9,16 @@ static Window *s_menu_window;
 static MenuLayer *s_menu_layer;
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
-  if (tileArray) {
-  return tileArray->used;
+  if (tile_array) {
+  return tile_array->used;
   } else {
     return 0;
   }
 }
 
 static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context) {
-  if (tileArray) {
-    Tile *tile = tileArray->tiles[cell_index->row];
+  if (tile_array) {
+    Tile *tile = tile_array->tiles[cell_index->row];
     GBitmap *icon = data_icon_array_search(tile->icon_key[6]);
     GRect icon_bounds = gbitmap_get_bounds(icon);
     GRect bounds =  layer_get_bounds(cell_layer);
@@ -41,8 +41,8 @@ static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex 
 
 
 static void selection_changed_callback(struct MenuLayer *menu_layer, MenuIndex cell_index, MenuIndex cell_old_index, void *context) {
-  if (tileArray) {
-    Tile *tile = tileArray->tiles[cell_index.row];
+  if (tile_array) {
+    Tile *tile = tile_array->tiles[cell_index.row];
     menu_layer_set_highlight_colors(s_menu_layer, tile->color, GColorWhite);
     menu_layer_set_normal_colors(s_menu_layer, tile->highlight,PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack));
     layer_mark_dirty(menu_layer_get_layer(menu_layer));
@@ -56,31 +56,31 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 }
 
 static void open_default(void *data) {
-  if (tileArray && tileArray->open_default) { 
-    Tile *default_tile = tileArray->tiles[tileArray->default_idx];
-    action_window_push(default_tile, tileArray->default_idx); 
+  if (tile_array && tile_array->open_default) { 
+    Tile *default_tile = tile_array->tiles[tile_array->default_idx];
+    action_window_push(default_tile, tile_array->default_idx); 
    } 
 }
 
 static void select_callback(ClickRecognizerRef ref, void *ctx) {
-  if (tileArray) {
+  if (tile_array) {
     uint8_t selected_row = menu_layer_get_selected_index(s_menu_layer).row;
-    action_window_push(tileArray->tiles[selected_row], selected_row);
+    action_window_push(tile_array->tiles[selected_row], selected_row);
   }
 }
 
 static void up_callback(ClickRecognizerRef ref, void *ctx){
-  if (!tileArray) { return; }
+  if (!tile_array) { return; }
   if (menu_layer_get_selected_index(s_menu_layer).row == 0) {
-    menu_layer_set_selected_index(s_menu_layer,(MenuIndex) {.row = tileArray->used - 1, .section = 0},MenuRowAlignCenter, true);
+    menu_layer_set_selected_index(s_menu_layer,(MenuIndex) {.row = tile_array->used - 1, .section = 0},MenuRowAlignCenter, true);
   } else {
     menu_layer_set_selected_next(s_menu_layer, true, MenuRowAlignCenter, true);
   }
 }
 
 static void down_callback(ClickRecognizerRef ref, void *ctx){
-  if (!tileArray) { return; }
-  if (menu_layer_get_selected_index(s_menu_layer).row == tileArray->used - 1) {
+  if (!tile_array) { return; }
+  if (menu_layer_get_selected_index(s_menu_layer).row == tile_array->used - 1) {
     menu_layer_set_selected_index(s_menu_layer,(MenuIndex) {.row = 0, .section = 0},MenuRowAlignCenter, true);
   } else {
     menu_layer_set_selected_next(s_menu_layer, false, MenuRowAlignCenter, true);
@@ -111,12 +111,12 @@ static void menu_window_load(Window *window) {
 
   Layer *menu_layer_root = menu_layer_get_layer(s_menu_layer);
 
-  if (tileArray) {
-    Tile *default_tile = tileArray->tiles[tileArray->default_idx];
+  if (tile_array) {
+    Tile *default_tile = tile_array->tiles[tile_array->default_idx];
     persist_write_data(0, &(default_tile->color), sizeof(GColor8));
     menu_layer_set_highlight_colors(s_menu_layer, default_tile->color, GColorWhite);
     menu_layer_set_normal_colors(s_menu_layer, default_tile->highlight,PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack));
-    menu_layer_set_selected_index(s_menu_layer, (MenuIndex) {.section = 0, .row = tileArray->default_idx}, MenuRowAlignCenter, false);
+    menu_layer_set_selected_index(s_menu_layer, (MenuIndex) {.section = 0, .row = tile_array->default_idx}, MenuRowAlignCenter, false);
     layer_add_child(window_layer, menu_layer_root);
     // workaround to delay secondary tile window push as SDK does not set up callbacks correctly if window is init'd directly
     app_timer_register(0, open_default, NULL); 

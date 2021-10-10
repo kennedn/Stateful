@@ -11,6 +11,7 @@ static Window *s_window;
 static TextLayer *s_text_layer;
 static void loading_window_start_animation();
 static uint8_t text_counter = 0;
+static char *custom_text = NULL;
 
 static void timer_handler(void *context) {
   uint32_t next_delay;
@@ -81,7 +82,7 @@ static void text_callback(void *data) {
   text_timer = app_timer_register(150, text_callback, NULL);
 }
 
-static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool loading) {
+static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool custom, bool loading) {
     GSize text_size = graphics_text_layout_get_content_size(text, ubuntu18, bounds, GTextOverflowModeWordWrap, GTextAlignmentLeft);
     // GSize text_size = GSize(bounds.size.w, 48);
     // text_size.h = 24;
@@ -97,6 +98,10 @@ static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool
     Layer * text_layer_root = text_layer_get_layer(s_text_layer);
     layer_set_hidden(text_layer_root, true);
     layer_add_child(window_layer, text_layer_root);
+
+    if (custom) {
+      layer_set_hidden(text_layer_root, false);
+    }
 
     if (loading) {
       layer_set_hidden(text_layer_root, false);
@@ -120,9 +125,14 @@ static void window_load(Window *window) {
   text_timer = NULL;
   timeout_timer = NULL;
   #ifdef PBL_BW
-    setup_text_layer("Loading...", window_layer, bounds, true);
+    setup_text_layer("Loading...", window_layer, bounds, false, true);
     return;
   #endif 
+
+  if (custom_text) {
+    setup_text_layer(custom_text, window_layer, bounds, true, false);
+    return;
+  }
 
   loading_bitmap_layer = bitmap_layer_create(bounds);
   bitmap_layer_set_alignment(loading_bitmap_layer, GAlignCenter);
@@ -132,7 +142,7 @@ static void window_load(Window *window) {
   bounds.origin.y = bounds.size.h *.7;
   bounds.size.h = bounds.size.h *.25;
   char *texts[] = {"hmm...", "um...", "maybe...", "(;-_-)", "(¬_¬)"};
-  setup_text_layer(texts[rand() % ARRAY_LENGTH(texts)], window_layer, bounds, false); 
+  setup_text_layer(texts[rand() % ARRAY_LENGTH(texts)], window_layer, bounds, false, false); 
   timeout_timer = app_timer_register(RETRY_READY_TIMEOUT, timeout_timer_callback, NULL);
 
 }
@@ -148,6 +158,7 @@ void window_unload(Window *window) {
     loading_window_stop_animation();
     window_destroy(s_window);
     s_window = NULL;
+    custom_text = NULL;
   }
 }
 
@@ -161,12 +172,13 @@ void loading_window_pop() {
   window_disappear(s_window);
 }
 
-void loading_window_push() {
+void loading_window_push(char *text) {
   if(!s_window) {
-    srand(time(0));
+    custom_text = text;
     s_window = window_create();
     GColor8 color = GColorBlack;
     #ifdef PBL_COLOR
+      srand(time(0));
       if(persist_read_data(0, &color, sizeof(GColor8)) == E_DOES_NOT_EXIST) {
         GColor8 colors[] = {GColorCobaltBlue, GColorIslamicGreen, GColorImperialPurple, GColorFolly, GColorChromeYellow};
         color = colors[rand() % ARRAY_LENGTH(colors)]; 

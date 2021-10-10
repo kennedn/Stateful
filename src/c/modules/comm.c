@@ -2,18 +2,20 @@
 #include "c/modules/data.h"
 #include "c/user_interface/action_window.h"
 #include "c/stateful.h"
+#include "c/user_interface/loading_window.h"
 static uint8_t *raw_data;
 static AppTimer *s_retry_timer, *s_ready_timer;
 static bool data_transfer_lock = false;
 static bool is_ready = false;
+static bool clay_needs_config = false;
 static int outbox_attempts = 0;
 typedef struct {
-  char iconKey[11];
-  uint8_t iconIndex;
+  char icon_key[9];
+  uint8_t icon_index;
 } RetryTimerData;
-RetryTimerData retryData;
+RetryTimerData retry_data;
 
-void processData(DictionaryIterator *dict, uint8_t **data, uint8_t transferType ) {
+void process_data(DictionaryIterator *dict, uint8_t **data, uint8_t transfer_type) {
     // Get the received image chunk
     Tuple *size_t = dict_find(dict, MESSAGE_KEY_TransferLength);
     if(size_t) {
@@ -37,7 +39,7 @@ void processData(DictionaryIterator *dict, uint8_t **data, uint8_t transferType 
     // Complete?
     Tuple *complete_t = dict_find(dict, MESSAGE_KEY_TransferComplete);
     if(complete_t) {
-      switch(transferType) {
+      switch(transfer_type) {
         case TRANSFER_TYPE_ICON:
           data_icon_array_add_icon(*data);
         break;
@@ -64,13 +66,14 @@ static void inbox(DictionaryIterator *dict, void *context) {
         #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received icon chunk");
         #endif
-        processData(dict, &raw_data, TRANSFER_TYPE_ICON);
+        process_data(dict, &raw_data, TRANSFER_TYPE_ICON);
         break;
       case TRANSFER_TYPE_TILE:
         #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received tile chunk");
         #endif
-        processData(dict, &raw_data, TRANSFER_TYPE_TILE);
+        clay_needs_config = false;
+        process_data(dict, &raw_data, TRANSFER_TYPE_TILE);
         break;
       case TRANSFER_TYPE_XHR:
         break;
@@ -95,17 +98,30 @@ static void inbox(DictionaryIterator *dict, void *context) {
         is_ready = true;
         comm_tile_request();
         break;
+      case TRANSFER_TYPE_NO_CLAY:
+        #if DEBUG > 0
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "No clay config present");
+        #endif
+        if(!clay_needs_config) {
+          clay_needs_config = true;
+          loading_window_pop();
+          loading_window_push("No tiles configured in watch app");
+        }
+      case TRANSFER_TYPE_REFRESH:
+        pebblekit_connection_callback(true);
+        break;
+
     }
 }
 void retry_timer_callback(void *data) {
   RetryTimerData *timerData = (RetryTimerData*) data;
-  comm_icon_request(timerData->iconKey, timerData->iconIndex);
+  comm_icon_request(timerData->icon_key, timerData->icon_index);
   free(data);
 }
 
 // ask for a tile data after ready
 void comm_ready_callback(void *data) {
-  if (!tileArray) {
+  if (!tile_array) {
     // catching an edge case where a data tranfer was interrupted part way so the lock was never released
     if (is_ready && data_transfer_lock) {data_transfer_lock = false;}
     DictionaryIterator *dict;
@@ -129,7 +145,7 @@ void comm_ready_callback(void *data) {
 }
 
 // ask pebblekit to lookup and send a related icon based on hash key
-void comm_icon_request(char* iconKey, uint8_t iconIndex) {
+void comm_icon_request(char* icon_key, uint8_t icon_index) {
     if (!data_transfer_lock) {
       s_retry_timer = NULL;
       // Asks pebblekit for an icon based on a hash key, to be inserted at provided index in data_icon_array
@@ -138,17 +154,17 @@ void comm_icon_request(char* iconKey, uint8_t iconIndex) {
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_ICON);
-        dict_write_uint8(dict, MESSAGE_KEY_IconIndex, iconIndex);
-        dict_write_cstring(dict, MESSAGE_KEY_IconKey, iconKey);
+        dict_write_uint8(dict, MESSAGE_KEY_IconIndex, icon_index);
+        dict_write_cstring(dict, MESSAGE_KEY_IconKey, icon_key);
         dict_write_end(dict);
         app_message_outbox_send();
       }
     } else {
       // data transfer is in-flight (locked), so create a timer to re-call this function with params in 100ms
-      RetryTimerData *retryData = malloc(sizeof(RetryTimerData));
-      retryData->iconIndex = iconIndex;
-      strcpy(retryData->iconKey, iconKey);
-      s_retry_timer = app_timer_register(100, retry_timer_callback, (void*) retryData);
+      RetryTimerData *retry_data = malloc(sizeof(RetryTimerData));
+      retry_data->icon_index = icon_index;
+      strcpy(retry_data->icon_key, icon_key);
+      s_retry_timer = app_timer_register(100, retry_timer_callback, (void*) retry_data);
     }
 
 }
@@ -175,7 +191,7 @@ void comm_xhr_request(void *context, uint8_t id, uint8_t button) {
     uint32_t result = app_message_outbox_begin(&dict);
     if (result == APP_MSG_OK) {
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_XHR);
-        dict_write_uint8(dict, MESSAGE_KEY_RequestID, id);
+        dict_write_uint8(dict, MESSAGE_KEY_RequestIndex, id);
         dict_write_uint8(dict, MESSAGE_KEY_RequestButton, button);
         dict_write_end(dict);
         app_message_outbox_send();
