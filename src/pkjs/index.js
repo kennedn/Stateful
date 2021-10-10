@@ -5,13 +5,13 @@ var Buffer = require('buffer/').Buffer;
 var Headers = require('../../headers.json');
 var Clay = require('pebble-clay');
 var customClay = require('./custom-clay');
+var clayConfig = require('./config')
 var messageKeys = require('message_keys')
+var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 
-var clayTemplate = require('./clay-templates');
-
-
+// var clayTemplate = require('./clay-templates');
 var baseURL = (Pebble.getActiveWatchInfo().model.indexOf('emu') != -1) ? "http://thinboy.int" : "https://kennedn.com"
-var DEBUG = 2;
+var DEBUG = 3;
 // //var IMG_URL = 'https://i.imgur.com/gzLWQXf.png'; //bulb
 // //var IMG_URL = 'https://i.imgur.com/tQOn2aw.png'; //tv
 // //var IMG_URL = 'http://pc.int:8080/tv.png';
@@ -20,6 +20,7 @@ var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1)
 var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 4 : 10;
 var MAX_TEXT_SIZE = 24;
  
+var no_transfer_lock = false;
 
 
 
@@ -6419,38 +6420,38 @@ setTimeout(function() { clayToTiles(); }, 5000);
 */
 
 
-function clay(addTile) {
-  var s = localStorage.getItem('tile-count');
-  if (s != null) {
-    tileCount = parseInt(s, 10);
-  } else {
-    tileCount = 0;
-  }
-  if (addTile) {
-    tileCount++;
-    localStorage.setItem('tile-count', tileCount.toString());
-  }
-  var clayConfig = clayTemplate.Header;
+// function clay(addTile) {
+//   var s = localStorage.getItem('tile-count');
+//   if (s != null) {
+//     tileCount = parseInt(s, 10);
+//   } else {
+//     tileCount = 0;
+//   }
+//   if (addTile) {
+//     tileCount++;
+//     localStorage.setItem('tile-count', tileCount.toString());
+//   }
+//   var clayConfig = clayTemplate.Header;
   
-  for (var t=0; t < tileCount; t++) {
-    clayConfig = clayConfig.concat(clayTemplate.Tile);
+//   for (var t=0; t < tileCount; t++) {
+//     clayConfig = clayConfig.concat(clayTemplate.Tile);
 
-    for (var buttonIdx in ButtonTypes) {
-      var buttonType = ButtonTypes[buttonIdx];
-      clayConfig[clayConfig.length - 1].items.push(JSON.parse(JSON.stringify(clayTemplate.Button).replace(/\$\$\$button\$\$\$/g, buttonType + "$")
-                                                                                                 .replace(/\$\$\$label\$\$\$/g, ButtonNames[buttonIdx] + " BUTTON")));
-    }
+//     for (var buttonIdx in ButtonTypes) {
+//       var buttonType = ButtonTypes[buttonIdx];
+//       clayConfig[clayConfig.length - 1].items.push(JSON.parse(JSON.stringify(clayTemplate.Button).replace(/\$\$\$button\$\$\$/g, buttonType + "$")
+//                                                                                                  .replace(/\$\$\$label\$\$\$/g, ButtonNames[buttonIdx] + " BUTTON")));
+//     }
 
-    clayConfig = JSON.parse(JSON.stringify(clayConfig).replace(/\$\$\$index\$\$\$/g,"$" + t));
-  }
+//     clayConfig = JSON.parse(JSON.stringify(clayConfig).replace(/\$\$\$index\$\$\$/g,"$" + t));
+//   }
 
 
-  clayConfig = clayConfig.concat(clayTemplate.Footer);
-  console.log(JSON.stringify(clayConfig, null, 2));
-  console.log("Tile count: "+tileCount);
-  return new Clay(clayConfig, customClay, {autoHandleEvents: false});
+//   clayConfig = clayConfig.concat(clayTemplate.Footer);
+//   console.log(JSON.stringify(clayConfig, null, 2));
+//   console.log("Tile count: "+tileCount);
+//   return new Clay(clayConfig, customClay, {autoHandleEvents: false});
 
-}
+// }
 /**
  * Secure Hash Algorithm (SHA1)
  * http://www.webtoolkit.info/
@@ -6621,120 +6622,27 @@ function keyStartsWith(obj, substring) {
 //! Builds a tiles object from the flat packed clay-settings object
 //! Using structured ID's to figure out object levels
 function clayToTiles() {
+  no_transfer_lock = true;
   var tiles = {}
   var claySettings = JSON.parse(localStorage.getItem('clay-settings'));
 
-  // Global settings
-  tiles.default_idx = claySettings['default_idx'];
-  tiles.open_default = claySettings['open_default'];
-  tiles.base_url = claySettings['base_url'];
-  tiles.headers = JSON.parse(claySettings['headers']);
-
-  tiles.tiles = [];
-  var i = 0;
-  // For each tile
-  while (true) {
-    // Gather all clay-keys with index i
-    var clayTile = keyEndsWith(claySettings, "$" + i);
-
-    if (Object.keys(clayTile).length == 0) {
-      break; //No tile data on index i, finished processing tiles
-    }
-    var tile = {};
-    var payload = {};
-    var texts = [];
-    var icon_keys = [];
-    var buttons = {};
-
-    // for each button type
-    for(var buttonIdx in ButtonTypes) {
-      var b = ButtonTypes[buttonIdx];
-      // Gather all clay-keys for button b
-      var clayButton = keyStartsWith(clayTile, b + "$");
-      var button = {}
-      var status = {};
-      var call_type = parseInt(clayButton.type, 10);
-      switch(call_type) {
-        case CallType.STATEFUL:
-          button.type = call_type;
-
-          button.method = clayButton.method;
-          button.url = clayButton.url;
-          button.headers = JSON.parse(clayButton.headers);
-          button.data = JSON.parse(clayButton.data);
-          
-          status.method = clayButton.status_method;
-          status.url = clayButton.status_url;
-          status.headers = JSON.parse(clayButton.status_headers);
-          status.data = JSON.parse(clayButton.status_data);
-          status.variable = clayButton.status_variable;
-          status.good = clayButton.status_good;
-          status.bad = clayButton.status_bad;
-
-          button.status = status;
-          buttons[b] = button;
-
-          texts.push(clayButton.name);
-          icon_keys.push(clayButton.icon);
-          break;
-        case CallType.LOCAL:
-          button.type = call_type;
-
-          button.method = clayButton.method;
-          button.url = clayButton.url;
-          button.headers = JSON.parse(clayButton.headers);
-          button.data = JSON.parse(clayButton.data);
-
-          buttons[b] = button;
-
-          texts.push(clayButton.name);
-          icon_keys.push(clayButton.icon);
-          break;
-        case CallType.STATUS_ONLY:
-          status.type = call_type;
-
-          status.method = clayButton.status_method;
-          status.url = clayButton.status_url;
-          status.headers = JSON.parse(clayButton.status_headers);
-          status.data = JSON.parse(clayButton.status_data);
-          status.variable = clayButton.status_variable;
-          status.good = clayButton.status_good;
-          status.bad = clayButton.status_bad;
-
-          buttons[b] = status;
-
-          texts.push(clayButton.name);
-          icon_keys.push(clayButton.icon);
-          break;
-        case CallType.DISABLED:
-          button.type = call_type;
-          texts.push("");
-          icon_keys.push("");
-        break;
-      }
-    }
-
-    payload.color = clayTile.color.toString(16).padStart(6, '0');
-    payload.highlight = clayTile.highlight.toString(16).padStart(6, '0');
-
-    texts.push(clayTile.name)
-    icon_keys.push(clayTile.icon)
-    payload.texts = texts;
-    payload.icon_keys = icon_keys;
-
-    tile.payload = payload;
-    tile.buttons = buttons;
-
-    if (Object.keys(tile.buttons).length > 0) { tiles.tiles.push(tile); }
-    i++;
+  try {
+    tiles = JSON.parse(claySettings['json_string']);
+  } catch(e) {
+    claySettings['pebblekit_message'] = "Error: " + e;
+    localStorage.setItem('clay-settings', JSON.stringify(claySettings));
+    Pebble.openURL(clay.generateUrl());
   }
-  console.log(JSON.stringify(tiles, null, 2));
+
   localStorage.setItem('tiles', JSON.stringify(tiles));
-  Pebble.sendAppMessage({"TransferType": TransferType.REFRESH }, messageSuccessCallback, messageFailureCallback);
-  packTiles();
+  Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
+    Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
+  }, messageFailureCallback);
+  no_transfer_lock = false;
 }
 
 function packIcon(key, index) {
+  if (no_transfer_lock) {return;}
   var buffer = new ArrayBuffer(1000000);
   var uint8 = new Uint8Array(buffer);
   var ptr = 0;
@@ -6780,6 +6688,7 @@ function packIcon(key, index) {
 }
 
 function packTiles() {
+  if (no_transfer_lock) {return;}
   // create a big temporary buffer as we don't know the size we will end up with yet
   var buffer = new ArrayBuffer(1000000);
   var uint8 = new Uint8Array(buffer);
@@ -6788,8 +6697,12 @@ function packTiles() {
   var payload;
   var icon_keys = [];
   var tiles = localStorage.getItem('tiles');
-  console.log(tiles);
-  tiles = JSON.parse(tiles)
+  try {
+    tiles = JSON.parse(tiles)
+  } catch(e) {
+    tiles = null;
+  }
+
   if (tiles == null || tiles.tiles.length == 0) {
     Pebble.sendAppMessage({"TransferType": TransferType.NO_CLAY}, messageSuccessCallback, messageFailureCallback);
     return;
@@ -7067,7 +6980,7 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
         console.log("result: " + returnData + " maxRetries: " + maxRetries[1])
       }
 
-      switch(returnData.toString()) {
+      switch(returnData) {
         case good:
           Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.GOOD }, messageSuccessCallback, messageFailureCallback);
           break;
@@ -7104,10 +7017,15 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
 //! that limit connectivity when the screen is off, eventually causing timeouts for valid XHR requests
 //! @param url URL to initiate XHR GET to
 //! @param Any headers required to authenticate, probably redundant for this use case
-function xhrKeepAlive() {
+function xhrKeepAlive(url, headers) {
   var request = new XMLHttpRequest();
-  request.open('GET', 'https://kennedn.com/api/v1.0/');
-
+  request.open('GET', url);
+  for (var key in headers) {
+    if(headers.hasOwnProperty(key)) {
+      if (DEBUG > 1) { console.log("Setting header: " + key + ": " + headers[key]); }
+      request.setRequestHeader(key, headers[key]);
+    }
+  }
   request.send();  
   setTimeout(function() {
     if (DEBUG > 2) { console.log('xhrKeepAlive fired'); }
@@ -7125,7 +7043,7 @@ Pebble.addEventListener("appmessage", function(e) {
   switch(dict.TransferType) {
     case TransferType.ICON:
       if (!(dict.hasOwnProperty("IconKey")) || !(dict.hasOwnProperty("IconIndex"))) {
-        if (DEBUG > 0)
+        if (DEBUG > 1)
           console.log("didn't receive expected data");
         return;
       }
@@ -7135,14 +7053,15 @@ Pebble.addEventListener("appmessage", function(e) {
       packTiles();
       break;
     case TransferType.READY:
-      console.log("monkey ack ready");
+      if (DEBUG > 1)
+        console.log("Sending Ready message");
       Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
       // packTiles(tiles);
     break;
 
     case TransferType.XHR:
       if (!(dict.hasOwnProperty("RequestIndex")) || !(dict.hasOwnProperty("RequestButton"))) {
-        if (DEBUG > 0)
+        if (DEBUG > 1)
           console.log("didn't receive expected data");
         return;
       }
@@ -7151,7 +7070,6 @@ Pebble.addEventListener("appmessage", function(e) {
       // find the tile that matches the id recieved from appmessage
       var tiles = JSON.parse(localStorage.getItem('tiles'));
       var tile = tiles.tiles[dict.RequestIndex];
-      console.log(JSON.stringify(tile, null, 2));
       if (tile == null) { 
         if (DEBUG > 1) { console.log("Could not locate tile with id " + id); }
         return;
@@ -7221,14 +7139,21 @@ Pebble.addEventListener("appmessage", function(e) {
 
 
 Pebble.addEventListener('ready', function() {
-  console.log(String.repeat);
-  xhrKeepAlive();
+  console.log("And we're back");
+  // var claySettings = JSON.parse(localStorage.getItem('clay-settings'));
+  // var tiles = null;
+  // try {
+  //   tiles = JSON.parse(claySettings['json_string']);
+  // } catch(e) { 
+  //   tiles = null;
+  // }
+  // if(tiles != null && tiles.keep_alive) { xhrKeepAlive(); }
   Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
 });
 
 
 Pebble.addEventListener('showConfiguration', function(e) {
-  Pebble.openURL(clay(false).generateUrl());
+  Pebble.openURL(clay.generateUrl());
 });
 
 
@@ -7237,14 +7162,12 @@ Pebble.addEventListener('webviewclosed', function(e) {
     return;
   }
   // Get the keys and values from each config item
-  console.log(JSON.stringify(e.response));
-  var dict = clay(false).getSettings(e.response);
-  console.log(JSON.stringify(dict));
+  var dict = clay.getSettings(e.response);
   var clayJSON = JSON.parse(dict[messageKeys.ClayJSON]);
 
   switch(clayJSON.action) {
     case "AddTile":
-      Pebble.openURL(clay(true).generateUrl());
+      Pebble.openURL(clay.generateUrl());
       break;
     // case "LoadIcon":
     //   //Attempt a clayConfig data URI insert with provided payload (url)
@@ -7260,7 +7183,6 @@ Pebble.addEventListener('webviewclosed', function(e) {
     case "Submit":
       // Decode and parse config data as JSON
       var settings = clayJSON.payload;
-      console.log(settings);
 
       // flatten the settings for localStorage
       var settingsStorage = {};
@@ -7272,7 +7194,6 @@ Pebble.addEventListener('webviewclosed', function(e) {
         }
       });
       localStorage.setItem('clay-settings', JSON.stringify(settingsStorage));
-      console.log(JSON.stringify(settingsStorage));
       clayToTiles();
       break;
   }

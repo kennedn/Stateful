@@ -107,6 +107,7 @@ static void inbox(DictionaryIterator *dict, void *context) {
           loading_window_pop();
           loading_window_push("No tiles configured in watch app");
         }
+        break;
       case TRANSFER_TYPE_REFRESH:
         pebblekit_connection_callback(true);
         break;
