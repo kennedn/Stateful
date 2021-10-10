@@ -21,6 +21,8 @@ Multiple tiles can coexist. There is a menu system which allows navigation betwe
 
 Currently due to limitations in how clay config works, I have opted to directly parse JSON provided via clay config in lieu of a user friendly configuration interface. This will likely change in the future, but for the moment in order to use stateful an understanding of the JSON structure is a pre-requisite. 
 
+![](resources/images/clay.png)
+
 # Global Settings
 
 `Global Settings` are top level keys that affect every tile or the system in general.
@@ -602,3 +604,8 @@ Fully constructed JSON objects can currently be pasted directly into clay config
     }
   ]
 }
+```
+
+Which produces the following in the watch app:
+
+![](resources/images/full_json.gif)
