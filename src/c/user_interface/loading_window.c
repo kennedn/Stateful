@@ -87,7 +87,7 @@ static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool
     // GSize text_size = GSize(bounds.size.w, 48);
     // text_size.h = 24;
     GRect text_bounds = GRect(bounds.origin.x + ((bounds.size.w - text_size.w) / 2), bounds.origin.y + ((bounds.size.h - text_size.h) / 2),
-                              bounds.size.w, bounds.size.h);
+                              text_size.w, bounds.size.h);
     s_text_layer = text_layer_create(text_bounds);
     text_layer_set_text_color(s_text_layer, GColorWhite);
     text_layer_set_background_color(s_text_layer, PBL_IF_BW_ELSE(GColorBlack, GColorClear));
@@ -124,15 +124,16 @@ static void window_load(Window *window) {
   loading_timer = NULL;
   text_timer = NULL;
   timeout_timer = NULL;
-  #ifdef PBL_BW
-    setup_text_layer("Loading...", window_layer, bounds, false, true);
-    return;
-  #endif 
-
   if (custom_text) {
     setup_text_layer(custom_text, window_layer, bounds, true, false);
     return;
   }
+  #ifdef PBL_BW
+    setup_text_layer("Phone not ready...", window_layer, bounds, false, true);
+
+    return;
+  #endif 
+
 
   loading_bitmap_layer = bitmap_layer_create(bounds);
   bitmap_layer_set_alignment(loading_bitmap_layer, GAlignCenter);
