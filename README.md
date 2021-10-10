@@ -214,7 +214,7 @@ Examples:
   "type": 1,
   "method": "",
   "url": "",
-  "headers" {},
+  "headers": {},
   "data": {}/[],
   "status": {
     "method": "",
@@ -275,7 +275,7 @@ Examples:
   "data": [
     {"code": "on"},  // 2 data items
     {"code": "off"}
-  ]
+  ],
   "status": {
     "method": "PUT",
     "url": "tvcom/power",
@@ -354,7 +354,7 @@ Fully constructed JSON objects can currently be pasted directly into clay config
 
 ```json
 {
-   "default_idx": 0, 
+  "default_idx": 0, 
   "open_default": true,
   "base_url": "https://cool.api/api/v1.0/",
   "headers": {
