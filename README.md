@@ -57,11 +57,11 @@ Currently due to limitations in how clay config works, I have opted to directly 
 
 |Key          |Expected type|Description|
 |-------------|-------------|-----------|
-|default_idx  |`number`     |The tile to highlight in the menu on open|
-|open_default |`boolean`    |Start inside highlighted tile on open |
-|base_url     |`string`     |Will be prepended to all tile urls if specified|
+|default_idx  |`number`     |Configures which menu item is initially selected when the app is started|
+|open_default |`boolean`    |Automatically enters the selected menu item when the app starts|
+|base_url     |`string`     |Prepended to all tile urls if specified|
 |headers      |`Object`     |Will set XHR headers for every request if specified|
-|tiles        |`Objects[]`  |An array of tile objects, see below|
+|tiles        |`Objects[]`  |An array of tile objects, see [Tiles](#tiles)|
 
 Example:
 
@@ -82,7 +82,7 @@ Example:
 
 # Tiles
 
-A tile object defiles one tile entry within stateful. It is split into two parts, payload and buttons:
+A tile object defiles one tile entry within stateful. It is split into two parts, [payload](#payload) and [buttons](#buttons):
 
 ```json
 {
@@ -106,14 +106,12 @@ The payload object contains all tile specific items. These values are packed and
 
 |Key          |Expected type|Description|
 |-------------|-------------|-----------|
-|color        |`hex-string` |The main color for a given tile|
-|highlight    |`boolean`    |The highlight color for a given tile |
+|color        |`hex-string` |A 6 digit hex string, defines the main color for the tile / menu item|
+|highlight    |`boolean`    |A 6 digit hex string, defines the highlight color for the tile / menu item|
 |texts        |`string[]`   |An array of 7 strings representing 6 button clicks and 1 menu title:<br>up, up_hold, mid, mid_hold, down, down_hold, title|
 |icon_keys    |`string[]`   |An array of 7 strings representing 6 icon_keys for each button and 1 menu icon_key:<br>up, up_hold, mid, mid_hold, down, down_hold, title<br>See [Icon Keys](#icon-keys)|
-|headers      |`Object`     |Will set XHR headers for every request if specified|
-|tiles        |`Objects[]`  |An array of tile objects, see below|
 
-Note: texts & icon_keys must always have 7 values, any buttons that are disabled should specify an empty string, as shown in the below example. 
+**Note: texts & icon_keys must always have 7 values, any buttons that are disabled should specify an empty string, as shown in the below example.**
 
 Example:
 
@@ -155,17 +153,21 @@ Example:
 }
 ```
 
-The Button object specifies the values required to call a REST endpoint and will be used whenever a button click is fired. There are four types of button:
+The `buttons` object consists of 6 buttons. Each of these specifies the values required to call a REST endpoint for a specific click. 
+
+`up`, `mid` and `down` are accessible immediatly after entering a given tile, `up_hold`, `mid_hold` and `down_hold` are 'swapped in' when `mid` is held for 500ms, this can be done any number of times to toggle between the two sets.
+
+There are four types of button:
 
 
 |Button Type  |Value        |Description|
 |-------------|-------------|-----------|
-|[Local](#local-type)        |0            |For endpoints that cannot provide a status, fires a simple XHR request|
-|[Stateful](#stateful-type)     |1            |For endpoints that can provide a status, fires an XHR request and then calls a status endpoint to figure out current state|
-|[Status Only](#status-only-type)  |2            |For endpoints that should only report status, skips firing an initial XHR request and instead just calls a status endpoint to figure out current state|
-|[Disabled](#disabled-type)     |3            |Disables the callback for a specific button|
+|[Local](#local-type)        |0            |Send a simple XHR request and optionally maintain a local tracker|
+|[Stateful](#stateful-type)     |1            |Send an XHR request and derive a status afterwards from an additional XHR request|
+|[Status Only](#status-only-type)  |2            |Directly derive a status from an initial XHR request |
+|[Disabled](#disabled-type)     |3            |Disables the buttons functionality|
 
-Six button objects should exist for each tile, if a button is not to be used, the type should still be specified as `3` (Disabled):
+**Note: Six button objects should exist for each tile, if a button is not to be used, the type should be specified as `3` (Disabled).**
 
 ### Local Type
 ```json
@@ -179,22 +181,21 @@ Six button objects should exist for each tile, if a button is not to be used, th
 ```
 Local buttons are specifically for endpoints that cannot provide a status or where it does not make sense to request a status. Some examples may be turning the volume up on a tv or triggering an infrared bulb that cannot describe what state it is in.
 
-The buttons behaviour will change based on the number of elements provided in the `data` key:
-
-| Number | Behaviour |
-|------  |-----------|
-|1       | No state information is tracked, simply call XHR|
-|2       | Each click will iterate/loop to the next data field,<br>when index 0 fires, a green background will display on watch,<br>when index 1 fires, a red background will display on watch|
-|3+      |Each click will iterate/loop to the next object|
-
-
 |Key          |Expected type|Description|
 |-------------|-------------|-----------|
 |type         |`number`     |Button Type|
 |method       |`string`     |XHR Method |
 |url          |`string`     |Partial or full url, see `base_url` in [global settings](#global-settings)|
-|headers      |`Object`     |Headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
+|headers      |`Object`     |Optional headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
 |data        |`Objects[]` or `Object`  |One or more data object to send to the endpoint|
+
+<br>The buttons behaviour will change based on the number of elements provided in the `data` key:
+
+| Number | Side Effects |
+|------  |-----------|
+|1       | None, simply calls an XHR request|
+|2       | Each click will additionally increment to the next data field,<br>when index 0 fires, a <font style='color:#00AA00;'>green</font> background will display on watch,<br>when index 1 fires, a <font style='color:#FF0055'>red</font> background will display on watch|
+|3+      |Each click will additionally increment to the next data field|
 
 Examples:
 
@@ -248,10 +249,10 @@ Stateful buttons are for endpoints that provide a status, so their current state
 
 The buttons behaviour will change based on the number of elements provided in the `data` key:
 
-| Number | Behaviour |
+| Number | Side Effects |
 |------  |-----------|
-|1       | Calls endpoint with data and then calls an additional status endpoint|
-|2       | Same as 1, except each click will iterate/loop to the next data field |
+|1       | None, simply call an XHR request and then call an additional status XHR request|
+|2       | Each click will additionally increment to the next data field |
 
 
 |Key          |Expected type|Description|
@@ -259,15 +260,15 @@ The buttons behaviour will change based on the number of elements provided in th
 |type         |`number`     |Button Type|
 |method       |`string`     |XHR Method |
 |url          |`string`     |Partial or full url, see `base_url` in [global settings](#global-settings)|
-|headers      |`Object`     |Headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
+|headers      |`Object`     |Optional headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
 |data        |`Objects[]` or `Object`  |One or more data object to send to the endpoint|
 |status.method       |`string`     |XHR status method |
 |status.url          |`string`     |Partial or full status url, see `base_url` in [global settings](#global-settings)|
-|status.headers      |`Object`     |Headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
 |status.data        |`Object`  |A single object to send to the endpoint|
-|status.variable  | `string` |A variable to extract from the return data, use dot notation to traverse a nested object|
-|status.good | `var` | If this matches the extracted `status.variable`, display green background on watch<br>**Be consious of type**|
-|status.bad | `var` | If this matches the extracted `status.variable`, display red background on watch<br>**Be consious of type**|
+|status.variable  | `string` |A variable to extract from the return data, use dot notation to descend into a nested object|
+|status.good | `var` | If this matches the extracted `status.variable`, display green background on watch<br>**Be conscious of type**|
+|status.bad | `var` | If this matches the extracted `status.variable`, display red background on watch<br>**Be conscious of type**|
+
 
 Examples:
 
@@ -312,20 +313,21 @@ Examples:
   "type": 2,
   "method": "",
   "url": "",
+  "headers": {}
   "data": {},
   "variable": "",
   "good": ,
   "bad": 
 },
 ```
-Status only buttons are similar to stateful buttons, but they are intended for situations where you do not want to change anything but simply want to understand what state something is in. An Examples may be if a computer is on or off.
+Status only buttons are similar to stateful buttons, but they are intended for situations where you do not want to change anything but simply want to understand what state something is in. An Example may be if a computer is on or off.
 
 |Key          |Expected type|Description|
 |-------------|-------------|-----------|
 |type         |`number`     |Button Type|
 |method       |`string`     |XHR Method |
 |url          |`string`     |Partial or full url, see `base_url` in [global settings](#global-settings)|
-|headers      |`Object`     |Headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
+|headers      |`Object`     |Optional Headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
 |data        |`Object`  |A single data object to send to the endpoint|
 |variable  | `string` |A variable to extract from the return data, use dot notation to traverse a nested object|
 |good | `var` | If this matches the extracted `status.variable`, display green background on watch<br>**Be consious of type**|
@@ -356,7 +358,7 @@ Button not in use, specify type `3` and ensure payload texts / icon_keys have em
 
 ## Icon Keys
 
-The icon key system is currently hard coded with only the following values being valid:
+The icon key front-end system is currently hard coded with only the following valid values:
 
 |Key          |Icon         |
 |-------------|-------------|
@@ -366,9 +368,11 @@ The icon key system is currently hard coded with only the following values being
 |1b645389     |![](resources/icons/monitor.png)|
 |ac3478d6     |![](resources/icons/test.png)|
 
+The back-end system does support custom base64 encoded images but there is currently no way to provide this via the front door.
+
 # Example JSON
 
-Fully constructed JSON objects can currently be pasted directly into clay config to parse. Example:
+Fully constructed JSON objects can be pasted directly into clay config to parse. Example:
 
 ```json
 {
