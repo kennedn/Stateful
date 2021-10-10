@@ -1,4 +1,22 @@
-# Stateful
+# Table of Contents
+
+- [Table of Contents](#table-of-contents)
+- [About Stateful](#about-stateful)
+- [Interface](#interface)
+- [JSON Structure](#json-structure)
+- [Global Settings](#global-settings)
+- [Tiles](#tiles)
+  - [Payload](#payload)
+  - [Buttons](#buttons)
+    - [Local Type](#local-type)
+    - [Stateful Type](#stateful-type)
+    - [Status-Only Type](#status-only-type)
+    - [Disabled Type](#disabled-type)
+  - [Icon Keys](#icon-keys)
+- [Example JSON](#example-json)
+  
+
+# About Stateful
 
 `Stateful` is a pebble watchapp designed to control RESTful API's with minimal clicks. 
 
@@ -142,14 +160,14 @@ The Button object specifies the values required to call a REST endpoint and will
 
 |Button Type  |Value        |Description|
 |-------------|-------------|-----------|
-|Local        |0            |For endpoints that cannot provide a status, fires a simple XHR request|
-|Stateful     |1            |For endpoints that can provide a status, fires an XHR request and then calls a status endpoint to figure out current state|
-|Status Only  |2            |For endpoints that should only report status, skips firing an initial XHR request and instead just calls a status endpoint to figure out current state|
-|Disabled     |3            |Disables the callback for a specific button|
+|[Local](#local-type)        |0            |For endpoints that cannot provide a status, fires a simple XHR request|
+|[Stateful](#stateful-type)     |1            |For endpoints that can provide a status, fires an XHR request and then calls a status endpoint to figure out current state|
+|[Status Only](#status-only-type)  |2            |For endpoints that should only report status, skips firing an initial XHR request and instead just calls a status endpoint to figure out current state|
+|[Disabled](#disabled-type)     |3            |Disables the callback for a specific button|
 
 Six button objects should exist for each tile, if a button is not to be used, the type should still be specified as `3` (Disabled):
 
-### Local
+### Local Type
 ```json
 "up": {
   "type": 0,
@@ -208,7 +226,7 @@ Examples:
 },
 
 ```
-### Stateful
+### Stateful Type
 ```json
 "down": {
   "type": 1,
@@ -288,7 +306,7 @@ Examples:
 
 ```
 
-### Status Only
+### Status-Only Type
 ```json
 "mid": {
   "type": 2,
@@ -327,7 +345,7 @@ Example:
 },
 ```
 
-### Disabled
+### Disabled Type
 ```
 "down": {
   "type": 3
@@ -348,7 +366,7 @@ The icon key system is currently hard coded with only the following values being
 |1b645389     |![](resources/icons/monitor.png)|
 |ac3478d6     |![](resources/icons/test.png)|
 
-## Example JSON
+# Example JSON
 
 Fully constructed JSON objects can currently be pasted directly into clay config to parse. Example:
 
