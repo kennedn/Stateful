@@ -7,8 +7,8 @@
   ],
   "private": true,
   "dependencies": {
-    "buffer": "^4.9.2",
-    "pebble-clay": "file:../clay"
+    "buffer": "4.9.2",
+    "pebble-clay": "kennedn/clay#hack/Retrieve-item-value-by-Id"
   },
   "pebble": {
     "displayName": "Stateful",

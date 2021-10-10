@@ -40,14 +40,14 @@ typedef struct __attribute__((__packed__)) {
 } Icon;
 
 typedef struct __attribute__((__packed__)) {
-  Icon *icons;
+  Icon **icons;
   uint8_t ptr;
   uint8_t size;
 } IconArray;
 
-TileArray *tileArray;
-IconArray *iconArray;
-GBitmap *defaultIcon;
+TileArray *tile_array;
+IconArray *icon_array;
+GBitmap *default_icon;
 
 void data_icon_array_add_icon(uint8_t *data);
 GBitmap *data_icon_array_search(char* key);

@@ -22,7 +22,7 @@ void pebblekit_connection_callback(bool connected) {
   loading_window_pop();
   action_window_pop();
   menu_window_pop();
-  loading_window_push();
+  loading_window_push(NULL);
   comm_callback_start();
 }
 

@@ -5,43 +5,43 @@
 #include "c/modules/comm.h"
 #include "c/stateful.h"
 
-TileArray *tileArray = NULL;
-IconArray *iconArray = NULL;
-GBitmap *defaultIcon = NULL;
+TileArray *tile_array = NULL;
+IconArray *icon_array = NULL;
+GBitmap *default_icon = NULL;
 
 static void data_tile_array_init(uint8_t size) {
-  tileArray = malloc(sizeof(TileArray));
-  tileArray->tiles = malloc(size * sizeof(Tile*));
+  tile_array = malloc(sizeof(TileArray));
+  tile_array->tiles = malloc(size * sizeof(Tile*));
   for (uint8_t i=0; i < size; i ++) {
-    tileArray->tiles[i] = malloc(sizeof(Tile));
+    tile_array->tiles[i] = malloc(sizeof(Tile));
   }
-  tileArray->used = 0;
-  tileArray->size = size;
-  tileArray->default_idx = 0;
-  tileArray->open_default = false;
+  tile_array->used = 0;
+  tile_array->size = size;
+  tile_array->default_idx = 0;
+  tile_array->open_default = false;
 }
 
 static void data_tile_array_add_tile(Tile *tile) {
-  if (!tileArray) { return; }
-  if (tileArray->used == tileArray->size) {
-    tileArray->size  *= 2;
-    tileArray->tiles = realloc(tileArray->tiles, tileArray->size * sizeof(Tile));
+  if (!tile_array) { return; }
+  if (tile_array->used == tile_array->size) {
+    tile_array->size  *= 2;
+    tile_array->tiles = realloc(tile_array->tiles, tile_array->size * sizeof(Tile));
   }
-  tileArray->tiles[tileArray->used++] = tile;
+  tile_array->tiles[tile_array->used++] = tile;
 }
 
 void data_tile_array_free() {
-  if (!tileArray) { return; }
-  for(uint8_t i=0; i < tileArray->used; i++) {
-    for(uint8_t j=0; j < ARRAY_LENGTH((*tileArray->tiles[i]).texts); j++) {
-      if ((*tileArray->tiles[i]).texts[j]) { free((*tileArray->tiles[i]).texts[j]); }
-      if ((*tileArray->tiles[i]).icon_key[j]) { free((*tileArray->tiles[i]).icon_key[j]); }
+  if (!tile_array) { return; }
+  for(uint8_t i=0; i < tile_array->used; i++) {
+    for(uint8_t j=0; j < ARRAY_LENGTH((*tile_array->tiles[i]).texts); j++) {
+      if ((*tile_array->tiles[i]).texts[j]) { free((*tile_array->tiles[i]).texts[j]); }
+      if ((*tile_array->tiles[i]).icon_key[j]) { free((*tile_array->tiles[i]).icon_key[j]); }
     }
-    free(tileArray->tiles[i]);
+    free(tile_array->tiles[i]);
   }
-  free(tileArray->tiles);
-  free(tileArray);
-  tileArray = NULL;
+  free(tile_array->tiles);
+  free(tile_array);
+  tile_array = NULL;
 }
 
 void data_tile_array_pack_tiles(uint8_t *data, int data_size){
@@ -51,8 +51,8 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
     Tile *tile;
     int ptr = 0;
     uint8_t tile_count = data[ptr++];
-    tileArray->default_idx = data[ptr++];
-    tileArray->open_default = data[ptr++];
+    tile_array->default_idx = data[ptr++];
+    tile_array->open_default = data[ptr++];
     uint8_t i = 0;
     int tile_counter = 0;
     while (i < tile_count) {
@@ -97,34 +97,36 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
   }
   
 void data_icon_array_init(uint8_t size) {
-  iconArray = malloc(sizeof(IconArray));
-  iconArray->ptr = 0;
-  iconArray->size = size;
+  icon_array = malloc(sizeof(IconArray));
+  icon_array->ptr = 0;
+  icon_array->size = size;
   
-  iconArray->icons = malloc(size * sizeof(Icon));
-  for(uint8_t i=0; i < iconArray->size; i++) {
-    iconArray->icons[i].icon = NULL;
-    iconArray->icons[i].key = NULL;
+  icon_array->icons = malloc(size * sizeof(Icon));
+  for(uint8_t i=0; i < size; i++) {
+    icon_array->icons[i] = malloc(sizeof(Icon));
+    (*icon_array->icons[i]).icon = NULL;
+    (*icon_array->icons[i]).key = NULL;
   }
-  defaultIcon = gbitmap_create_with_resource(RESOURCE_ID_ICON_DEFAULT);
+  default_icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_DEFAULT);
 }
 
 void data_icon_array_free() {
-  if (!iconArray) { return; }
-  for(uint8_t i=0; i < iconArray->size; i++) {
-      gbitmap_destroy(iconArray->icons[i].icon);
-      free(iconArray->icons[i].key);
+  if (!icon_array) { return; }
+  for(uint8_t i=0; i < icon_array->size; i++) {
+      gbitmap_destroy((*icon_array->icons[i]).icon);
+      free((*icon_array->icons[i]).key);
+      free(icon_array->icons[i]);
   }
-  free(iconArray->icons);
-  free(iconArray);
-  gbitmap_destroy(defaultIcon);
+  free(icon_array->icons);
+  free(icon_array);
+  gbitmap_destroy(default_icon);
 }
 
 void data_icon_array_add_icon(uint8_t *data) {
-  if (!iconArray) { return; }
+  if (!icon_array) { return; }
   int ptr = 0;
   uint8_t index = data[ptr++];
-  Icon *icon = &iconArray->icons[index];
+  Icon *icon = icon_array->icons[index];
 
   uint16_t icon_size = *(uint16_t*) &data[ptr];
   if (heap_bytes_free() < icon_size) { return; }
@@ -141,9 +143,9 @@ void data_icon_array_add_icon(uint8_t *data) {
 }
 
 GBitmap *data_icon_array_search(char* key){
-  if (!iconArray || strlen(key) == 0) { return NULL; }
-  for (int i=0; i < iconArray->size; i++) {
-    Icon *icon = &iconArray->icons[i];
+  if (!icon_array || strlen(key) == 0) { return NULL; }
+  for (int i=0; i < icon_array->size; i++) {
+    Icon *icon = icon_array->icons[i];
     if (icon->key && strcmp(key, icon->key) == 0) {
       return icon->icon;
     }
@@ -151,18 +153,18 @@ GBitmap *data_icon_array_search(char* key){
   #if DEBUG > 1
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Couldnt find %s locally, asking JS environment", key);
   #endif 
-  Icon *icon = &iconArray->icons[iconArray->ptr];
+  Icon *icon = icon_array->icons[icon_array->ptr];
 
   free(icon->key);
   icon->key = NULL;
-  icon->key = (char*) malloc(strlen(key) * sizeof(char));
+  icon->key = (char*) malloc(strlen(key) + 1 * sizeof(char));
   strcpy(icon->key, key);
 
   if (icon->icon) { gbitmap_destroy(icon->icon); }
   icon->icon = NULL;
   icon->icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_DEFAULT);
 
-  comm_icon_request(key, iconArray->ptr);
-  iconArray->ptr = (iconArray->ptr + 1) % iconArray->size;
+  comm_icon_request(key, icon_array->ptr);
+  icon_array->ptr = (icon_array->ptr + 1) % icon_array->size;
   return icon->icon;
 }
