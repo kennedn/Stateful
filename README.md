@@ -49,6 +49,7 @@ Currently due to limitations in how clay config works, I have opted to directly 
 {
   "default_idx": 0, 
   "open_default": false,
+  "keep_alive": false,
   "base_url": "",
   "headers": {},
   "tiles": []
@@ -59,6 +60,7 @@ Currently due to limitations in how clay config works, I have opted to directly 
 |-------------|-------------|-----------|
 |default_idx  |`number`     |Configures which menu item is initially selected when the app is started|
 |open_default |`boolean`    |Automatically enters the selected menu item when the app starts|
+|keep_alive   |`boolean`    |Sends a 'keep-alive' XHR GET request every 5 seconds to `base_url` with `headers`.<br>This is to work around battery optimizations on android which limit connectivity when the screen is off.
 |base_url     |`string`     |Prepended to all tile urls if specified|
 |headers      |`Object`     |Will set XHR headers for every request if specified|
 |tiles        |`Objects[]`  |An array of tile objects, see [Tiles](#tiles)|
@@ -69,6 +71,7 @@ Example:
 {
   "default_idx": 0, 
   "open_default": true,
+  "keep_alive": true,
   "base_url": "https://cool.api/api/v1.0/",
   "headers": {
     "Content-Type": "application/json",
@@ -330,8 +333,8 @@ Status only buttons are similar to stateful buttons, but they are intended for s
 |headers      |`Object`     |Optional Headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
 |data        |`Object`  |A single data object to send to the endpoint|
 |variable  | `string` |A variable to extract from the return data, use dot notation to traverse a nested object|
-|good | `var` | If this matches the extracted `status.variable`, display green background on watch<br>**Be consious of type**|
-|bad | `var` | If this matches the extracted `status.variable`, display red background on watch<br>**Be consious of type**|
+|good | `var` | If this matches the extracted `status.variable`, display <font style='color:#00AA00;'>green</font> background on watch<br>**Be consious of type**|
+|bad | `var` | If this matches the extracted `status.variable`, display <font style='color:#FF0055'>red</font> background on watch<br>**Be consious of type**|
 
 Example:
 
@@ -378,6 +381,7 @@ Fully constructed JSON objects can be pasted directly into clay config to parse.
 {
   "default_idx": 0, 
   "open_default": true,
+  "keep_alive": true,
   "base_url": "https://cool.api/api/v1.0/",
   "headers": {
     "Content-Type": "application/json",

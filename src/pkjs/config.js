@@ -5,7 +5,8 @@ module.exports =
     "items": [
       {
         "type": "heading",
-        "defaultValue": "PebbleKit Message"
+        "defaultValue": "PebbleKit Message",
+        "id": "pebblekit_header"
       },
       {
         "type": "input",
@@ -22,10 +23,11 @@ module.exports =
     "items": [
       {
         "type": "heading",
-        "defaultValue": "Tiles JSON"
+        "defaultValue": "Tiles JSON",
+        "id": "json_header"
       },
       {
-        "type": "input",
+        "type": "textarea",
         "id": "json_string",
         "attributes": {
           "word-break": "break-word"
