@@ -11,7 +11,7 @@ module.exports =
       {
         "type": "input",
         "id": "pebblekit_message",
-        "defaultValue": "",
+        "defaultValue": "No JSON loaded",
         "attributes": {
           "readonly": true
         }
