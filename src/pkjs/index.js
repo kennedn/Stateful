@@ -8,10 +8,11 @@ var customClay = require('./custom-clay');
 var clayConfig = require('./config')
 var messageKeys = require('message_keys')
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
+var keepAliveTimeout;
 
 // var clayTemplate = require('./clay-templates');
 var baseURL = (Pebble.getActiveWatchInfo().model.indexOf('emu') != -1) ? "http://thinboy.int" : "https://kennedn.com"
-var DEBUG = 3;
+var DEBUG = 0;
 var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 256 : 8200;
 var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 4 : 10;
 var MAX_TEXT_SIZE = 24;
@@ -115,6 +116,7 @@ function keyStartsWith(obj, substring) {
 //! Using structured ID's to figure out object levels
 function clayToTiles() {
   no_transfer_lock = true;
+  localStorage.setItem("tiles", "");
   var tiles = {}
   var claySettings = JSON.parse(localStorage.getItem('clay-settings'));
 
@@ -123,14 +125,24 @@ function clayToTiles() {
     claySettings['pebblekit_message'] = "Current JSON loaded correctly";
   } catch(e) {
     claySettings['pebblekit_message'] = "Error: " + e;
+    localStorage.setItem('clay-settings', JSON.stringify(claySettings));
+    Pebble.sendAppMessage({"TransferType": TransferType.NO_CLAY }, messageSuccessCallback, messageFailureCallback);
     Pebble.openURL(clay.generateUrl());
+    return;
   }
 
-  localStorage.setItem('clay-settings', JSON.stringify(claySettings));
-  localStorage.setItem('tiles', JSON.stringify(tiles));
-  Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
-    Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
-  }, messageFailureCallback);
+  if (tiles != null && Object.keys(tiles).length != 0  && tiles.tiles != null && tiles.tiles.length != 0) {
+    localStorage.setItem('tiles', JSON.stringify(tiles));
+    Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
+      Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
+    }, messageFailureCallback);
+  } else {
+    claySettings['pebblekit_message'] = "No tiles present in JSON";
+    localStorage.setItem('clay-settings', JSON.stringify(claySettings));
+    Pebble.sendAppMessage({"TransferType": TransferType.NO_CLAY }, messageSuccessCallback, messageFailureCallback);
+    Pebble.openURL(clay.generateUrl());
+    return;
+  }
   no_transfer_lock = false;
 }
 
@@ -195,10 +207,14 @@ function packTiles() {
   } catch(e) {
     tiles = null;
   }
-
-  if (tiles == null || tiles.tiles.length == 0) {
+  if (tiles == null || Object.keys(tiles).length == 0  || tiles.tiles == null ||  tiles.tiles.length == 0) {
     Pebble.sendAppMessage({"TransferType": TransferType.NO_CLAY}, messageSuccessCallback, messageFailureCallback);
     return;
+  } else {
+    clearTimeout(keepAliveTimeout);
+    if(tiles.keep_alive && typeof(tiles.base_url) == 'string' && tiles.base_url.length > 0) {
+      xhrKeepAlive(tiles.base_url, tiles.headers);
+    }
   }
 
   // pack tile variables into the buffer object, incrementing our pointer each time
@@ -512,19 +528,21 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
 //! @param Any headers required to authenticate, probably redundant for this use case
 function xhrKeepAlive(url, headers) {
   var request = new XMLHttpRequest();
+  request.ontimeout = request.onerror = request.onload = function() {
+    keepAliveTimeout = setTimeout(function() {
+      if (DEBUG > 2) { console.log('xhrKeepAlive fired'); }
+      xhrKeepAlive(url, headers);
+    }, 5000);
+
+  }
   request.open('GET', url);
   for (var key in headers) {
     if(headers.hasOwnProperty(key)) {
-      if (DEBUG > 1) { console.log("Setting header: " + key + ": " + headers[key]); }
+      if (DEBUG > 2) { console.log("Setting header: " + key + ": " + headers[key]); }
       request.setRequestHeader(key, headers[key]);
     }
   }
   request.send();  
-  setTimeout(function() {
-    if (DEBUG > 2) { console.log('xhrKeepAlive fired'); }
-    request.abort();
-    xhrKeepAlive();
-  }, 5000);
 }				
 
 // Called when incoming message from the Pebble is received
@@ -633,14 +651,6 @@ Pebble.addEventListener("appmessage", function(e) {
 
 Pebble.addEventListener('ready', function() {
   console.log("And we're back");
-  // var claySettings = JSON.parse(localStorage.getItem('clay-settings'));
-  // var tiles = null;
-  // try {
-  //   tiles = JSON.parse(claySettings['json_string']);
-  // } catch(e) { 
-  //   tiles = null;
-  // }
-  // if(tiles != null && tiles.keep_alive) { xhrKeepAlive(); }
   Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
 });
 
