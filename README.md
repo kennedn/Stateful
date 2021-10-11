@@ -567,7 +567,6 @@ Fully constructed JSON objects can be pasted directly into clay config to parse.
     },
     {
       "payload": {
-        "id": 3,
         "color": "000000",
         "highlight": "aaaaaa",
         "texts": [
