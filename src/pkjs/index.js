@@ -2,7 +2,6 @@ window.global = window;
 
 require('./polyfills/strings');
 var Buffer = require('buffer/').Buffer;
-var Headers = require('../../headers.json');
 var Clay = require('pebble-clay');
 var customClay = require('./custom-clay');
 var clayConfig = require('./config')
@@ -10,12 +9,9 @@ var messageKeys = require('message_keys')
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var keepAliveTimeout;
 
-// var clayTemplate = require('./clay-templates');
-var baseURL = (Pebble.getActiveWatchInfo().model.indexOf('emu') != -1) ? "http://thinboy.int" : "https://kennedn.com"
 var DEBUG = 0;
 var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 256 : 8200;
 var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 4 : 10;
-var MAX_TEXT_SIZE = 24;
  
 var no_transfer_lock = false;
 
