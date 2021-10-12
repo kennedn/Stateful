@@ -12,9 +12,6 @@ GBitmap *default_icon = NULL;
 static void data_tile_array_init(uint8_t size) {
   tile_array = malloc(sizeof(TileArray));
   tile_array->tiles = malloc(size * sizeof(Tile*));
-  for (uint8_t i=0; i < size; i ++) {
-    tile_array->tiles[i] = malloc(sizeof(Tile));
-  }
   tile_array->used = 0;
   tile_array->size = size;
   tile_array->default_idx = 0;
@@ -22,11 +19,15 @@ static void data_tile_array_init(uint8_t size) {
 }
 
 static void data_tile_array_add_tile(Tile *tile) {
-  if (!tile_array) { return; }
+  if (!tile_array) { 
+    free(tile);
+    return; 
+  }
   if(tile_array->used >= MAX_TILES) {
     #if DEBUG > 1
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Hit MAX_TILES(%d), skipping tile", MAX_TILES);
     #endif
+    free(tile);
     return;
   }
 
@@ -36,9 +37,6 @@ static void data_tile_array_add_tile(Tile *tile) {
     #endif
     tile_array->size = MIN(MAX_TILES, tile_array->size *2);
     tile_array->tiles = realloc(tile_array->tiles, tile_array->size * sizeof(Tile*));
-    for (uint8_t i=tile_array->used; i < tile_array->size; i++) {
-      tile_array->tiles[i] = malloc(sizeof(Tile));
-    }
   }
   
   tile_array->tiles[tile_array->used++] = tile;
@@ -68,7 +66,6 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
     tile_array->default_idx = data[ptr++];
     tile_array->open_default = data[ptr++];
     uint8_t i = 0;
-    int tile_counter = 0;
     while (i < tile_count) {
       tile = (Tile*) malloc(sizeof(Tile));
       uint8_t text_size = 0;
@@ -90,7 +87,6 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
         ptr += key_size;
       }
       data_tile_array_add_tile(tile); 
-      tile_counter = ptr;
       i++;
     }
     while (ptr < data_size) {

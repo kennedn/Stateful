@@ -2,7 +2,7 @@
 #include <pebble.h>
 GFont ubuntu18;
 
-#define DEBUG 2
+#define DEBUG 0
 #define ICON_ARRAY_SIZE 10
 #ifdef PBL_APLITE
 #define ICON_ARRAY_SIZE 4
