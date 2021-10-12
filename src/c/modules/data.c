@@ -24,8 +24,14 @@ static void data_tile_array_init(uint8_t size) {
 static void data_tile_array_add_tile(Tile *tile) {
   if (!tile_array) { return; }
   if (tile_array->used == tile_array->size) {
-    tile_array->size  *= 2;
-    tile_array->tiles = realloc(tile_array->tiles, tile_array->size * sizeof(Tile));
+    #if DEBUG > 1
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Resizing tile_array from %d to %d", tile_array->size, tile_array->size * 2);
+    #endif
+    tile_array->size = MIN(64, tile_array->size *2);
+    tile_array->tiles = realloc(tile_array->tiles, tile_array->size * sizeof(Tile*));
+    for (uint8_t i=tile_array->used; i < tile_array->size; i++) {
+      tile_array->tiles[i] = malloc(sizeof(Tile));
+    }
   }
   tile_array->tiles[tile_array->used++] = tile;
 }
@@ -101,7 +107,7 @@ void data_icon_array_init(uint8_t size) {
   icon_array->ptr = 0;
   icon_array->size = size;
   
-  icon_array->icons = malloc(size * sizeof(Icon));
+  icon_array->icons = malloc(size * sizeof(Icon*));
   for(uint8_t i=0; i < size; i++) {
     icon_array->icons[i] = malloc(sizeof(Icon));
     (*icon_array->icons[i]).icon = NULL;
