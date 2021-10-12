@@ -23,16 +23,24 @@ static void data_tile_array_init(uint8_t size) {
 
 static void data_tile_array_add_tile(Tile *tile) {
   if (!tile_array) { return; }
-  if (tile_array->used == tile_array->size) {
+  if(tile_array->used >= MAX_TILES) {
+    #if DEBUG > 1
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Hit MAX_TILES(%d), skipping tile", MAX_TILES);
+    #endif
+    return;
+  }
+
+  if (tile_array->size < MAX_TILES && tile_array->used == tile_array->size) {
     #if DEBUG > 1
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Resizing tile_array from %d to %d", tile_array->size, tile_array->size * 2);
     #endif
-    tile_array->size = MIN(64, tile_array->size *2);
+    tile_array->size = MIN(MAX_TILES, tile_array->size *2);
     tile_array->tiles = realloc(tile_array->tiles, tile_array->size * sizeof(Tile*));
     for (uint8_t i=tile_array->used; i < tile_array->size; i++) {
       tile_array->tiles[i] = malloc(sizeof(Tile));
     }
   }
+  
   tile_array->tiles[tile_array->used++] = tile;
 }
 
