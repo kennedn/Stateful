@@ -120,8 +120,8 @@ Example:
 
 ```json
 {
-  "color": "0055aa",
-  "highlight": "00aaff",
+  "color": "#0055aa",
+  "highlight": "#00aaff",
   "texts": [
     "office",
     "attic",
@@ -390,8 +390,8 @@ Fully constructed JSON objects can be pasted directly into clay config to parse.
   "tiles": [
      {
       "payload": {
-        "color": "0055aa",
-        "highlight": "00aaff",
+        "color": "#0055aa",
+        "highlight": "#00aaff",
         "texts": [
           "office",
           "attic",
@@ -491,8 +491,8 @@ Fully constructed JSON objects can be pasted directly into clay config to parse.
     },
     {
       "payload": {
-        "color": "550055",
-        "highlight": "5500aa",
+        "color": "#550055",
+        "highlight": "#5500aa",
         "texts": [
           "bulb",
           "vol up",
@@ -567,8 +567,8 @@ Fully constructed JSON objects can be pasted directly into clay config to parse.
     },
     {
       "payload": {
-        "color": "000000",
-        "highlight": "aaaaaa",
+        "color": "#000000",
+        "highlight": "#aaaaaa",
         "texts": [
           "pc",
           "shitcube",

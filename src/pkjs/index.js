@@ -280,6 +280,7 @@ function packTiles() {
 function toGColor(hexString) {
   // Split hexString into 2 char array [r, g, b], bitshift and pad each element, 
   // then join and parse into uint8_t.
+  hexString = hexString.replace("#", "");
   if (hexString.length < 6) {
     hexString = hexString.padStart(6, '0');
   } else if (hexString.length > 6) {
