@@ -6,9 +6,9 @@
 static uint8_t *raw_data;
 static AppTimer *s_retry_timer, *s_ready_timer;
 static bool data_transfer_lock = false;
-static bool is_ready = false;
 static bool clay_needs_config = false;
 static int outbox_attempts = 0;
+
 typedef struct {
   char icon_key[9];
   uint8_t icon_index;
@@ -95,7 +95,6 @@ static void inbox(DictionaryIterator *dict, void *context) {
         #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "JS Environment Ready");
         #endif
-        is_ready = true;
         comm_tile_request();
         break;
       case TRANSFER_TYPE_NO_CLAY:
@@ -123,8 +122,6 @@ void retry_timer_callback(void *data) {
 // ask for a tile data after ready
 void comm_ready_callback(void *data) {
   if (!tile_array) {
-    // catching an edge case where a data tranfer was interrupted part way so the lock was never released
-    if (is_ready && data_transfer_lock) {data_transfer_lock = false;}
     DictionaryIterator *dict;
     uint32_t result = app_message_outbox_begin(&dict);
     #if DEBUG > 1
@@ -202,7 +199,6 @@ void comm_xhr_request(void *context, uint8_t id, uint8_t button) {
 // kicks of loop to wait for pebblekit ready and then request tile data
 void comm_callback_start() {
   data_tile_array_free();
-  is_ready = false;
   data_transfer_lock = false;
   outbox_attempts = 0;
   if (s_retry_timer) {app_timer_cancel(s_retry_timer);}

@@ -9,7 +9,7 @@ var messageKeys = require('message_keys')
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var keepAliveTimeout;
 
-var DEBUG = 0;
+var DEBUG = 0; 
 var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 256 : 8200;
 var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 4 : 10;
  
@@ -128,6 +128,7 @@ function clayToTiles() {
     return;
   }
 
+  // if tiles object has at least 1 tile
   if (tiles != null && Object.keys(tiles).length != 0  && tiles.tiles != null && tiles.tiles.length != 0) {
     localStorage.setItem('tiles', JSON.stringify(tiles));
     Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
@@ -337,7 +338,10 @@ function sendChunk(array, index, arrayLength, type) {
       // Done
       Pebble.sendAppMessage({
         'TransferComplete': arrayLength,
-        'TransferType': type});
+        'TransferType': type}, null, function() {
+          if (DEBUG > 1) { console.log('Failed to send complete message, reattempting'); }
+          setTimeout(1000, function() {sendChunk(array, index, arrayLength, type);});
+        });
     }
   }, function(obj, error) {
     if (DEBUG > 1) { console.log('Failed to send chunk, reattempting'); }
@@ -356,7 +360,8 @@ function transmitData(array, type) {
     // Success, begin sending chunks
     sendChunk(array, index, arrayLength, type);
   }, function(e) {
-   if (DEBUG > 1) { console.log('Failed to send data length to Pebble!'); }
+    if (DEBUG > 1) { console.log('Failed to send data length to Pebble, reattempting'); }
+    setTimeout(1000, function() {transmitData(array, type);});
   });
 }
 
