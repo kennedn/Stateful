@@ -56,6 +56,69 @@ void data_tile_array_free() {
   tile_array = NULL;
 }
 
+void data_tile_array_clear_persist() {
+  uint8_t i = 0;
+  while (i < MAX_TILES + 2) {
+    persist_delete(i);
+    i++;
+  }
+}
+
+bool data_tile_array_retrieve_tiles() {
+  if (!persist_exists(0)) { return false; }
+  data_tile_array_free();
+  data_tile_array_init(4);
+  Tile *tile;
+  tile_array->default_idx = (uint8_t) persist_read_int(0);
+  tile_array->open_default = persist_read_bool(1);
+  uint8_t *buffer = (uint8_t*) malloc(sizeof(uint8_t) * 255);
+  uint8_t i = 0;
+  while (persist_read_data(2 + i, buffer, 255) != E_DOES_NOT_EXIST) {
+    #if DEBUG > 1 
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Found tile at persist key %d", 2 + i);
+    #endif
+    int ptr = 0;
+    tile = (Tile*) malloc(sizeof(Tile));
+    uint8_t text_size = 0;
+    uint8_t key_size = 0;
+    tile->color = PBL_IF_COLOR_ELSE((GColor) buffer[ptr], GColorBlack); ptr++;
+    tile->highlight = PBL_IF_COLOR_ELSE((GColor) buffer[ptr], GColorWhite); ptr++;
+    
+    for(uint8_t i=0; i < ARRAY_LENGTH(tile->texts); i++) {
+      text_size = buffer[ptr++];
+      tile->texts[i] = (char*) malloc(text_size * sizeof(char));
+      strncpy(tile->texts[i], (char*) &buffer[ptr], text_size);
+      ptr += text_size;
+    }
+
+    for(uint8_t i=0; i < ARRAY_LENGTH(tile->icon_key); i++) {
+      key_size = buffer[ptr++];
+      tile->icon_key[i] = (char*) malloc(key_size * sizeof(char));
+      strncpy(tile->icon_key[i], (char*) &buffer[ptr], key_size);
+      ptr += key_size;
+    }
+
+    data_tile_array_add_tile(tile); 
+    i++;
+  }
+
+  free(buffer);
+
+  if (i > 0) {
+    menu_window_push();
+
+    #if DEBUG > 1 
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed tile retrieval");
+    #endif
+    return true;
+  } else {
+    #if DEBUG > 1 
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No tiles retrieved");
+    #endif
+    return false;
+  }
+}
+
 void data_tile_array_pack_tiles(uint8_t *data, int data_size){
     data_tile_array_free();
     data_tile_array_init(4);
@@ -64,9 +127,12 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
     int ptr = 0;
     uint8_t tile_count = data[ptr++];
     tile_array->default_idx = data[ptr++];
+    persist_write_int(0, tile_array->default_idx);
     tile_array->open_default = data[ptr++];
+    persist_write_bool(1, tile_array->open_default);
     uint8_t i = 0;
     while (i < tile_count) {
+      int tile_start = ptr;
       tile = (Tile*) malloc(sizeof(Tile));
       uint8_t text_size = 0;
       uint8_t key_size = 0;
@@ -86,6 +152,7 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
         strncpy(tile->icon_key[i], (char*) &data[ptr], key_size);
         ptr += key_size;
       }
+      persist_write_data(2 + i, &data[tile_start], ptr - tile_start);
       data_tile_array_add_tile(tile); 
       i++;
     }

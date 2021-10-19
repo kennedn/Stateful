@@ -67,6 +67,21 @@
           "file": "icons/test.png"
         },
         {
+          "type": "png",
+          "name": "ICON_CALL",
+          "file": "icons/call.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_UP_ARROW",
+          "file": "icons/up_arrow.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_DOWN_ARROW",
+          "file": "icons/down_arrow.png"
+        },
+        {
           "type": "raw",
           "name": "LOADING_ANIMATION",
           "file": "images/loading.png"

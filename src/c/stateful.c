@@ -14,6 +14,19 @@ VibePattern long_vibe = {
     .durations = (uint32_t []) {100},
     .num_segments = 1,};
 
+//! Returns a color that is legible over the provided bg_color
+//! @param bg_color color to test for legibility
+//! @return A legable color, either white or a darkened derivative of bg_color
+GColor8 text_color_legible_over(GColor8 bg_color) {
+  // constants taken from https://www.w3.org/TR/AERT/#color-contrast
+  uint16_t luminance = (uint16_t)((0.299 * bg_color.r + 0.587 * bg_color.g + 0.114 * bg_color.b) * 100);
+  GColor8 derivative = (GColor8) {.a = 3,
+                                  .r = MAX(0, bg_color.r - 2),
+                                  .g = MAX(0, bg_color.g - 2),
+                                  .b = MAX(0, bg_color.b - 2)};
+  return (luminance < 200) ? GColorWhite : PBL_IF_COLOR_ELSE(derivative, GColorBlack);
+}
+
 // called whenever connection state changes (for some reason var passed to this callback is always true)
 void pebblekit_connection_callback(bool connected) {
   #if DEBUG > 0

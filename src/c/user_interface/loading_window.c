@@ -13,6 +13,8 @@ static void loading_window_start_animation();
 static uint8_t text_counter = 0;
 static char *custom_text = NULL;
 
+GColor8 bg_color;
+
 static void timer_handler(void *context) {
   uint32_t next_delay;
 
@@ -64,16 +66,16 @@ static void loading_window_stop_animation() {
 static void text_callback(void *data) {
   switch(text_counter) {
     case 0:
-      text_layer_set_text(s_text_layer, "Phone not ready");
+      text_layer_set_text(s_text_layer, "Loading");
       break;
     case 1:
-      text_layer_set_text(s_text_layer, "Phone not ready.");
+      text_layer_set_text(s_text_layer, "Loading.");
       break;
     case 2:
-      text_layer_set_text(s_text_layer, "Phone not ready..");
+      text_layer_set_text(s_text_layer, "Loading..");
       break;
     case 3:
-      text_layer_set_text(s_text_layer, "Phone not ready...");
+      text_layer_set_text(s_text_layer, "Loading...");
       break;
 
   }
@@ -89,7 +91,7 @@ static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool
     GRect text_bounds = GRect(bounds.origin.x + ((bounds.size.w - text_size.w) / 2), bounds.origin.y + ((bounds.size.h - text_size.h) / 2),
                               text_size.w, bounds.size.h);
     s_text_layer = text_layer_create(text_bounds);
-    text_layer_set_text_color(s_text_layer, GColorWhite);
+    text_layer_set_text_color(s_text_layer, text_color_legible_over(bg_color));
     text_layer_set_background_color(s_text_layer, PBL_IF_BW_ELSE(GColorBlack, GColorClear));
     text_layer_set_overflow_mode(s_text_layer, GTextOverflowModeWordWrap);
     text_layer_set_font(s_text_layer, ubuntu18);
@@ -129,7 +131,7 @@ static void window_load(Window *window) {
     return;
   }
   #ifdef PBL_BW
-    setup_text_layer("Phone not ready...", window_layer, bounds, false, true);
+    setup_text_layer("Loading...", window_layer, bounds, false, true);
 
     return;
   #endif 
@@ -177,15 +179,15 @@ void loading_window_push(char *text) {
   if(!s_window) {
     custom_text = text;
     s_window = window_create();
-    GColor8 color = GColorBlack;
+    bg_color = GColorBlack;
     #ifdef PBL_COLOR
       srand(time(0));
-      if(persist_read_data(0, &color, sizeof(GColor8)) == E_DOES_NOT_EXIST) {
+      if(persist_read_data(MAX_TILES + 3, &bg_color, sizeof(GColor8)) == E_DOES_NOT_EXIST) {
         GColor8 colors[] = {GColorCobaltBlue, GColorIslamicGreen, GColorImperialPurple, GColorFolly, GColorChromeYellow};
-        color = colors[rand() % ARRAY_LENGTH(colors)]; 
+        bg_color = colors[rand() % ARRAY_LENGTH(colors)]; 
       }
     #endif
-    window_set_background_color(s_window, color);
+    window_set_background_color(s_window, bg_color);
     window_set_window_handlers(s_window, (WindowHandlers) {
       .load = window_load,
       .disappear = window_disappear,

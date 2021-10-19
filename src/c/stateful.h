@@ -2,7 +2,7 @@
 #include <pebble.h>
 GFont ubuntu18;
 
-#define DEBUG 0
+#define DEBUG 2
 #define ICON_ARRAY_SIZE 10
 #ifdef PBL_APLITE
 #define ICON_ARRAY_SIZE 4
@@ -18,6 +18,7 @@ inline char * BOOL(bool b) {
   return b ? "true" : "false";
 }
 #define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 VibePattern short_vibe; 
 VibePattern long_vibe; 
 
@@ -33,4 +34,5 @@ enum transferType {
   TRANSFER_TYPE_REFRESH = 8
 };
 
-void pebblekit_connection_callback(bool connected);
+void pebblekit_connection_callback(bool connected); 
+GColor8 text_color_legible_over(GColor8 bg_color);

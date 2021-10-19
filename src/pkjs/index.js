@@ -9,7 +9,7 @@ var messageKeys = require('message_keys')
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var keepAliveTimeout;
 
-var DEBUG = 0; 
+var DEBUG = 2; 
 var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 256 : 8200;
 var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 4 : 10;
  
@@ -34,7 +34,10 @@ const Icons = {
   "ICON_TV": 2,
   "ICON_BULB": 3,
   "ICON_MONITOR": 4,
-  "ICON_TEST": 5
+  "ICON_TEST": 5,
+  "ICON_CALL": 6,
+  "ICON_UP": 7,
+  "ICON_DOWN": 8
 }
 const TransferType = {
   "ICON": 0,
@@ -68,7 +71,8 @@ const CallType = {
   "LOCAL": 0,
   "STATEFUL": 1,
   "STATUS_ONLY": 2,
-  "DISABLED": 3
+  "DISABLED": 3,
+  "INCREMENT": 4,
 };
 
 var icons = {
@@ -77,6 +81,9 @@ var icons = {
   "77de68da": 3,
   "1b645389": 4,
   "ac3478d6": 5,
+  "c1dfd96e": 6,
+  "902ba3cd": 7,
+  "fe5dbbce": 8,
 }
 
 
@@ -416,10 +423,15 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
       }
       Pebble.sendAppMessage({"TransferType": TransferType.ACK}, messageSuccessCallback, messageFailureCallback);
       if (DEBUG > 1) { console.log("Status: " + this.status); }
-      if (callback) { callback(); } 
+      if (callback) { callback(returnData); } 
     } else {
       // Pebble.sendAppMessage({"TransferType": TransferType.ERROR}, messageSuccessCallback, messageFailureCallback);
-      Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+      console.log("Status: " + this.status);
+      if (maxRetries[1] > 0) {
+        setTimeout(function() {xhrRequest(method, url, headers, data, [maxRetries[0], maxRetries[1] - 1], callback)},  307 * (maxRetries[0] - maxRetries[1]));
+      } else {
+        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+      }
     }
   };
 
@@ -641,6 +653,22 @@ Pebble.addEventListener("appmessage", function(e) {
           break;
         case CallType.STATUS_ONLY:
           xhrStatus(button.method, url, headers, button.data, button.variable, button.good, button.bad, 25); 
+          break;
+        case CallType.INCREMENT:
+          var status = button.status
+          var status_url = (tiles.base_url != null) ? tiles.base_url + status.url : status.url;
+          var status_headers = (tiles.headers != null) ? tiles.headers : status.headers;
+          xhrRequest(status.method, status_url, status_headers, status.data, 20, function(returnData) {
+            console.log("in callback");
+            var variable_split = status.variable.split(".")
+            for (var j in variable_split) {
+              returnData = returnData[variable_split[j]];
+            }
+            var curr_val = parseInt(returnData) + status.step;
+            var data = {};
+            data[button.variable] = curr_val;
+            xhrRequest(button.method, url, headers, data, 20, null);
+          })
           break;
         default:
           if (DEBUG > 1) { console.log("Unknown type: " + button.type); }

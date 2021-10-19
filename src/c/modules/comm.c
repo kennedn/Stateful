@@ -95,7 +95,9 @@ static void inbox(DictionaryIterator *dict, void *context) {
         #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "JS Environment Ready");
         #endif
-        comm_tile_request();
+        if(!data_tile_array_retrieve_tiles()) {
+          comm_tile_request();
+        }
         break;
       case TRANSFER_TYPE_NO_CLAY:
         #if DEBUG > 0
@@ -108,6 +110,7 @@ static void inbox(DictionaryIterator *dict, void *context) {
         }
         break;
       case TRANSFER_TYPE_REFRESH:
+        data_tile_array_clear_persist();
         pebblekit_connection_callback(true);
         break;
 
@@ -147,10 +150,10 @@ void comm_icon_request(char* icon_key, uint8_t icon_index) {
     if (!data_transfer_lock) {
       s_retry_timer = NULL;
       // Asks pebblekit for an icon based on a hash key, to be inserted at provided index in data_icon_array
-      data_transfer_lock = true;
       DictionaryIterator *dict;
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
+        data_transfer_lock = true;
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_ICON);
         dict_write_uint8(dict, MESSAGE_KEY_IconIndex, icon_index);
         dict_write_cstring(dict, MESSAGE_KEY_IconKey, icon_key);
@@ -170,11 +173,11 @@ void comm_icon_request(char* icon_key, uint8_t icon_index) {
 // ask pebblekit to send down its tile data
 void comm_tile_request() {
     if (!data_transfer_lock) {
-      data_transfer_lock = true;
       DictionaryIterator *dict;
       
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
+        data_transfer_lock = true;
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_TILE);
         dict_write_end(dict);
         app_message_outbox_send();

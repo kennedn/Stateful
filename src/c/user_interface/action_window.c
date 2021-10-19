@@ -79,8 +79,13 @@ void action_window_swap_buttons() {
     layer_mark_dirty(text_layer_get_layer(s_down_label_layer));
 
     #ifdef PBL_COLOR
-        window_set_background_color(s_action_window, (!tap_toggle) ? tile->color :tile->highlight);
-        action_bar_layer_set_background_color(s_action_bar_layer, (!tap_toggle) ? tile->highlight : tile->color );
+        GColor8 toggle_color = (!tap_toggle) ? tile->color :tile->highlight;
+        GColor8 toggle_highlight = (tap_toggle) ? tile->color :tile->highlight;
+        text_layer_set_text_color(s_up_label_layer, text_color_legible_over(toggle_color));
+        text_layer_set_text_color(s_mid_label_layer, text_color_legible_over(toggle_color));
+        text_layer_set_text_color(s_down_label_layer, text_color_legible_over(toggle_color));
+        window_set_background_color(s_action_window, toggle_color);
+        action_bar_layer_set_background_color(s_action_bar_layer, toggle_highlight);
         layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
         layer_mark_dirty(window_get_root_layer(s_action_window));
     #endif
@@ -134,9 +139,9 @@ static void action_window_load(Window *window) {
     text_layer_set_background_color(s_up_label_layer, GColorClear);
     text_layer_set_background_color(s_mid_label_layer, GColorClear);
     text_layer_set_background_color(s_down_label_layer, GColorClear);
-    text_layer_set_text_color(s_up_label_layer, GColorWhite);
-    text_layer_set_text_color(s_mid_label_layer, GColorWhite);
-    text_layer_set_text_color(s_down_label_layer, GColorWhite);
+    text_layer_set_text_color(s_up_label_layer, text_color_legible_over(tile->color));
+    text_layer_set_text_color(s_mid_label_layer, text_color_legible_over(tile->color));
+    text_layer_set_text_color(s_down_label_layer, text_color_legible_over(tile->color));
     text_layer_set_text_alignment(s_up_label_layer, GTextAlignmentRight);
     text_layer_set_text_alignment(s_mid_label_layer, GTextAlignmentRight);
     text_layer_set_text_alignment(s_down_label_layer, GTextAlignmentRight);
@@ -186,33 +191,43 @@ void action_window_set_color(int type) {
     #ifndef PBL_COLOR
         return;
     #endif
+
+    GColor8 new_color, new_highlight;
     switch(type) {
         case 0:
             LONG_VIBE();
-            window_set_background_color(s_action_window, GColorIslamicGreen);
-            action_bar_layer_set_background_color(s_action_bar_layer, GColorMayGreen);
+            new_color = GColorIslamicGreen;
+            new_highlight = GColorMayGreen;
             break;
         case 1:
             LONG_VIBE();
-            window_set_background_color(s_action_window, GColorFolly);
-            action_bar_layer_set_background_color(s_action_bar_layer, GColorSunsetOrange);
+            new_color = GColorFolly;
+            new_highlight = GColorSunsetOrange;
             break;
         case 2:
             LONG_VIBE();
-            window_set_background_color(s_action_window, GColorChromeYellow);
-            action_bar_layer_set_background_color(s_action_bar_layer, GColorRajah);
+            new_color = GColorChromeYellow;
+            new_highlight = GColorRajah;
             break;
         case -1:
             SHORT_VIBE();
             // app_timer_cancel(app_timer);
-            window_set_background_color(s_action_window, (tap_toggle) ? tile->highlight : tile->color);
-            action_bar_layer_set_background_color(s_action_bar_layer, (tap_toggle) ? tile->color : tile->highlight);
+            new_color = (tap_toggle) ? tile->highlight : tile->color;
+            new_highlight = (tap_toggle) ? tile->color : tile->highlight;
             break;
         default:
-            window_set_background_color(s_action_window, (tap_toggle) ? tile->highlight : tile->color);
-            action_bar_layer_set_background_color(s_action_bar_layer, (tap_toggle) ? tile->color : tile->highlight);
+            new_color = (tap_toggle) ? tile->highlight : tile->color;
+            new_highlight = (tap_toggle) ? tile->color : tile->highlight;
             break;
     }
+    window_set_background_color(s_action_window, new_color);
+    action_bar_layer_set_background_color(s_action_bar_layer, new_highlight);
+    text_layer_set_text_color(s_up_label_layer, text_color_legible_over(new_color));
+    text_layer_set_text_color(s_mid_label_layer, text_color_legible_over(new_color));
+    text_layer_set_text_color(s_down_label_layer, text_color_legible_over(new_color));
+    layer_mark_dirty(text_layer_get_layer(s_up_label_layer));
+    layer_mark_dirty(text_layer_get_layer(s_mid_label_layer));
+    layer_mark_dirty(text_layer_get_layer(s_down_label_layer));
     layer_mark_dirty(window_get_root_layer(s_action_window));
     layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
 }
