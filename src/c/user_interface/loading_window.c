@@ -156,6 +156,7 @@ void window_unload(Window *window) {
     if (s_text_layer) { text_layer_destroy(s_text_layer); }
     if (loading_bitmap_layer) { bitmap_layer_destroy(loading_bitmap_layer); }
     if (loading_bitmap) { gbitmap_destroy(loading_bitmap); }
+    if (loading_sequence) { gbitmap_sequence_destroy(loading_sequence); }
     if (timeout_timer) { app_timer_cancel(timeout_timer); timeout_timer = NULL;}
     if (text_timer) { app_timer_cancel(text_timer); text_timer = NULL;}
     loading_window_stop_animation();

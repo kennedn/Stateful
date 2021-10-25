@@ -95,9 +95,9 @@ static void inbox(DictionaryIterator *dict, void *context) {
         #if DEBUG > 0
         APP_LOG(APP_LOG_LEVEL_DEBUG, "JS Environment Ready");
         #endif
-        if(!data_tile_array_retrieve_tiles()) {
+        // if(!data_tile_array_retrieve_tiles()) {
           comm_tile_request();
-        }
+        // }
         break;
       case TRANSFER_TYPE_NO_CLAY:
         #if DEBUG > 0

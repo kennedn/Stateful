@@ -627,7 +627,7 @@ Pebble.addEventListener("appmessage", function(e) {
             if (DEBUG > 1) { console.log("Button has single endpoint")}
             data = button.data;
           }
-          xhrRequest(button.method, url, headers, data, 20, function() { 
+          xhrRequest(button.method, url, headers, data, 4, function() { 
             xhrStatus(status.method, status_url, status_headers, status.data, status.variable, status.good, status.bad, 25); 
           });
           break;
@@ -647,7 +647,7 @@ Pebble.addEventListener("appmessage", function(e) {
             data = button.data;
           }
           if (DEBUG > 1) { console.log("highlight idx: " + highlight_idx)}
-          xhrRequest(button.method, url, headers, data, 20, function() { 
+          xhrRequest(button.method, url, headers, data, 4, function() { 
             Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": highlight_idx }, messageSuccessCallback, messageFailureCallback);
           });
           break;
@@ -658,7 +658,7 @@ Pebble.addEventListener("appmessage", function(e) {
           var status = button.status
           var status_url = (tiles.base_url != null) ? tiles.base_url + status.url : status.url;
           var status_headers = (tiles.headers != null) ? tiles.headers : status.headers;
-          xhrRequest(status.method, status_url, status_headers, status.data, 20, function(returnData) {
+          xhrRequest(status.method, status_url, status_headers, status.data, 4, function(returnData) {
             console.log("in callback");
             var variable_split = status.variable.split(".")
             for (var j in variable_split) {
@@ -667,7 +667,7 @@ Pebble.addEventListener("appmessage", function(e) {
             var curr_val = parseInt(returnData) + status.step;
             var data = {};
             data[button.variable] = curr_val;
-            xhrRequest(button.method, url, headers, data, 20, null);
+            xhrRequest(button.method, url, headers, data, 4, null);
           })
           break;
         default:

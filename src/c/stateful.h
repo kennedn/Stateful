@@ -1,26 +1,23 @@
 #pragma once
 #include <pebble.h>
 GFont ubuntu18;
-
-#define DEBUG 2
-#define ICON_ARRAY_SIZE 10
-#ifdef PBL_APLITE
-#define ICON_ARRAY_SIZE 4
-#endif
-#define MAX_TILES 64
-
-
-#define RETRY_READY_TIMEOUT 5000
-
-#define SHORT_VIBE() vibes_enqueue_custom_pattern(short_vibe);
-#define LONG_VIBE() vibes_enqueue_custom_pattern(long_vibe);
-inline char * BOOL(bool b) {
-  return b ? "true" : "false";
-}
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
 VibePattern short_vibe; 
 VibePattern long_vibe; 
+
+#define DEBUG 2
+#define RETRY_READY_TIMEOUT 5000
+#define SHORT_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(short_vibe); }
+#define LONG_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(long_vibe); }
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
+#ifdef PBL_APLITE
+#define ICON_ARRAY_SIZE 4
+#define MAX_TILES 16
+#else
+#define ICON_ARRAY_SIZE 10
+#define MAX_TILES 64
+#endif
 
 enum transferType {
   TRANSFER_TYPE_ICON = 0,
