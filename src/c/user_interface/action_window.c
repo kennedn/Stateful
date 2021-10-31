@@ -12,33 +12,48 @@ static GRect s_label_bounds;
 static uint8_t tap_toggle = 0;
 static Tile *tile;
 static uint8_t tile_index;
+static GBitmap *overflow_icon;
 
 void action_window_swap_buttons();
 
 static void up_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     (strlen(tile->texts[tap_toggle + 0]) == 0) ? action_window_set_color(-2) : action_window_set_color(-1);
     action_window_inset_highlight(BUTTON_ID_UP);
-    comm_xhr_request(ctx, tile_index, 0 + tap_toggle);
+    comm_xhr_request(tile_index, 0 + tap_toggle);
 }
 static void mid_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     (strlen(tile->texts[tap_toggle + 2]) == 0) ? action_window_set_color(-2) : action_window_set_color(-1);
     action_window_inset_highlight(BUTTON_ID_SELECT);
-    comm_xhr_request(ctx, tile_index, 2 + tap_toggle);
+    comm_xhr_request(tile_index, 2 + tap_toggle);
 }
 static void down_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     (strlen(tile->texts[tap_toggle + 4]) == 0) ? action_window_set_color(-2) : action_window_set_color(-1);
     action_window_inset_highlight(BUTTON_ID_DOWN);
-    comm_xhr_request(ctx, tile_index, 4 + tap_toggle);
+    comm_xhr_request(tile_index, 4 + tap_toggle);
 }
 
-static void mid_hold_click_callback(ClickRecognizerRef recognizer, void *ctx) {
+static void mid_hold_click_down_callback(ClickRecognizerRef recognizer, void *ctx) {
     action_window_swap_buttons();
 }
+
+static void mid_hold_click_up_callback(ClickRecognizerRef recognizer, void *ctx) {
+    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile->icon_key[2 + tap_toggle]), true);
+}
+
+static void back_click_callback(ClickRecognizerRef recognizer, void *ctx) {
+    if (click_number_of_clicks_counted(recognizer) > 1) {
+        window_stack_pop_all(true);
+    } else {
+        window_stack_pop(true);
+    }
+}
+
 static void click_config_provider(void *ctx) {
     window_single_click_subscribe(BUTTON_ID_UP, up_click_callback);
     window_single_click_subscribe(BUTTON_ID_SELECT, mid_click_callback);
-    window_long_click_subscribe(BUTTON_ID_SELECT, 500, mid_hold_click_callback, NULL);
+    window_long_click_subscribe(BUTTON_ID_SELECT, 500, mid_hold_click_down_callback, mid_hold_click_up_callback);
     window_single_click_subscribe(BUTTON_ID_DOWN, down_click_callback);
+    window_multi_click_subscribe(BUTTON_ID_BACK, 1, 2, 200, true, back_click_callback);
 } 
 
 void action_window_swap_buttons() {
@@ -70,8 +85,7 @@ void action_window_swap_buttons() {
     text_layer_set_text(s_down_label_layer, tile->texts[4 + tap_toggle]);
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, default_icon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile->icon_key[tap_toggle]), true);
-    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, default_icon);
-    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile->icon_key[2 + tap_toggle]), true);
+    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, overflow_icon, true);
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, default_icon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile->icon_key[4 + tap_toggle]), true);
     layer_mark_dirty(text_layer_get_layer(s_up_label_layer));
@@ -92,7 +106,7 @@ void action_window_swap_buttons() {
 }
 
 void action_window_refresh_icons() {
-    if (window_stack_get_top_window() == s_action_window) {
+    if (s_action_bar_layer && window_stack_get_top_window() == s_action_window) {
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile->icon_key[tap_toggle]), true);
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile->icon_key[2 + tap_toggle]), true);
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile->icon_key[4 + tap_toggle]), true);
@@ -104,6 +118,7 @@ static void action_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
     s_action_bar_layer = action_bar_layer_create();
+    overflow_icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_OVERFLOW);
     tap_toggle = 0;
 
     // 5 pixel y pad on top
@@ -124,10 +139,6 @@ static void action_window_load(Window *window) {
     GEdgeInsets down_label_insets = {.top = -pad + ((down_label_bounds.size.h - (down_text_size.h)) /2), .left = ACTION_BAR_WIDTH * 0.3, .right = ACTION_BAR_WIDTH * 1.3, .bottom = pad};
 
     
-    // GEdgeInsets up_label_insets = {.top = bounds.size.h * .131, .right = ACTION_BAR_WIDTH * 1.3 };
-    // GEdgeInsets mid_label_insets = {.top = bounds.size.h * .43, .right = ACTION_BAR_WIDTH * 1.3};
-    // // 5 pixel y pad on bottom
-    // GEdgeInsets down_label_insets = {.top = bounds.size.h * .728, .right = ACTION_BAR_WIDTH * 1.3};
     s_up_label_layer = text_layer_create(grect_inset(up_label_bounds, up_label_insets));
     s_mid_label_layer = text_layer_create(grect_inset(mid_label_bounds, mid_label_insets));
     s_down_label_layer = text_layer_create(grect_inset(down_label_bounds, down_label_insets));
@@ -161,7 +172,6 @@ static void action_window_load(Window *window) {
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile->icon_key[4]));
     
     action_bar_layer_set_click_config_provider(s_action_bar_layer, click_config_provider);
-    // accel_tap_service_subscribe(tap_handler);
 
     action_bar_layer_add_to_window(s_action_bar_layer, window);
 }
@@ -172,9 +182,9 @@ static void action_window_unload(Window *window) {
         text_layer_destroy(s_up_label_layer);
         text_layer_destroy(s_mid_label_layer);
         text_layer_destroy(s_down_label_layer);
-
+        if(overflow_icon) { gbitmap_destroy(overflow_icon); overflow_icon = NULL; }
         action_bar_layer_destroy(s_action_bar_layer);
-        // accel_tap_service_unsubscribe();
+        s_action_bar_layer = NULL;
 
         window_destroy(s_action_window);
         s_action_window = NULL;
@@ -210,7 +220,6 @@ void action_window_set_color(int type) {
             break;
         case -1:
             SHORT_VIBE();
-            // app_timer_cancel(app_timer);
             new_color = (tap_toggle) ? tile->highlight : tile->color;
             new_highlight = (tap_toggle) ? tile->color : tile->highlight;
             break;

@@ -6,7 +6,8 @@
         "toggle_window.h": "c",
         "data.h": "c",
         "action_window.h": "c",
-        "loading_window.h": "c"
+        "loading_window.h": "c",
+        "random": "c"
     },
     "C_Cpp.dimInactiveRegions": false
 }

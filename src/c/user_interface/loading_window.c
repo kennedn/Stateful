@@ -86,8 +86,6 @@ static void text_callback(void *data) {
 
 static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool custom, bool loading) {
     GSize text_size = graphics_text_layout_get_content_size(text, ubuntu18, bounds, GTextOverflowModeWordWrap, GTextAlignmentLeft);
-    // GSize text_size = GSize(bounds.size.w, 48);
-    // text_size.h = 24;
     GRect text_bounds = GRect(bounds.origin.x + ((bounds.size.w - text_size.w) / 2), bounds.origin.y + ((bounds.size.h - text_size.h) / 2),
                               text_size.w, bounds.size.h);
     s_text_layer = text_layer_create(text_bounds);
@@ -146,7 +144,7 @@ static void window_load(Window *window) {
   bounds.size.h = bounds.size.h *.25;
   char *texts[] = {"hmm...", "um...", "maybe...", "(;-_-)", "(¬_¬)"};
   setup_text_layer(texts[rand() % ARRAY_LENGTH(texts)], window_layer, bounds, false, false); 
-  timeout_timer = app_timer_register(RETRY_READY_TIMEOUT, timeout_timer_callback, NULL);
+  timeout_timer = app_timer_register(LONG_LOAD_TIMEOUT, timeout_timer_callback, NULL);
 
 }
 
@@ -155,8 +153,8 @@ void window_unload(Window *window) {
   if(s_window) {
     if (s_text_layer) { text_layer_destroy(s_text_layer); }
     if (loading_bitmap_layer) { bitmap_layer_destroy(loading_bitmap_layer); }
-    if (loading_bitmap) { gbitmap_destroy(loading_bitmap); }
-    if (loading_sequence) { gbitmap_sequence_destroy(loading_sequence); }
+    if (loading_bitmap) { gbitmap_destroy(loading_bitmap); loading_bitmap = NULL; }
+    if (loading_sequence) { gbitmap_sequence_destroy(loading_sequence); loading_sequence = NULL; }
     if (timeout_timer) { app_timer_cancel(timeout_timer); timeout_timer = NULL;}
     if (text_timer) { app_timer_cancel(text_timer); text_timer = NULL;}
     loading_window_stop_animation();
@@ -183,7 +181,7 @@ void loading_window_push(char *text) {
     bg_color = GColorBlack;
     #ifdef PBL_COLOR
       srand(time(0));
-      if(persist_read_data(MAX_TILES + 3, &bg_color, sizeof(GColor8)) == E_DOES_NOT_EXIST) {
+      if(persist_read_data(PERSIST_COLOR, &bg_color, sizeof(GColor8)) == E_DOES_NOT_EXIST) {
         GColor8 colors[] = {GColorCobaltBlue, GColorIslamicGreen, GColorImperialPurple, GColorFolly, GColorChromeYellow};
         bg_color = colors[rand() % ARRAY_LENGTH(colors)]; 
       }

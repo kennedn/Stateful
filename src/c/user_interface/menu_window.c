@@ -99,9 +99,7 @@ static void menu_window_load(Window *window) {
 
   s_menu_layer = menu_layer_create(bounds);
   menu_layer_pad_bottom_enable(s_menu_layer, false);
-  // menu_layer_set_click_config_onto_window(s_menu_layer, s_menu_window);
   window_set_click_config_provider(s_menu_window, (ClickConfigProvider) click_config_handler);
-  //menu_layer_set_selected_index(s_menu_layer, (MenuIndex) {.section = 0, .row = 0}, MenuRowAlignTop, true);
   menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks) {
       .get_num_rows = get_num_rows_callback,
       .draw_row = draw_row_callback,
@@ -110,10 +108,9 @@ static void menu_window_load(Window *window) {
   });
 
   Layer *menu_layer_root = menu_layer_get_layer(s_menu_layer);
-
   if (tile_array) {
     Tile *default_tile = tile_array->tiles[tile_array->default_idx];
-    persist_write_data(MAX_TILES + 3, &(default_tile->color), sizeof(GColor8));
+    persist_write_data(PERSIST_COLOR, &(default_tile->color), sizeof(GColor8));
     menu_layer_set_highlight_colors(s_menu_layer, default_tile->color, text_color_legible_over(default_tile->color));
     menu_layer_set_normal_colors(s_menu_layer, default_tile->highlight,text_color_legible_over(default_tile->highlight));
     menu_layer_set_selected_index(s_menu_layer, (MenuIndex) {.section = 0, .row = tile_array->default_idx}, MenuRowAlignCenter, false);
@@ -127,13 +124,14 @@ static void menu_window_load(Window *window) {
 static void menu_window_unload(Window *window) {
   if (s_menu_window) {
     menu_layer_destroy(s_menu_layer);
+    s_menu_layer = NULL;
     window_destroy(s_menu_window);
     s_menu_window = NULL;
   }
 }
 
 void menu_window_refresh_icons() {
-  if (window_stack_get_top_window() == s_menu_window) {
+  if (s_menu_layer && window_stack_get_top_window() == s_menu_window) {
     layer_mark_dirty(menu_layer_get_layer(s_menu_layer));
   }
 }

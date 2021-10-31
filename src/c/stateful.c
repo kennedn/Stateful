@@ -11,8 +11,8 @@ VibePattern short_vibe = {
     .num_segments = 1,};
 
 VibePattern long_vibe = { 
-    .durations = (uint32_t []) {100},
-    .num_segments = 1,};
+    .durations = (uint32_t []) {40,40,40},
+    .num_segments = 3,};
 
 //! Returns a color that is legible over the provided bg_color
 //! @param bg_color color to test for legibility
@@ -35,8 +35,12 @@ void pebblekit_connection_callback(bool connected) {
   loading_window_pop();
   action_window_pop();
   menu_window_pop();
-  loading_window_push(NULL);
-  comm_callback_start();
+  if (connected) {
+    loading_window_push(NULL);
+    comm_callback_start();
+  } else {
+    loading_window_push("Phone not connected...");
+  }
 }
 
 static void init() {
@@ -45,7 +49,7 @@ static void init() {
   connection_service_subscribe((ConnectionHandlers) {
     .pebblekit_connection_handler = pebblekit_connection_callback
   });
-  pebblekit_connection_callback(true);
+  pebblekit_connection_callback(connection_service_peek_pebblekit_connection());
 }
 
 static void deinit() { 

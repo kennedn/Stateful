@@ -56,5 +56,5 @@ void data_icon_array_init(uint8_t size);
 void data_tile_array_pack_tiles(uint8_t *data, int data_size);
 void data_tile_array_free();
 
-void data_tile_array_clear_persist();
-bool data_tile_array_retrieve_tiles();
+void data_clear_persist();
+bool data_retrieve_persist();
