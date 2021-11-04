@@ -76,9 +76,10 @@ void process_data(DictionaryIterator *dict, uint8_t **data, uint8_t transfer_typ
 static void inbox(DictionaryIterator *dict, void *context) {
     Tuple *type_t = dict_find(dict, MESSAGE_KEY_TransferType);
     Tuple *color_t = dict_find(dict, MESSAGE_KEY_Color);
+    Tuple *hash_t = dict_find(dict, MESSAGE_KEY_Hash);
     switch(type_t->value->int32) {
       case TRANSFER_TYPE_ICON:
-        #if DEBUG > 0
+        #if DEBUG > 0 
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received icon chunk");
         #endif
         process_data(dict, &raw_data, TRANSFER_TYPE_ICON);
@@ -93,7 +94,19 @@ static void inbox(DictionaryIterator *dict, void *context) {
       case TRANSFER_TYPE_XHR:
         break;
       case TRANSFER_TYPE_COLOR:
-        if (color_t) { action_window_set_color(color_t->value->int32); }
+        if (color_t && hash_t && persist_exists(PERSIST_LAST_BUTTON)) { 
+          int32_t js_hash = hash_t->value->int32;
+          int32_t origin_hash = 23;
+          origin_hash = origin_hash * 31 + action_bar_tile_index;
+          origin_hash = origin_hash * 31 + persist_read_int(PERSIST_LAST_BUTTON);
+          #if DEBUG > 1
+          APP_LOG(APP_LOG_LEVEL_DEBUG, "Calced hash: %d, JS hash: %d, Result: %s", 
+                  (int) origin_hash, (int) js_hash, (origin_hash == js_hash) ? "Accepted" : "Rejected");
+          #endif
+          if (origin_hash == js_hash) {
+            action_window_set_color((ColorAction) color_t->value->uint8);
+          }
+        }
         break;
       case TRANSFER_TYPE_ERROR:
         #if DEBUG > 0
@@ -111,10 +124,8 @@ static void inbox(DictionaryIterator *dict, void *context) {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "JS Environment Ready");
         #endif
         is_ready = true;
-        if (!tile_array) { 
+        if (!tile_array && !data_retrieve_persist()) { 
           comm_tile_request(); 
-        } else {
-          menu_window_push();
         }
         break;
       case TRANSFER_TYPE_NO_CLAY:
@@ -225,30 +236,31 @@ void comm_tile_request() {
 
 //! Asks pebblekit to perform an XHR request, this is looked up JS side based on tile index
 //! and button pressed
-//! @param index The index of the calling tile within tile_array
-//! @param button The button that was pressed to trigger this call
-void comm_xhr_request(uint8_t index, uint8_t button) {
+//! @param tile_index The index of the calling tile within tile_array
+//! @param button_index The index of the button that was pressed to trigger this call
+void comm_xhr_request(uint8_t tile_index, uint8_t button_index) {
     DictionaryIterator *dict;
     if (is_ready) {
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
           dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_XHR);
-          dict_write_uint8(dict, MESSAGE_KEY_RequestIndex, index);
-          dict_write_uint8(dict, MESSAGE_KEY_RequestButton, button);
+          dict_write_uint8(dict, MESSAGE_KEY_RequestIndex, tile_index);
+          dict_write_uint8(dict, MESSAGE_KEY_RequestButton, button_index);
           dict_write_end(dict);
           app_message_outbox_send();
+          persist_write_int(PERSIST_LAST_BUTTON, button_index);
       } else {
         // Comms failed for some reason, create a timer to re-attempt the call in a bit
         XHRTimerData *xhr_data = malloc(sizeof(XHRTimerData));
-        xhr_data->index = index;
-        xhr_data->button = button;
+        xhr_data->index = tile_index;
+        xhr_data->button = button_index;
         s_retry_timer = app_timer_register(500, xhr_timer_callback, (void*) xhr_data);
       }
     } else {
         // Comms failed for some reason, create a timer to re-attempt the call in a bit
         XHRTimerData *xhr_data = malloc(sizeof(XHRTimerData));
-        xhr_data->index = index;
-        xhr_data->button = button;
+        xhr_data->index = tile_index;
+        xhr_data->button = button_index;
         s_retry_timer = app_timer_register(500, xhr_timer_callback, (void*) xhr_data);
 
     }
@@ -256,12 +268,11 @@ void comm_xhr_request(uint8_t index, uint8_t button) {
 
 //! Free arrays and reset locks / timers so that the app is in a state to 
 //! receive new tile data
-void comm_callback_start() {
+void comm_callback_start(bool fast_menu) {
   data_tile_array_free();
   data_icon_array_free();
   data_icon_array_init(ICON_ARRAY_SIZE);
   is_ready = false;
-  data_retrieve_persist();
   data_transfer_lock = false;
   outbox_attempts = 0;
   if (s_retry_timer) {app_timer_cancel(s_retry_timer);}
@@ -269,6 +280,7 @@ void comm_callback_start() {
   s_retry_timer = NULL;
   s_ready_timer = NULL;
   app_timer_register(RETRY_READY_TIMEOUT, comm_ready_callback, NULL);
+  if(fast_menu) { data_retrieve_persist(); }
 }
 
 //! Initialise AppMessage, timers and icon_array

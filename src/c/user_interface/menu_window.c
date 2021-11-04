@@ -3,7 +3,7 @@
 #include "c/modules/comm.h"
 #include "c/stateful.h"
 #include "c/user_interface/loading_window.h"
-#define CELL_HEIGHT ((const int16_t) 36)
+#define CELL_HEIGHT ((const int16_t) 46)
 
 static Window *s_menu_window;
 static MenuLayer *s_menu_layer;
@@ -115,7 +115,8 @@ static void menu_window_load(Window *window) {
     menu_layer_set_normal_colors(s_menu_layer, default_tile->highlight,text_color_legible_over(default_tile->highlight));
     menu_layer_set_selected_index(s_menu_layer, (MenuIndex) {.section = 0, .row = tile_array->default_idx}, MenuRowAlignCenter, false);
     layer_add_child(window_layer, menu_layer_root);
-    // workaround to delay secondary tile window push as SDK does not set up callbacks correctly if window is init'd directly
+    // Pushing nested windows to stack too quickly causes undocumented behaviour in the SDK. 
+    // Using app_timer_register delays enough to work around this. 
     app_timer_register(0, open_default, NULL); 
   }
 

@@ -1,63 +1,26 @@
 #include <pebble.h>
 #include "c/user_interface/loading_window.h"
 #include "c/modules/comm.h"
+#include "c/modules/apng.h"
 #include "c/stateful.h"
 
-static GBitmap *loading_bitmap;
 static BitmapLayer *loading_bitmap_layer;
-static GBitmapSequence *loading_sequence;
-static AppTimer *loading_timer, *timeout_timer, *text_timer;
+static AppTimer *timeout_timer, *text_timer;
 static Window *s_window;
 static TextLayer *s_text_layer;
-static void loading_window_start_animation();
 static uint8_t text_counter = 0;
 static char *custom_text = NULL;
 
 GColor8 bg_color;
 
-static void timer_handler(void *context) {
-  uint32_t next_delay;
-
-  // Advance to the next APNG frame
-  if(gbitmap_sequence_update_bitmap_next_frame(loading_sequence, loading_bitmap, &next_delay)) {
-    bitmap_layer_set_bitmap(loading_bitmap_layer, loading_bitmap);
+static void loading_layer_set_icon(GBitmap *icon) {
+    bitmap_layer_set_bitmap(loading_bitmap_layer, icon);
     layer_mark_dirty(bitmap_layer_get_layer(loading_bitmap_layer));
-
-    // Timer for that delay
-    loading_timer = app_timer_register(next_delay, timer_handler, NULL);
-  } else {
-    // Start again
-    loading_window_start_animation();
-  }
 }
 
-static void loading_window_start_animation() {
-  // Make bitmap layer visible
-  layer_set_hidden(bitmap_layer_get_layer(loading_bitmap_layer), false);
-  
-  // Free old data
-  if(loading_sequence) {
-    gbitmap_sequence_destroy(loading_sequence);
-    loading_sequence = NULL;
-  }
-  if(loading_bitmap) {
-    gbitmap_destroy(loading_bitmap);
-    loading_bitmap = NULL;
-  }
-
-  // Create sequence
-  loading_sequence = gbitmap_sequence_create_with_resource(RESOURCE_ID_LOADING_ANIMATION);
-
-  // Create GBitmap
-  loading_bitmap = gbitmap_create_blank(gbitmap_sequence_get_bitmap_size(loading_sequence), GBitmapFormat8Bit);
-
-  // Begin animation
-  loading_timer = app_timer_register(1, timer_handler, NULL);
-}
 
 static void loading_window_stop_animation() {
-  if (loading_timer) { app_timer_cancel(loading_timer); }
-  loading_timer = NULL;
+  apng_stop_animation();
   #ifdef PBL_COLOR
   if (loading_bitmap_layer) { layer_set_hidden(bitmap_layer_get_layer(loading_bitmap_layer), true); }
   #endif
@@ -119,9 +82,7 @@ static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
   loading_bitmap_layer = NULL;
-  loading_bitmap = NULL;
   s_text_layer = NULL;
-  loading_timer = NULL;
   text_timer = NULL;
   timeout_timer = NULL;
   if (custom_text) {
@@ -139,7 +100,8 @@ static void window_load(Window *window) {
   bitmap_layer_set_alignment(loading_bitmap_layer, GAlignCenter);
   bitmap_layer_set_compositing_mode(loading_bitmap_layer, GCompOpSet);
   layer_add_child(window_layer, bitmap_layer_get_layer(loading_bitmap_layer));
-  loading_window_start_animation();
+  apng_set_data(RESOURCE_ID_LOADING_ANIMATION, &loading_layer_set_icon);
+  apng_start_animation();
   bounds.origin.y = bounds.size.h *.7;
   bounds.size.h = bounds.size.h *.25;
   char *texts[] = {"hmm...", "um...", "maybe...", "(;-_-)", "(¬_¬)"};
@@ -151,10 +113,9 @@ static void window_load(Window *window) {
 
 void window_unload(Window *window) {
   if(s_window) {
+    apng_stop_animation();
     if (s_text_layer) { text_layer_destroy(s_text_layer); }
     if (loading_bitmap_layer) { bitmap_layer_destroy(loading_bitmap_layer); }
-    if (loading_bitmap) { gbitmap_destroy(loading_bitmap); loading_bitmap = NULL; }
-    if (loading_sequence) { gbitmap_sequence_destroy(loading_sequence); loading_sequence = NULL; }
     if (timeout_timer) { app_timer_cancel(timeout_timer); timeout_timer = NULL;}
     if (text_timer) { app_timer_cancel(text_timer); text_timer = NULL;}
     loading_window_stop_animation();

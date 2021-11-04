@@ -1,8 +1,8 @@
 #pragma once
 #include <pebble.h>
-GFont ubuntu18;
-VibePattern short_vibe; 
-VibePattern long_vibe; 
+extern GFont ubuntu18;
+extern VibePattern short_vibe; 
+extern VibePattern long_vibe; 
 
 #define DEBUG 2
 #define RETRY_READY_TIMEOUT 500
@@ -12,6 +12,7 @@ VibePattern long_vibe;
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
+// Data structure sizes
 #ifdef PBL_APLITE
 #define ICON_ARRAY_SIZE 4
 #define MAX_TILES 16
@@ -19,6 +20,7 @@ VibePattern long_vibe;
 #define ICON_ARRAY_SIZE 10
 #define MAX_TILES 64
 #endif
+
 #define MAX_PERSIST_TILES 16
 
 // Persistant keys
@@ -27,9 +29,11 @@ VibePattern long_vibe;
 #define PERSIST_COLOR 1
 #define PERSIST_DEFAULT_IDX 2
 #define PERSIST_OPEN_DEFAULT 3
+#define PERSIST_LAST_BUTTON 4
+#define PERSIST_ORIGIN_HASH 5
 
 
-enum transferType {
+typedef enum {
   TRANSFER_TYPE_ICON = 0,
   TRANSFER_TYPE_TILE = 1,
   TRANSFER_TYPE_XHR = 2,
@@ -39,7 +43,7 @@ enum transferType {
   TRANSFER_TYPE_READY = 6,
   TRANSFER_TYPE_NO_CLAY = 7,
   TRANSFER_TYPE_REFRESH = 8
-};
+} TransferType;
 
 void pebblekit_connection_callback(bool connected); 
 GColor8 text_color_legible_over(GColor8 bg_color);

@@ -28,6 +28,7 @@
       "RequestIndex",
       "RequestButton",
       "Color",
+      "Hash",
       "IconKey",
       "IconIndex",
       "XHRData",
@@ -90,6 +91,11 @@
           "type": "raw",
           "name": "LOADING_ANIMATION",
           "file": "images/loading.png"
+        },
+        {
+          "type": "raw",
+          "name": "LOADING_MINI",
+          "file": "images/loading_mini.png"
         },
         {
           "file": "fonts/Ubuntu-M.ttf",

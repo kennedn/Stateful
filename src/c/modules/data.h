@@ -45,9 +45,9 @@ typedef struct __attribute__((__packed__)) {
   uint8_t size;
 } IconArray;
 
-TileArray *tile_array;
-IconArray *icon_array;
-GBitmap *default_icon;
+extern TileArray *tile_array;
+extern IconArray *icon_array;
+extern GBitmap *default_icon;
 
 void data_icon_array_add_icon(uint8_t *data);
 GBitmap *data_icon_array_search(char* key);

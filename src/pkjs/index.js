@@ -50,10 +50,13 @@ const TransferType = {
   "NO_CLAY": 7,
   "REFRESH": 8,
 };
-const Color = {
+const ColorAction = {
   "GOOD": 0,
   "BAD": 1,
   "ERROR": 2,
+  "VIBRATE_INIT": 3,
+  "VIBRATE_RESPONSE": 4,
+  "RESET_ONLY": 5
 };
 const Button = {
   "0": "up",
@@ -84,6 +87,9 @@ var icons = {
   "c1dfd96e": 6,
   "902ba3cd": 7,
   "fe5dbbce": 8,
+  "b1e98808": "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",
+  "202eb9f1": "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",
+  
 }
 
 
@@ -164,6 +170,9 @@ function packIcon(key, index) {
   }
 
   uint8[ptr++] = index;
+
+  uint8[ptr++] = key.length + 1;
+  ptr = packString(uint8, key, ptr);
   
   if (DEBUG > 1) { console.log("Sending icon " + key); }
   if (typeof(icon) == 'string') {
@@ -215,12 +224,13 @@ function packTiles() {
   if (tiles == null || Object.keys(tiles).length == 0  || tiles.tiles == null ||  tiles.tiles.length == 0) {
     Pebble.sendAppMessage({"TransferType": TransferType.NO_CLAY}, messageSuccessCallback, messageFailureCallback);
     return;
-  } else {
-    clearTimeout(keepAliveTimeout);
-    if(tiles.keep_alive && typeof(tiles.base_url) == 'string' && tiles.base_url.length > 0) {
-      xhrKeepAlive(tiles.base_url, tiles.headers);
-    }
   }
+  // } else {
+  //   clearTimeout(keepAliveTimeout);
+  //   if(tiles.keep_alive && typeof(tiles.base_url) == 'string' && tiles.base_url.length > 0) {
+  //     xhrKeepAlive(tiles.base_url, tiles.headers);
+  //   }
+  // }
 
   // pack tile variables into the buffer object, incrementing our pointer each time
   uint8[ptr++] = tiles.tiles.length;
@@ -231,9 +241,9 @@ function packTiles() {
 
     // build an array of icon_keys, give default tile's icons priority if open_default is set
     if (tileIdx == tiles.default_idx && tiles.open_default) {
-      icon_keys = payload.icon_keys.concat(icon_keys);
-    } else {
       icon_keys = icon_keys.concat(payload.icon_keys);
+    } else {
+      icon_keys = payload.icon_keys.concat(icon_keys);
     }
 
     uint8[ptr++] = toGColor(payload.color);
@@ -255,7 +265,19 @@ function packTiles() {
   if (!Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) {
     // Generate a unique list of icon_keys and pack as many as the icon buffer can store without looping to 
     // send alongside the tile data. This is just to try and speed up icon download a little on initial app open
-    icon_keys = icon_keys.filter(function(v, i, s) {return (s.indexOf(v) === i); });
+    icon_keys = icon_keys.filter(function(v, i, s) {return (s.indexOf(v) === i && v != ""); });
+    if (DEBUG > 1) { console.log("Quick Icons: " + JSON.stringify(icon_keys)); }
+    // Sort icon_keys so base64 encoded strings are last and resource ids are first, this stops 'gaps' appearing
+    // in the icon_array when resource ids are restored from persistant storage
+    icon_keys = icon_keys.sort(function(a, b) { 
+      if (typeof(icons[a]) === 'string' && typeof(icons[b]) === 'string') {
+        return 0;
+      } else if (typeof(icons[a]) === 'string' && typeof(icons[b]) !== 'string') {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
     if (DEBUG > 1) { console.log("Quick Icons: " + JSON.stringify(icon_keys)); }
     var unique_keys_slice = icon_keys.slice(0, ICON_BUFFER_SIZE)
     for (var keyIdx in unique_keys_slice) {
@@ -403,7 +425,7 @@ function downloadImage(i, callback) {
   // }
 }
 
-function xhrRequest(method, url, headers, data, maxRetries, callback) {
+function xhrRequest(method, url, headers, data, origin_hash, maxRetries, callback) {
   if (typeof(maxRetries) == 'number'){
     maxRetries = [maxRetries, maxRetries];
   }
@@ -418,19 +440,19 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
           console.log("Response data: " + JSON.stringify(returnData));
         }
       } catch(e) {
-        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": ColorAction.ERROR , "Hash": origin_hash }, messageSuccessCallback, messageFailureCallback);
         return;
       }
       Pebble.sendAppMessage({"TransferType": TransferType.ACK}, messageSuccessCallback, messageFailureCallback);
       if (DEBUG > 1) { console.log("Status: " + this.status); }
-      if (callback) { callback(returnData); } 
+      if (callback) { callback(origin_hash); }
     } else {
       // Pebble.sendAppMessage({"TransferType": TransferType.ERROR}, messageSuccessCallback, messageFailureCallback);
       console.log("Status: " + this.status);
       if (maxRetries[1] > 0) {
-        setTimeout(function() {xhrRequest(method, url, headers, data, [maxRetries[0], maxRetries[1] - 1], callback)},  307 * (maxRetries[0] - maxRetries[1]));
+        setTimeout(function() {xhrRequest(method, url, headers, data, origin_hash, [maxRetries[0], maxRetries[1] - 1], callback)},  307 * (maxRetries[0] - maxRetries[1]));
       } else {
-        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": ColorAction.ERROR , "Hash": origin_hash }, messageSuccessCallback, messageFailureCallback);
       }
     }
   };
@@ -442,14 +464,14 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
   }
   request.onerror = function(e) { 
     if (DEBUG > 1 ) { console.log("Timed out"); }
-    Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+    Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": ColorAction.ERROR , "Hash": origin_hash }, messageSuccessCallback, messageFailureCallback);
   };
   request.ontimeout  = function(e) { 
     if (DEBUG > 1 ) { console.log("Timed out"); }
     if (maxRetries[1] > 0) {
-      setTimeout(function() {xhrRequest(method, url, headers, data, [maxRetries[0], maxRetries[1] - 1], callback)},  307 * (maxRetries[0] - maxRetries[1]));
+      setTimeout(function() {xhrRequest(method, url, headers, data, origin_hash, [maxRetries[0], maxRetries[1] - 1], callback)},  307 * (maxRetries[0] - maxRetries[1]));
     } else {
-      Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+      Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": ColorAction.ERROR , "Hash": origin_hash }, messageSuccessCallback, messageFailureCallback);
     }
   };
   request.open(method, url);
@@ -463,24 +485,24 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
   request.send(JSON.stringify(data));  
 }				
 
-function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) {
+function xhrStatus(method, url, headers, data, origin_hash, variable, good, bad, maxRetries) {
   var request = new XMLHttpRequest();
-
+  console.log("Hash: " + origin_hash);
   if (typeof(maxRetries) == 'number'){
     maxRetries = [maxRetries, maxRetries];
   }
 
-  repeatCall = function() {
+  repeatCall = function(hash) {
     if (maxRetries[1] > 0) {
-      setTimeout(function() {xhrStatus(method, url, headers, data, variable, good, bad, [maxRetries[0], maxRetries[1] - 1])}, 100 * (maxRetries[0] - maxRetries[1]));
+      setTimeout(function() {xhrStatus(method, url, headers, data, hash, variable, good, bad, [maxRetries[0], maxRetries[1] - 1])}, 100 * (maxRetries[0] - maxRetries[1]));
     } else {
-      Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+      Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": ColorAction.ERROR , "Hash": origin_hash }, messageSuccessCallback, messageFailureCallback);
     }
   };
 
   request.ontimeout = request.onerror = function(e) { 
     if (DEBUG > 1 ) { console.log("Timed out"); }
-    repeatCall();
+    repeatCall(origin_hash);
   };
 
   request.onload = function() {
@@ -496,7 +518,7 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
           console.log("Response data: " + JSON.stringify(returnData));
         }
       } catch(e) {
-        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
+        Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": ColorAction.ERROR , "Hash": origin_hash }, messageSuccessCallback, messageFailureCallback);
         return;
       }
       if (DEBUG > 1) { 
@@ -506,17 +528,17 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
 
       switch(returnData) {
         case good:
-          Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.GOOD }, messageSuccessCallback, messageFailureCallback);
+          Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": ColorAction.GOOD , "Hash": origin_hash }, messageSuccessCallback, messageFailureCallback);
           break;
         case bad:
-          Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.BAD }, messageSuccessCallback, messageFailureCallback);
+          Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": ColorAction.BAD , "Hash": origin_hash }, messageSuccessCallback, messageFailureCallback);
           break;
         default:
-          repeatCall();
+        repeatCall(origin_hash);
       }
 
     } else {
-        repeatCall();
+        repeatCall(origin_hash);
     }
   };
 
@@ -541,24 +563,24 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
 //! that limit connectivity when the screen is off, eventually causing timeouts for valid XHR requests
 //! @param url URL to initiate XHR GET to
 //! @param Any headers required to authenticate, probably redundant for this use case
-function xhrKeepAlive(url, headers) {
-  var request = new XMLHttpRequest();
-  request.ontimeout = request.onerror = request.onload = function() {
-    keepAliveTimeout = setTimeout(function() {
-      if (DEBUG > 2) { console.log('xhrKeepAlive fired'); }
-      xhrKeepAlive(url, headers);
-    }, 5000);
+// function xhrKeepAlive(url, headers) {
+//   var request = new XMLHttpRequest();
+//   request.ontimeout = request.onerror = request.onload = function() {
+//     keepAliveTimeout = setTimeout(function() {
+//       if (DEBUG > 2) { console.log('xhrKeepAlive fired'); }
+//       xhrKeepAlive(url, headers);
+//     }, 5000);
 
-  }
-  request.open('GET', url);
-  for (var key in headers) {
-    if(headers.hasOwnProperty(key)) {
-      if (DEBUG > 2) { console.log("Setting header: " + key + ": " + headers[key]); }
-      request.setRequestHeader(key, headers[key]);
-    }
-  }
-  request.send();  
-}				
+//   }
+//   request.open('GET', url);
+//   for (var key in headers) {
+//     if(headers.hasOwnProperty(key)) {
+//       if (DEBUG > 2) { console.log("Setting header: " + key + ": " + headers[key]); }
+//       request.setRequestHeader(key, headers[key]);
+//     }
+//   }
+//   request.send();  
+// }				
 
 // Called when incoming message from the Pebble is received
 Pebble.addEventListener("appmessage", function(e) {
@@ -591,8 +613,10 @@ Pebble.addEventListener("appmessage", function(e) {
           console.log("didn't receive expected data");
         return;
       }
-
-
+      var hash = 23;
+      hash = hash * 31 + dict.RequestIndex;
+      hash = hash * 31 + dict.RequestButton;
+      // localStorage.setItem("lastRequestHash", origin_hash);
       // find the tile that matches the id recieved from appmessage
       var tiles = JSON.parse(localStorage.getItem('tiles'));
       var tile = tiles.tiles[dict.RequestIndex];
@@ -627,13 +651,13 @@ Pebble.addEventListener("appmessage", function(e) {
             if (DEBUG > 1) { console.log("Button has single endpoint")}
             data = button.data;
           }
-          xhrRequest(button.method, url, headers, data, 4, function() { 
-            xhrStatus(status.method, status_url, status_headers, status.data, status.variable, status.good, status.bad, 25); 
+          xhrRequest(button.method, url, headers, data, hash, 4, function(origin_hash) { 
+            xhrStatus(status.method, status_url, status_headers, status.data, origin_hash, status.variable, status.good, status.bad, 25); 
           });
           break;
         case CallType.LOCAL:
           var data = {};
-          var highlight_idx = -2;
+          var highlight_idx = ColorAction.VIBRATE_RESPONSE;
           if (Array.isArray(button.data)) {
             if (button.index == null) { 
               button.index = 0;
@@ -647,18 +671,18 @@ Pebble.addEventListener("appmessage", function(e) {
             data = button.data;
           }
           if (DEBUG > 1) { console.log("highlight idx: " + highlight_idx)}
-          xhrRequest(button.method, url, headers, data, 4, function() { 
-            Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": highlight_idx }, messageSuccessCallback, messageFailureCallback);
+          xhrRequest(button.method, url, headers, data, hash, 4, function(origin_hash) { 
+            Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": highlight_idx, "Hash": origin_hash}, messageSuccessCallback, messageFailureCallback);
           });
           break;
         case CallType.STATUS_ONLY:
-          xhrStatus(button.method, url, headers, button.data, button.variable, button.good, button.bad, 25); 
+          xhrStatus(button.method, url, headers, button.data, hash, button.variable, button.good, button.bad, 25); 
           break;
         case CallType.INCREMENT:
           var status = button.status
           var status_url = (tiles.base_url != null) ? tiles.base_url + status.url : status.url;
           var status_headers = (tiles.headers != null) ? tiles.headers : status.headers;
-          xhrRequest(status.method, status_url, status_headers, status.data, 4, function(returnData) {
+          xhrRequest(status.method, status_url, status_headers, status.data, hash, 4, function(returnData) {
             console.log("in callback");
             var variable_split = status.variable.split(".")
             for (var j in variable_split) {
@@ -667,7 +691,7 @@ Pebble.addEventListener("appmessage", function(e) {
             var curr_val = parseInt(returnData) + status.step;
             var data = {};
             data[button.variable] = curr_val;
-            xhrRequest(button.method, url, headers, data, 4, null);
+            xhrRequest(button.method, url, headers, data, hash, 4, null);
           })
           break;
         default:

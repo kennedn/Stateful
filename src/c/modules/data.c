@@ -189,13 +189,7 @@ void data_icon_array_add_icon(uint8_t *data) {
   }
 
   #if DEBUG > 1
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Created icon at index %d:", index);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "\tkey: %s,", icon->key);
-  if (icon_size == 1) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "\ticon: %d", data[ptr]);
-  } else {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "\ticon: ...");
-  }
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Created icon with key %s at index %d:", icon->key, index);
   #endif
   menu_window_refresh_icons();
   action_window_refresh_icons();
@@ -264,9 +258,9 @@ bool data_retrieve_persist() {
   Tile *tile;
   tile_array->default_idx = (uint8_t) persist_read_int(PERSIST_DEFAULT_IDX);
   tile_array->open_default = persist_read_bool(PERSIST_OPEN_DEFAULT);
-  uint8_t *buffer = (uint8_t*) malloc(sizeof(uint8_t) * 255);
+  uint8_t *buffer = (uint8_t*) malloc(sizeof(uint8_t) * PERSIST_DATA_MAX_LENGTH);
   uint8_t i = 0;
-  while (persist_read_data(PERSIST_TILE_START + i, buffer, 255) != E_DOES_NOT_EXIST) {
+  while (persist_read_data(PERSIST_TILE_START + i, buffer, PERSIST_DATA_MAX_LENGTH) != E_DOES_NOT_EXIST) {
     #if DEBUG > 1 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Found tile at persist key %d", 2 + i);
     #endif
@@ -304,11 +298,15 @@ bool data_retrieve_persist() {
         continue; 
       }
 
-      persist_read_data(icon_index, buffer, 255);
+      persist_read_data(icon_index, buffer, PERSIST_DATA_MAX_LENGTH);
       data_icon_array_add_icon(buffer);
       icon_array->ptr = (icon_array->ptr + 1) % icon_array->size;
       icon_index++;
     }
+
+    // Pushing nested windows to stack too quickly causes undocumented behaviour in the SDK. 
+    // Using app_timer_register delays enough to work around this. 
+    app_timer_register(0, menu_window_push, NULL);
 
     #if DEBUG > 1 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed data retrieval");
