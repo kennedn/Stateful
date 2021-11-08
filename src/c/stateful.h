@@ -1,7 +1,7 @@
 #pragma once
 #include <pebble.h>
 
-#define DEBUG 0
+#define DEBUG 2
 #define debug(level, ...) \
   do { if (level <= DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__); } while (0)
 

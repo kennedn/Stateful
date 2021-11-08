@@ -172,6 +172,9 @@ void data_icon_array_add_icon(uint8_t *data) {
   if (icon->icon) { gbitmap_destroy(icon->icon); icon->icon = NULL; }
   if (icon_size == 1) {
     icon->icon = gbitmap_create_with_resource(data[ptr]);
+    if(!persist_exists(PERSIST_ICON_START + index)) {
+      persist_write_data(PERSIST_ICON_START + index, data, icon_size + ptr + 1);
+    }
   } else {
     icon->icon = gbitmap_create_from_png_data(&data[ptr], icon_size);
   }
