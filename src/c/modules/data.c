@@ -29,18 +29,14 @@ static void data_tile_array_add_tile(Tile *tile) {
     return; 
   }
   if(tile_array->used >= MAX_TILES) {
-    #if DEBUG > 1
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Hit MAX_TILES(%d), skipping tile", MAX_TILES);
-    #endif
+    debug(2, "Hit MAX_TILES(%d), skipping tile", MAX_TILES);
     free(tile);
     return;
   }
 
   // Grow tile_array if size has been reached
   if (tile_array->size < MAX_TILES && tile_array->used == tile_array->size) {
-    #if DEBUG > 1
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Resizing tile_array from %d to %d", tile_array->size, tile_array->size * 2);
-    #endif
+    debug(2, "Resizing tile_array from %d to %d", tile_array->size, tile_array->size * 2);
     tile_array->size = MIN(MAX_TILES, tile_array->size *2);
     tile_array->tiles = realloc(tile_array->tiles, tile_array->size * sizeof(Tile*));
   }
@@ -107,7 +103,6 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
       data_tile_array_add_tile(tile); 
       i++;
     }
-
     // Fires data_icon_array_search for any passed icon_keys for faster icon retrieval
     // (this is usually performed when an icon is first used in the app)
     while (ptr < data_size) {
@@ -120,11 +115,7 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
     }
 
     menu_window_push();
-
-    #if DEBUG > 1 
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed tile assignment");
-    #endif
-
+    debug(2, "Completed tile assignment");
   }
 
 
@@ -181,16 +172,11 @@ void data_icon_array_add_icon(uint8_t *data) {
   if (icon->icon) { gbitmap_destroy(icon->icon); icon->icon = NULL; }
   if (icon_size == 1) {
     icon->icon = gbitmap_create_with_resource(data[ptr]);
-    if(!persist_exists(PERSIST_ICON_START + index)) {
-      persist_write_data(PERSIST_ICON_START + index, data, icon_size + ptr + 1);
-    }
   } else {
     icon->icon = gbitmap_create_from_png_data(&data[ptr], icon_size);
   }
 
-  #if DEBUG > 1
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Created icon with key %s at index %d:", icon->key, index);
-  #endif
+  debug(2, "Created icon with key %s at index %d:", icon->key, index);
   menu_window_refresh_icons();
   action_window_refresh_icons();
 }
@@ -210,9 +196,7 @@ GBitmap *data_icon_array_search(char* key){
       return icon->icon;
     }
   }
-  #if DEBUG > 1
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Couldnt find %s locally, asking JS environment", key);
-  #endif 
+  debug(2, "Couldnt find %s locally, asking JS environment", key);
   Icon *icon = icon_array->icons[icon_array->ptr];
 
   // Build a temporary icon to return to caller and send a request to pebblekit to replace with real icon
@@ -261,9 +245,7 @@ bool data_retrieve_persist() {
   uint8_t *buffer = (uint8_t*) malloc(sizeof(uint8_t) * PERSIST_DATA_MAX_LENGTH);
   uint8_t i = 0;
   while (persist_read_data(PERSIST_TILE_START + i, buffer, PERSIST_DATA_MAX_LENGTH) != E_DOES_NOT_EXIST) {
-    #if DEBUG > 1 
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Found tile at persist key %d", 2 + i);
-    #endif
+    debug(2, "Found tile at persist key %d", 2 + i);
     int ptr = 0;
     tile = (Tile*) malloc(sizeof(Tile));
     uint8_t text_size = 0;
@@ -308,15 +290,11 @@ bool data_retrieve_persist() {
     // Using app_timer_register delays enough to work around this. 
     app_timer_register(0, menu_window_push, NULL);
 
-    #if DEBUG > 1 
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Completed data retrieval");
-    #endif
+    debug(2, "Completed data retrieval");
     free(buffer);
     return true;
   } else {
-    #if DEBUG > 1 
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "No data retrieved");
-    #endif
+    debug(2, "No data retrieved");
     free(buffer);
     return false;
   }

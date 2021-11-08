@@ -63,10 +63,7 @@ void process_data(DictionaryIterator *dict, uint8_t **data, uint8_t transfer_typ
       free(*data);
       *data = NULL;
       data_transfer_lock = false;
-      #if DEBUG > 0
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Transfer complete, free bytes: %d", heap_bytes_free());
-      #endif
-      
+      debug(1, "Transfer complete, free bytes: %d", heap_bytes_free());
     }
 }
 
@@ -79,59 +76,50 @@ static void inbox(DictionaryIterator *dict, void *context) {
     Tuple *hash_t = dict_find(dict, MESSAGE_KEY_Hash);
     switch(type_t->value->int32) {
       case TRANSFER_TYPE_ICON:
-        #if DEBUG > 0 
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received icon chunk");
-        #endif
+        debug(2, "Received icon chunk");
         process_data(dict, &raw_data, TRANSFER_TYPE_ICON);
         break;
       case TRANSFER_TYPE_TILE:
-        #if DEBUG > 0
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received tile chunk");
-        #endif
+        debug(2, "Received tile chunk");
         clay_needs_config = false;
         process_data(dict, &raw_data, TRANSFER_TYPE_TILE);
         break;
       case TRANSFER_TYPE_XHR:
         break;
       case TRANSFER_TYPE_COLOR:
+        debug(1, "Received color change request");
         if (color_t && hash_t && persist_exists(PERSIST_LAST_BUTTON)) { 
-          int32_t js_hash = hash_t->value->int32;
-          int32_t origin_hash = 23;
-          origin_hash = origin_hash * 31 + action_bar_tile_index;
-          origin_hash = origin_hash * 31 + persist_read_int(PERSIST_LAST_BUTTON);
-          #if DEBUG > 1
-          APP_LOG(APP_LOG_LEVEL_DEBUG, "Calced hash: %d, JS hash: %d, Result: %s", 
-                  (int) origin_hash, (int) js_hash, (origin_hash == js_hash) ? "Accepted" : "Rejected");
-          #endif
+          uint32_t js_hash = hash_t->value->uint32;
+
+          // generate a unique hash from last button and current tile, if this does not match the hash
+          // provided by pebblekit then it means either the tile changed or another button was pressed since
+          // the call was initiated
+          uint8_t last_button = persist_read_int(PERSIST_LAST_BUTTON);
+          uint32_t origin_hash = action_bar_tile_index ^ ((last_button << 16) | (last_button >> 16));
+
+          debug(2, "Calced hash: %d, JS hash: %d, Result: %s", 
+                (int) origin_hash, (int) js_hash, (origin_hash == js_hash) ? "Accepted" : "Rejected");
+
           if (origin_hash == js_hash) {
             action_window_set_color((ColorAction) color_t->value->uint8);
           }
         }
         break;
       case TRANSFER_TYPE_ERROR:
-        #if DEBUG > 0
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received Error");
-        #endif
-
+        debug(1, "Received error");
         break;
       case TRANSFER_TYPE_ACK:
-        #if DEBUG > 0
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received acknowledge");
-        #endif
+        debug(1, "Received acknowledge");
         break;
       case TRANSFER_TYPE_READY:
-        #if DEBUG > 0
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "JS Environment Ready");
-        #endif
+        debug(1, "Pebblekit environment ready");
         is_ready = true;
         if (!tile_array && !data_retrieve_persist()) { 
           comm_tile_request(); 
         }
         break;
       case TRANSFER_TYPE_NO_CLAY:
-        #if DEBUG > 0
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "No clay config present");
-        #endif
+        debug(1, "No clay config present");
         if(!clay_needs_config) {
           clay_needs_config = true;
           loading_window_pop();
@@ -166,21 +154,17 @@ void xhr_timer_callback(void *data) {
 //! initial READY response was missed.
 //! @param data NULL pointer
 void comm_ready_callback(void *data) {
-  if (!tile_array) {
+  if (!tile_array && !clay_needs_config) {
     DictionaryIterator *dict;
     uint32_t result = app_message_outbox_begin(&dict);
-    #if DEBUG > 1
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "result: %d", (int)result);
-    #endif
+    debug(2, "Ready result: %d", (int)result);
     if (result == APP_MSG_OK) {
       dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_READY);
       dict_write_end(dict);
       app_message_outbox_send();
     }
     outbox_attempts = MIN(30, outbox_attempts + 1);
-    #if DEBUG > 1
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Not ready, waiting %d ms", 500 * outbox_attempts);
-    #endif
+    debug(2, "Not ready, waiting %d ms", 500 * outbox_attempts);
     s_ready_timer = app_timer_register(500 * outbox_attempts, comm_ready_callback, NULL);
   } else {
     s_ready_timer = NULL;
@@ -191,6 +175,7 @@ void comm_ready_callback(void *data) {
 //! @param icon_key An 8 character SHA1 hash of a png icon or an internal resource id
 //! @param icon_index The location in icon_array that this icon should be inserted at
 void comm_icon_request(char* icon_key, uint8_t icon_index) {
+    bool retry = false;
     if (!data_transfer_lock && is_ready) {
       s_retry_timer = NULL;
       DictionaryIterator *dict;
@@ -203,13 +188,13 @@ void comm_icon_request(char* icon_key, uint8_t icon_index) {
         dict_write_end(dict);
         app_message_outbox_send();
       } else {
-        // Comms failed for some reason, create a timer to re-attempt the call in a bit
-        RetryTimerData *retry_data = malloc(sizeof(RetryTimerData));
-        retry_data->icon_index = icon_index;
-        strncpy(retry_data->icon_key, icon_key, ARRAY_LENGTH(retry_data->icon_key));
-        s_retry_timer = app_timer_register(100, retry_timer_callback, (void*) retry_data);
+        retry = true;
       }
     } else {
+      retry = true;
+    }
+
+    if (retry) {
       // data transfer is in-flight (locked), create a timer to re-attempt the call in a bit
       RetryTimerData *retry_data = malloc(sizeof(RetryTimerData));
       retry_data->icon_index = icon_index;
@@ -223,7 +208,6 @@ void comm_icon_request(char* icon_key, uint8_t icon_index) {
 void comm_tile_request() {
     if (!data_transfer_lock) {
       DictionaryIterator *dict;
-      
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
         data_transfer_lock = true;
@@ -240,6 +224,7 @@ void comm_tile_request() {
 //! @param button_index The index of the button that was pressed to trigger this call
 void comm_xhr_request(uint8_t tile_index, uint8_t button_index) {
     DictionaryIterator *dict;
+    bool retry = false;
     if (is_ready) {
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
@@ -250,24 +235,24 @@ void comm_xhr_request(uint8_t tile_index, uint8_t button_index) {
           app_message_outbox_send();
           persist_write_int(PERSIST_LAST_BUTTON, button_index);
       } else {
-        // Comms failed for some reason, create a timer to re-attempt the call in a bit
-        XHRTimerData *xhr_data = malloc(sizeof(XHRTimerData));
-        xhr_data->index = tile_index;
-        xhr_data->button = button_index;
-        s_retry_timer = app_timer_register(500, xhr_timer_callback, (void*) xhr_data);
+        retry = true;
       }
     } else {
-        // Comms failed for some reason, create a timer to re-attempt the call in a bit
-        XHRTimerData *xhr_data = malloc(sizeof(XHRTimerData));
-        xhr_data->index = tile_index;
-        xhr_data->button = button_index;
-        s_retry_timer = app_timer_register(500, xhr_timer_callback, (void*) xhr_data);
+      retry = true;
+    }
 
+    if (retry) {
+      // Comms failed for some reason, create a timer to re-attempt the call in a bit
+      XHRTimerData *xhr_data = malloc(sizeof(XHRTimerData));
+      xhr_data->index = tile_index;
+      xhr_data->button = button_index;
+      s_retry_timer = app_timer_register(500, xhr_timer_callback, (void*) xhr_data);
     }
 }
 
-//! Free arrays and reset locks / timers so that the app is in a state to 
-//! receive new tile data
+//! Resets all data and locks, kicks off a callback loop that awaits a pebblekit ready message
+//! @param fast_menu Immediately retrieve tile data from storage without waiting
+//! for pebblekit ready message
 void comm_callback_start(bool fast_menu) {
   data_tile_array_free();
   data_icon_array_free();

@@ -6,7 +6,7 @@
 #include "c/modules/data.h"
 #include "c/modules/apng.h"
 #include "c/stateful.h"
-static bool fast_menu = true;
+static bool s_fast_menu = true;
 
 
 VibePattern short_vibe = { 
@@ -34,21 +34,20 @@ GColor8 text_color_legible_over(GColor8 bg_color) {
   #endif
 }
 
-// called whenever connection state changes (for some reason var passed to this callback is always true)
+//! Callback function for pebble connectivity events
+//! @param connected Connection state of pebble
 void pebblekit_connection_callback(bool connected) {
-  #if DEBUG > 0
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Connection state changed to %d", connected);
-  #endif
+  debug(1, "Connection state changed to %d", connected);
   loading_window_pop();
   action_window_pop();
   menu_window_pop();
   if (connected) {
     loading_window_push(NULL);
-    comm_callback_start(fast_menu);
+    comm_callback_start(s_fast_menu);
   } else {
     loading_window_push("Phone not connected...");
   }
-  fast_menu = false;
+  s_fast_menu = false;
 }
 
 static void init() {
