@@ -8,7 +8,7 @@ var Data = require('./data');
 window.global = window;
 var Buffer = require('buffer/').Buffer;
 
-module.exports = {
+var self = module.exports = {
 
   /**
    * Returns a GColor8 (uint8_t) representation of a hex color code, replicates GColorFromHEX()
@@ -46,7 +46,6 @@ module.exports = {
   },
 
   packIcon: function(key, index) {
-    var self = module.exports;
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);
     var ptr = 0;
@@ -91,7 +90,6 @@ module.exports = {
   },
 
   packTiles: function() {
-    var self = module.exports;
     // create a big temporary buffer as we don't know the size we will end up with yet
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);

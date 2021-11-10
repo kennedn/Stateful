@@ -19,11 +19,13 @@
 extern GFont ubuntu18;
 extern VibePattern short_vibe; 
 extern VibePattern long_vibe; 
+extern VibePattern overflow_vibe; 
 
 #define RETRY_READY_TIMEOUT 500
 #define LONG_LOAD_TIMEOUT 6000
 #define SHORT_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(short_vibe); }
 #define LONG_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(long_vibe); }
+#define OVERFLOW_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(overflow_vibe); }
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
@@ -33,7 +35,6 @@ extern VibePattern long_vibe;
 #define PERSIST_COLOR 1
 #define PERSIST_DEFAULT_IDX 2
 #define PERSIST_OPEN_DEFAULT 3
-#define PERSIST_LAST_BUTTON 4
 #define PERSIST_ORIGIN_HASH 5
 
 typedef enum {
@@ -48,5 +49,4 @@ typedef enum {
   TRANSFER_TYPE_REFRESH = 8
 } TransferType;
 
-void pebblekit_connection_callback(bool connected); 
 GColor8 text_color_legible_over(GColor8 bg_color);

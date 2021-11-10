@@ -4,13 +4,12 @@ for (var key in globals) {
   window[key] = globals[key];
 }
 
-module.exports = {
+var self = module.exports = {
   colorAppMessage: function(color, hash) {
     Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": color, "Hash": hash}, messageSuccess, messageFailure);
   },
 
   localXHRRequest: function(button, url, headers, hash) {
-    var self = module.exports;
     var data = {};
     var highlight_idx = ColorAction.VIBRATE_RESPONSE;
     if (Array.isArray(button.data)) {
@@ -34,7 +33,6 @@ module.exports = {
   },
 
   statefulXHRRequest: function(button, url, headers, status_url, status_headers, hash) {
-    var self = module.exports;
     var status = button.status
     var data = {};
     if (Array.isArray(button.data)) {
@@ -62,7 +60,6 @@ module.exports = {
   },
 
   statusXHRRequest: function(button, url, headers, hash) {
-    var self = module.exports;
     self.xhrStatus(button.method, url, headers, button.data, hash, button.variable, button.good, button.bad, 25).then(function(status_data){
       self.colorAppMessage(status_data.color, status_data.hash);
     }, function(hash) {

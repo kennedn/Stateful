@@ -6,10 +6,9 @@ for (var key in globals) {
 window.global = window;
 var Buffer = require('buffer/').Buffer;
 
-module.exports = {
+var self = module.exports = {
 
   processData: function(data, type) {
-    var self = module.exports;
     // Convert to a array
     var byteArray = new Uint8Array(data);
     var array = [];
@@ -21,7 +20,6 @@ module.exports = {
   },
 
   transmitData: function(array, type) {
-    var self = module.exports;
     var index = 0;
     var arrayLength = array.length;
     
@@ -38,7 +36,6 @@ module.exports = {
   },
 
   sendChunk: function(array, index, arrayLength, type) {
-    var self = module.exports;
     // Determine the next chunk size, there needs to be 5 bits of padding for every key sent to stay under threshold
     var chunkSize = MAX_CHUNK_SIZE - (24 * 2);
     if(arrayLength - index < chunkSize) {

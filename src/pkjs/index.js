@@ -39,7 +39,7 @@ Pebble.addEventListener("appmessage", function(e) {
     break;
 
     case TransferType.XHR:
-      if (!(dict.hasOwnProperty("RequestIndex")) || !(dict.hasOwnProperty("RequestButton"))) {
+      if (!(dict.hasOwnProperty("RequestIndex"))) {
         debug(1, "didn't receive expected data");
         return;
       }
@@ -64,7 +64,7 @@ Pebble.addEventListener("appmessage", function(e) {
         return;
       }
 
-      var hash = dict.RequestIndex ^ ((dict.RequestButton << 16) | (dict.RequestButton >> 16));
+      var hash = (dict.RequestIndex << 20) | (dict.RequestButton << 10) | dict.RequestClicks;
       var url = (tiles.base_url != null) ? tiles.base_url + button.url : button.url;
       // Shouldn't headers be concatinated?
       var headers = (tiles.headers != null) ? tiles.headers : button.headers;
@@ -140,7 +140,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
         }
       });
       localStorage.setItem('clay-settings', JSON.stringify(settingsStorage));
-      ClayHelper.clayToTiles();
+      ClayHelper.clayToTiles(clay);
       break;
   }
 });

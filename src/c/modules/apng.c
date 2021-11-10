@@ -12,6 +12,7 @@ void apng_start_animation();
 //! Loops through each frame of animation, passing the current frame to a callback function
 //! @param context Pointer to application specified data
 static void timer_handler(void *context) {
+  s_loading_timer = NULL;
   uint32_t next_delay;
 
   if(gbitmap_sequence_update_bitmap_next_frame(s_loading_sequence, s_loading_bitmap, &next_delay)) {
@@ -38,7 +39,7 @@ void apng_start_animation() {
 
   s_loading_sequence = gbitmap_sequence_create_with_resource(s_resource_id);
   s_loading_bitmap = gbitmap_create_blank(gbitmap_sequence_get_bitmap_size(s_loading_sequence), GBitmapFormat8Bit);
-  s_loading_timer = app_timer_register(1, timer_handler, NULL);
+  s_loading_timer = app_timer_register(0, timer_handler, NULL);
   #endif
 }
 

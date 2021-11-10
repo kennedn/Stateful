@@ -10,15 +10,17 @@ static Window *s_action_window;
 static ActionBarLayer *s_action_bar_layer;
 static TextLayer *s_up_label_layer, *s_mid_label_layer, *s_down_label_layer;
 static GRect s_default_label_rect;
-static uint8_t s_tap_toggle = 0;
+static uint8_t s_tap_toggle;
 static Tile *tile;
 static GBitmap *s_overflow_icon;
 static uint8_t s_spinner_target;
-static AppTimer *s_spinner_timer = NULL;
+static AppTimer *s_spinner_timer;
 static void action_bar_reset_spinner(bool preserve_overflow);
 static void action_window_reset_elements(bool select_icon);
 
-uint8_t action_bar_tile_index;
+static ButtonId s_last_button;
+static uint8_t s_consecutive_clicks;
+static uint8_t s_tile_index;
 
 typedef enum {
     TILE_DATA_ICON_KEY,
@@ -62,6 +64,13 @@ static char *tile_element_lookup(ButtonId id, TileDataType type) {
     }
 }
 
+
+//! Generate a unique number using parameters that would be sent in an XHR request
+//! @return A unique number that incorporates current tile index, button and click count
+uint32_t action_window_generate_hash() {
+    return (s_tile_index << 20) | (tile_index_lookup(s_last_button) << 10) | s_consecutive_clicks;
+}
+
 //! Refreshes all icons if current window is visible, used when icon_array is modified
 void action_window_refresh_icons() {
     if (s_action_bar_layer && window_stack_get_top_window() == s_action_window) {
@@ -76,8 +85,7 @@ void action_window_refresh_icons() {
 static void action_window_swap_buttons() {
     if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
     action_bar_reset_spinner(true);
-    persist_delete(PERSIST_LAST_BUTTON);
-    SHORT_VIBE();
+    s_last_button = BUTTON_ID_BACK;
     s_tap_toggle = !s_tap_toggle;
 
     action_window_reset_elements(false);
@@ -126,12 +134,7 @@ void action_window_set_color(ColorAction action) {
             action_bar_reset_spinner(false);
         case COLOR_ACTION_VIBRATE_INIT:
             SHORT_VIBE();
-            new_color = (s_tap_toggle) ? tile->highlight : tile->color;
-            new_highlight = (s_tap_toggle) ? tile->color : tile->highlight;
-            break;
         case COLOR_ACTION_RESET_ONLY:
-            if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
-            action_bar_reset_spinner(false);
             new_color = (s_tap_toggle) ? tile->highlight : tile->color;
             new_highlight = (s_tap_toggle) ? tile->color : tile->highlight;
             break;
@@ -196,19 +199,17 @@ void action_bar_set_spinner(GBitmap *icon) {
 //! apng helper function, stops animation and resets all icons to pre-animation state
 //! @param preserve_overflow Stops clobbering of select buttons long press transition
 static void action_bar_reset_spinner(bool preserve_overflow) {
-    s_spinner_timer = NULL;
     apng_stop_animation();
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile_element_lookup(BUTTON_ID_UP, TILE_DATA_ICON_KEY)));
     if (!preserve_overflow) { 
         action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)));
-    } else {
-        action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, s_overflow_icon);
     }
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_ICON_KEY)));
 }
 
 //! apng helper function, resets icons and starts apng animation afresh
 static void action_bar_start_spinner() {
+    s_spinner_timer = NULL;
     action_bar_reset_spinner(false);
     apng_start_animation();
 }
@@ -219,6 +220,12 @@ static void action_bar_start_spinner() {
 //! @param context Pointer to application specified data 
 static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     ButtonId button = click_recognizer_get_button_id(recognizer);
+    if (button == s_last_button) {
+        s_consecutive_clicks++;
+    } else {
+        s_consecutive_clicks = 0;
+    }
+
     uint8_t button_index = tile_index_lookup(button);
     if (strlen(tile->texts[button_index]) == 0) {
         action_window_set_color(COLOR_ACTION_RESET_ONLY);
@@ -227,8 +234,9 @@ static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
         s_spinner_timer = app_timer_register(200, action_bar_start_spinner, NULL);
         action_window_set_color(COLOR_ACTION_VIBRATE_INIT);
         action_window_inset_highlight(button);
-        comm_xhr_request(action_bar_tile_index, button_index);
+        comm_xhr_request(s_tile_index, button_index, s_consecutive_clicks);
     }
+    s_last_button = button;
 }
 
 //! Select long press callback, display overflow icon and then switches to/from overflow after delay 
@@ -236,7 +244,8 @@ static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
 //! @param context Pointer to application specified data 
 static void mid_hold_click_down_callback(ClickRecognizerRef recognizer, void *ctx) {
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, s_overflow_icon, true);
-    app_timer_register(100, action_window_swap_buttons, NULL);
+    OVERFLOW_VIBE();
+    app_timer_register(200, action_window_swap_buttons, NULL);
 }
 
 //! Select long press released callback, replaces overflow icon with proper icon
@@ -262,7 +271,7 @@ static void click_config_provider(void *ctx) {
     window_single_click_subscribe(BUTTON_ID_SELECT, normal_click_callback);
     window_single_click_subscribe(BUTTON_ID_DOWN, normal_click_callback);
 
-    window_long_click_subscribe(BUTTON_ID_SELECT, 250, mid_hold_click_down_callback, mid_hold_click_up_callback);
+    window_long_click_subscribe(BUTTON_ID_SELECT, 350, mid_hold_click_down_callback, mid_hold_click_up_callback);
     window_multi_click_subscribe(BUTTON_ID_BACK, 1, 2, 150, true, back_click_callback);
 }
 
@@ -320,10 +329,11 @@ static void action_window_load(Window *window) {
     apng_set_data(RESOURCE_ID_LOADING_MINI, &action_bar_set_spinner);
 
     Layer *window_layer = window_get_root_layer(window);
-    GRect bounds = layer_get_bounds(window_layer);
     s_action_bar_layer = action_bar_layer_create();
     s_overflow_icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_OVERFLOW);
     s_tap_toggle = 0;
+    s_spinner_timer = NULL;
+    s_spinner_target = 0;
     s_up_label_layer = text_layer_create(GRectZero);
     s_mid_label_layer = text_layer_create(GRectZero);
     s_down_label_layer = text_layer_create(GRectZero);
@@ -360,7 +370,7 @@ static void action_window_unload(Window *window) {
     if (s_action_window) {
         if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
         apng_stop_animation();
-        persist_delete(PERSIST_LAST_BUTTON);
+        s_last_button = BUTTON_ID_BACK;
         text_layer_destroy(s_up_label_layer);
         text_layer_destroy(s_mid_label_layer);
         text_layer_destroy(s_down_label_layer);
@@ -381,7 +391,7 @@ void action_window_pop() {
 void action_window_push(Tile *current_tile, uint8_t index) {
     if (!s_action_window) {
         tile = current_tile;
-        action_bar_tile_index = index;
+        s_tile_index = index;
         s_action_window = window_create();
         window_set_background_color(s_action_window, tile->color);
         window_set_window_handlers(s_action_window, (WindowHandlers) {

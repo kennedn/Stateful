@@ -16,4 +16,4 @@ void action_window_pop();
 void action_window_set_color(ColorAction action);
 void action_window_inset_highlight(ButtonId button_id);
 void action_window_refresh_icons();
-extern uint8_t action_bar_tile_index;
+uint32_t action_window_generate_hash();

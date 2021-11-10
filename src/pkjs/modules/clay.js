@@ -3,11 +3,10 @@ for (var key in globals) {
   window[key] = globals[key];
 }
 
-module.exports = {
+var self = module.exports = {
   //! Builds a tiles object from the flat packed clay-settings object
   //! Using structured ID's to figure out object levels
-  clayToTiles: function() {
-    var self = module.exports;
+  clayToTiles: function(clay) {
     localStorage.setItem("tiles", "");
     var tiles = {}
     var claySettings = JSON.parse(localStorage.getItem('clay-settings'));

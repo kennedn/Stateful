@@ -115,7 +115,7 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
     }
 
     menu_window_push();
-    debug(2, "Completed tile assignment");
+    debug(2, "Completed tile assignment, free bytes: %dB", heap_bytes_free());
   }
 
 
@@ -179,7 +179,7 @@ void data_icon_array_add_icon(uint8_t *data) {
     icon->icon = gbitmap_create_from_png_data(&data[ptr], icon_size);
   }
 
-  debug(2, "Created icon with key %s at index %d:", icon->key, index);
+  debug(2, "Created icon with key %s at index %d, free bytes: %dB", icon->key, index, heap_bytes_free());
   menu_window_refresh_icons();
   action_window_refresh_icons();
 }
@@ -293,12 +293,12 @@ bool data_retrieve_persist() {
     // Using app_timer_register delays enough to work around this. 
     app_timer_register(0, menu_window_push, NULL);
 
-    debug(2, "Completed data retrieval");
     free(buffer);
+    debug(2, "Completed persist retrieve, free bytes: %dB", heap_bytes_free());
     return true;
   } else {
-    debug(2, "No data retrieved");
     free(buffer);
+    debug(2, "No data retrieved");
     return false;
   }
 }

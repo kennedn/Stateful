@@ -28,6 +28,7 @@
     "messageKeys": [
       "RequestIndex",
       "RequestButton",
+      "RequestClicks",
       "Color",
       "Hash",
       "IconKey",
