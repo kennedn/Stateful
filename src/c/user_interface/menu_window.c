@@ -162,11 +162,6 @@ static void menu_window_unload(Window *window) {
   }
 }
 
-void menu_window_pop() {
-  window_stack_remove(s_menu_window, false);
-  menu_window_unload(s_menu_window);
-}
-
 void menu_window_push() {
   if (!s_menu_window) {
     s_menu_window = window_create();

@@ -137,30 +137,30 @@ var self = module.exports = {
         ptr = self.packString(uint8, k, ptr);
       }
     }
-    // Aplite doesn't have the memory capacity to support external Icons
-    if (!Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) {
-      // Generate a unique list of icon_keys and pack as many as the icon buffer can store without looping to 
-      // send alongside the tile data. This is just to try and speed up icon download a little on initial app open
-      icon_keys = icon_keys.filter(function(v, i, s) {return (s.indexOf(v) === i && v != ""); });
-      // Sort icon_keys so base64 encoded strings are last and resource ids are first, this stops 'gaps' appearing
-      // in the icon_array when resource ids are restored from persistant storage
-      icon_keys = icon_keys.sort(function(a, b) { 
-        if (typeof(Icons[a]) === 'string' && typeof(Icons[b]) === 'string') {
-          return 0;
-        } else if (typeof(Icons[a]) === 'string' && typeof(Icons[b]) !== 'string') {
-          return 1;
-        } else {
-          return -1;
-        }
-      });
-      debug(2, "Quick Icons: " + JSON.stringify(icon_keys));
-      var unique_keys_slice = icon_keys.slice(0, ICON_BUFFER_SIZE)
-      for (var keyIdx in unique_keys_slice) {
-        key = unique_keys_slice[keyIdx]
-        uint8[ptr++] = key.length + 1;
-        ptr = self.packString(uint8, key, ptr);
-      }
-    }
+    // // Aplite doesn't have the memory capacity to support external Icons
+    // if (!Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) {
+    //   // Generate a unique list of icon_keys and pack as many as the icon buffer can store without looping to 
+    //   // send alongside the tile data. This is just to try and speed up icon download a little on initial app open
+    //   icon_keys = icon_keys.filter(function(v, i, s) {return (s.indexOf(v) === i && v != ""); });
+    //   // Sort icon_keys so base64 encoded strings are last and resource ids are first, this stops 'gaps' appearing
+    //   // in the icon_array when resource ids are restored from persistant storage
+    //   icon_keys = icon_keys.sort(function(a, b) { 
+    //     if (typeof(Icons[a]) === 'string' && typeof(Icons[b]) === 'string') {
+    //       return 0;
+    //     } else if (typeof(Icons[a]) === 'string' && typeof(Icons[b]) !== 'string') {
+    //       return 1;
+    //     } else {
+    //       return -1;
+    //     }
+    //   });
+    //   var unique_keys_slice = icon_keys.slice(0, ICON_BUFFER_SIZE)
+    //   debug(2, "Quick Icons: " + JSON.stringify(unique_keys_slice));
+    //   for (var keyIdx in unique_keys_slice) {
+    //     key = unique_keys_slice[keyIdx]
+    //     uint8[ptr++] = key.length + 1;
+    //     ptr = self.packString(uint8, key, ptr);
+    //   }
+    // }
     
     // We now know the size of our buffer thanks to ptr, slice our temp to create a correctly sized final buffer.
     var buffer_2 = buffer.slice(0,ptr);

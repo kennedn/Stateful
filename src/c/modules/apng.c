@@ -1,5 +1,7 @@
 #include <pebble.h>
 
+#ifdef PBL_COLOR
+
 static GBitmap *s_loading_bitmap;
 static GBitmapSequence *s_loading_sequence;
 static AppTimer *s_loading_timer;
@@ -23,9 +25,10 @@ static void timer_handler(void *context) {
   }
 }
 
+
+
 //! Tears down and recreates all animation elements, starts timer to loop through frames
 void apng_start_animation() {
-  #ifdef PBL_COLOR
   if(s_loading_timer) { return; }
 
   if(s_loading_sequence) {
@@ -40,45 +43,57 @@ void apng_start_animation() {
   s_loading_sequence = gbitmap_sequence_create_with_resource(s_resource_id);
   s_loading_bitmap = gbitmap_create_blank(gbitmap_sequence_get_bitmap_size(s_loading_sequence), GBitmapFormat8Bit);
   s_loading_timer = app_timer_register(0, timer_handler, NULL);
-  #endif
 }
 
 //! Cancels any inflight timers
 void apng_stop_animation() {
-  #ifdef PBL_COLOR
   if (s_loading_timer) { app_timer_cancel(s_loading_timer); }
   s_loading_timer = NULL;
-  #endif
 }
 
 //! Configures the animation resource and callback function to be used during animation
 //! @param resource_id The id of an apng file
 //! @param callback_function A callback function to routinly pass frames to
 void apng_set_data(uint32_t resource_id, void (*callback_function)(GBitmap *icon)) {
-  #ifdef PBL_COLOR
   apng_stop_animation();
   if (resource_id != s_resource_id) { s_resource_id = resource_id; }
   s_callback_function = callback_function;
-  #endif
 }
 
 void apng_init() {
-  #ifdef PBL_COLOR
   s_resource_id = -1;
   s_callback_function = NULL;
   s_loading_sequence = NULL;
   s_loading_bitmap = NULL;
   s_loading_timer = NULL;
-  #endif
 }
 
 void apng_deinit() {
-  #ifdef PBL_COLOR
   apng_stop_animation();
   s_resource_id = -1;
   s_callback_function = NULL;
   if (s_loading_sequence) { gbitmap_sequence_destroy(s_loading_sequence); s_loading_sequence = NULL; }
   if (s_loading_bitmap) { gbitmap_destroy(s_loading_bitmap); s_loading_bitmap = NULL;}
-  #endif
+}
+#else
+
+void apng_start_animation() {
+  return;
 }
 
+void apng_stop_animation() {
+  return;
+}
+
+void apng_set_data(uint32_t resource_id, void (*callback_function)(GBitmap *icon)) {
+  return;
+}
+
+void apng_init() {
+  return;
+}
+
+void apng_deinit() {
+  return;
+}
+#endif

@@ -132,10 +132,6 @@ static void window_disappear(Window *window) {
   }
 }
 
-void loading_window_pop() {
-  window_disappear(s_window);
-}
-
 void loading_window_push(char *text) {
   if(!s_window) {
     s_custom_text = text;

@@ -199,7 +199,7 @@ GBitmap *data_icon_array_search(char* key){
       return icon->icon;
     }
   }
-  debug(2, "Couldnt find %s locally, asking JS environment", key);
+  debug(2, "Couldnt find %s locally, JS will slot icon data in at position %d", key, icon_array->ptr);
   Icon *icon = icon_array->icons[icon_array->ptr];
 
   // Build a temporary icon to return to caller and send a request to pebblekit to replace with real icon

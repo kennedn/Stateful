@@ -7,7 +7,7 @@
 
 // Data structure sizes
 #ifdef PBL_APLITE
-#define ICON_ARRAY_SIZE 4
+#define ICON_ARRAY_SIZE 5
 #define MAX_TILES 16
 #else
 #define ICON_ARRAY_SIZE 10

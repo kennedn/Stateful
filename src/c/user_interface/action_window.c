@@ -21,11 +21,21 @@ static void action_window_reset_elements(bool select_icon);
 static ButtonId s_last_button;
 static uint8_t s_consecutive_clicks;
 static uint8_t s_tile_index;
+static bool s_overflow_enabled;
 
 typedef enum {
     TILE_DATA_ICON_KEY,
     TILE_DATA_TEXT
 } TileDataType;
+
+static bool overflow_contains_text() {
+    for (uint8_t i=1; i < ARRAY_LENGTH(tile->texts); i+=2) {
+        if (strlen(tile->texts[i]) != 0) {
+            return true;
+        }
+    }
+    return false;
+}
 
 //! Calculates an index for icon_key or text elements in the current tile
 //! @param id A ButtonId, either Up, Select or Down
@@ -245,7 +255,9 @@ static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
 static void mid_hold_click_down_callback(ClickRecognizerRef recognizer, void *ctx) {
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, s_overflow_icon, true);
     OVERFLOW_VIBE();
-    app_timer_register(200, action_window_swap_buttons, NULL);
+    if (s_overflow_enabled) {
+        app_timer_register(200, action_window_swap_buttons, NULL);
+    } 
 }
 
 //! Select long press released callback, replaces overflow icon with proper icon
@@ -270,7 +282,6 @@ static void click_config_provider(void *ctx) {
     window_single_click_subscribe(BUTTON_ID_UP, normal_click_callback);
     window_single_click_subscribe(BUTTON_ID_SELECT, normal_click_callback);
     window_single_click_subscribe(BUTTON_ID_DOWN, normal_click_callback);
-
     window_long_click_subscribe(BUTTON_ID_SELECT, 350, mid_hold_click_down_callback, mid_hold_click_up_callback);
     window_multi_click_subscribe(BUTTON_ID_BACK, 1, 2, 150, true, back_click_callback);
 }
@@ -327,7 +338,7 @@ static void action_window_reset_elements(bool select_icon) {
 
 static void action_window_load(Window *window) {
     apng_set_data(RESOURCE_ID_LOADING_MINI, &action_bar_set_spinner);
-
+    s_overflow_enabled = overflow_contains_text();
     Layer *window_layer = window_get_root_layer(window);
     s_action_bar_layer = action_bar_layer_create();
     s_overflow_icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_OVERFLOW);
@@ -381,11 +392,6 @@ static void action_window_unload(Window *window) {
         window_destroy(s_action_window);
         s_action_window = NULL;
     }
-}
-
-void action_window_pop() {
-  window_stack_remove(s_action_window, false);
-  action_window_unload(s_action_window);
 }
 
 void action_window_push(Tile *current_tile, uint8_t index) {
