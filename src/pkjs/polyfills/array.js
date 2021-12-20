@@ -1,27 +1,31 @@
-if(!Array.prototype.includes){
-   //or use Object.defineProperty
-   Array.prototype.includes = function(search){
-    return !!~this.indexOf(search);
-  }
-}
+
 if(!Array.prototype.indexOf){
-Array.prototype.indexOf = (function(Object, max, min){
-  "use strict";
-  return function indexOf(member, fromIndex) {
-    if(this===null||this===undefined)throw TypeError("Array.prototype.indexOf called on null or undefined");
+  Array.prototype.indexOf = (function(Object, max, min){
+    "use strict";
+    return function indexOf(member, fromIndex) {
+      if(this===null||this===undefined)throw TypeError("Array.prototype.indexOf called on null or undefined");
 
-    var that = Object(this), Len = that.length >>> 0, i = min(fromIndex | 0, Len);
-    if (i < 0) i = max(0, Len+i); else if (i >= Len) return -1;
+      var that = Object(this), Len = that.length >>> 0, i = min(fromIndex | 0, Len);
+      if (i < 0) i = max(0, Len+i); else if (i >= Len) return -1;
 
-    if(member===void 0){ for(; i !== Len; ++i) if(that[i]===void 0 && i in that) return i; // undefined
-    }else if(member !== member){   for(; i !== Len; ++i) if(that[i] !== that[i]) return i; // NaN
-    }else                           for(; i !== Len; ++i) if(that[i] === member) return i; // all else
+      if(member===void 0){ for(; i !== Len; ++i) if(that[i]===void 0 && i in that) return i; // undefined
+      }else if(member !== member){   for(; i !== Len; ++i) if(that[i] !== that[i]) return i; // NaN
+      }else                           for(; i !== Len; ++i) if(that[i] === member) return i; // all else
 
-    return -1; // if the value was not found, then return -1
-  };
-})(Object, Math.max, Math.min);
+      return -1; // if the value was not found, then return -1
+    };
+  })(Object, Math.max, Math.min);
 }
-
+if (!Array.prototype.includes) {
+	Array.prototype.includes = function(search, start) {
+		'use strict';
+		if (search instanceof RegExp) {
+			throw TypeError('first argument must not be a RegExp');
+		}
+		if (start === undefined) { start = 0; }
+		return this.indexOf(search, start) !== -1;
+	};
+}
 
 if (!Array.prototype.fill) {
   Object.defineProperty(Array.prototype, 'fill', {

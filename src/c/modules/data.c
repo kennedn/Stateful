@@ -9,6 +9,7 @@ TileArray *tile_array = NULL;
 IconArray *icon_array = NULL;
 GBitmap *default_icon = NULL;
 
+
 //! Initialise a tile_array object, this struct is used to store an arbitrary number of tiles
 //! and associated metadata
 //! @param size The initial number of tiles to allocate pointers for
@@ -85,12 +86,14 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
       uint8_t key_size = 0;
       tile->color = PBL_IF_COLOR_ELSE((GColor) data[ptr], GColorBlack); ptr++;
       tile->highlight = PBL_IF_COLOR_ELSE((GColor) data[ptr], GColorWhite); ptr++;
+      tile->mask = 0;
       
       for(uint8_t i=0; i < ARRAY_LENGTH(tile->texts); i++) {
         text_size = data[ptr++];
         tile->texts[i] = (char*) malloc(text_size * sizeof(char));
         strncpy(tile->texts[i], (char*) &data[ptr], text_size);
         ptr += text_size;
+        tile->mask |= (text_size > 1) << i;
       }
 
       for(uint8_t i=0; i < ARRAY_LENGTH(tile->icon_key); i++) {
@@ -98,6 +101,7 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
         tile->icon_key[i] = (char*) malloc(key_size * sizeof(char));
         strncpy(tile->icon_key[i], (char*) &data[ptr], key_size);
         ptr += key_size;
+        tile->mask &= ~((key_size <= 1) << i);
       }
       if (tile_count < MAX_PERSIST_TILES) { persist_write_data(PERSIST_TILE_START + i, &data[tile_start], ptr - tile_start); }
       data_tile_array_add_tile(tile); 
@@ -153,17 +157,19 @@ void data_icon_array_free() {
 //! into icon_array at a provided index and call window icon refresh's to display the new icon
 //! @param data A uint8_t array containing a lookup key, icon data (either a resource id or 
 //! raw png data) and an index at which to insert this information into the icon_array 
-void data_icon_array_add_icon(uint8_t *data) {
+//! @param index An explicit index, if > 0 this is used instead of the bundled index in icon data
+void data_icon_array_add_icon(uint8_t *data, int8_t index) {
   if (!icon_array) { return; }
   int ptr = 0;
-  uint8_t index = data[ptr++];
+  if (index < 0) {index = data[ptr];}
+  ptr++;
   Icon *icon = icon_array->icons[index];
 
   uint8_t key_size = data[ptr++];
-  if (!icon->key) { 
-    icon->key = (char*) malloc(key_size * sizeof(char));
-    strncpy(icon->key, (char*) &data[ptr], key_size);
-  }
+  free(icon->key);
+  icon->key = NULL;
+  icon->key = (char*) malloc(key_size * sizeof(char));
+  strncpy(icon->key, (char*) &data[ptr], key_size);
   ptr += key_size;
 
   uint16_t icon_size = *(uint16_t*) &data[ptr];
@@ -190,7 +196,7 @@ void data_icon_array_add_icon(uint8_t *data) {
 //! replace the dummy icon in icon_array
 //! @param key A unique lookup key associated with a specific icon
 //! @return An icon from a slot in icon_array
-GBitmap *data_icon_array_search(char* key){
+GBitmap *data_icon_array_search(char *key){
   if (!icon_array || strlen(key) == 0) { return NULL; }
   // Search for icon locally and return the icon if found
   for (int i=0; i < icon_array->size; i++) {
@@ -255,12 +261,14 @@ bool data_retrieve_persist() {
     uint8_t key_size = 0;
     tile->color = PBL_IF_COLOR_ELSE((GColor) buffer[ptr], GColorBlack); ptr++;
     tile->highlight = PBL_IF_COLOR_ELSE((GColor) buffer[ptr], GColorWhite); ptr++;
+    tile->mask = 0;
     
     for(uint8_t i=0; i < ARRAY_LENGTH(tile->texts); i++) {
       text_size = buffer[ptr++];
       tile->texts[i] = (char*) malloc(text_size * sizeof(char));
       strncpy(tile->texts[i], (char*) &buffer[ptr], text_size);
       ptr += text_size;
+      tile->mask |= (text_size > 1) << i;
     }
 
     for(uint8_t i=0; i < ARRAY_LENGTH(tile->icon_key); i++) {
@@ -268,6 +276,7 @@ bool data_retrieve_persist() {
       tile->icon_key[i] = (char*) malloc(key_size * sizeof(char));
       strncpy(tile->icon_key[i], (char*) &buffer[ptr], key_size);
       ptr += key_size;
+      tile->mask &= ~((key_size <= 1) << i);
     }
 
     data_tile_array_add_tile(tile); 
@@ -284,18 +293,18 @@ bool data_retrieve_persist() {
       }
 
       persist_read_data(icon_index, buffer, PERSIST_DATA_MAX_LENGTH);
-      data_icon_array_add_icon(buffer);
+      data_icon_array_add_icon(buffer, icon_array->ptr);
       icon_array->ptr = (icon_array->ptr + 1) % icon_array->size;
       icon_index++;
     }
 
     // Pushing nested windows to stack too quickly causes undocumented behaviour in the SDK. 
     // Using app_timer_register delays enough to work around this. 
-    app_timer_register(0, menu_window_push, NULL);
+    app_timer_register(1, menu_window_push, NULL);
 
     free(buffer);
     debug(2, "Completed persist retrieve, free bytes: %dB", heap_bytes_free());
-    return true;
+    return true; {}
   } else {
     free(buffer);
     debug(2, "No data retrieved");

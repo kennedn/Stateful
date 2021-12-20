@@ -1,16 +1,16 @@
 #pragma once
 #include <pebble.h>
 
-#define DEBUG 2
+#define DEBUG 0 
 #define debug(level, ...) \
   do { if (level <= DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__); } while (0)
 
 // Data structure sizes
 #ifdef PBL_APLITE
-#define ICON_ARRAY_SIZE 5
+#define ICON_ARRAY_SIZE 11
 #define MAX_TILES 16
 #else
-#define ICON_ARRAY_SIZE 10
+#define ICON_ARRAY_SIZE 16
 #define MAX_TILES 64
 #endif
 

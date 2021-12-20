@@ -59,7 +59,7 @@ void process_data(DictionaryIterator *dict, uint8_t **data, uint8_t transfer_typ
     if(complete_t) {
       switch(transfer_type) {
         case TRANSFER_TYPE_ICON:
-          data_icon_array_add_icon(*data);
+          data_icon_array_add_icon(*data, -1);
         break;
         case TRANSFER_TYPE_TILE:
           data_tile_array_pack_tiles(*data, complete_t->value->int32);

@@ -14,7 +14,8 @@ static uint8_t s_tap_toggle;
 static Tile *tile;
 static GBitmap *s_overflow_icon;
 static uint8_t s_spinner_target;
-static AppTimer *s_spinner_timer;
+static AppTimer *s_spinner_timer, *s_mid_click_timer;
+static bool s_mid_button_down;
 static void action_bar_reset_spinner(bool preserve_overflow);
 static void action_window_reset_elements(bool select_icon);
 
@@ -28,9 +29,18 @@ typedef enum {
     TILE_DATA_TEXT
 } TileDataType;
 
-static bool overflow_contains_text() {
+//! Check if passed index is enabled in the current tiles mask
+//! @param index An index referring to a position in the tiles element arrays
+//! @return A bool representing the enabled state of the passed index
+static bool tile_index_enabled(uint8_t index) {
+    return (tile->mask >> index) & 1;
+}
+
+//! Calculates whether the overflow menu contains any enabled elements
+//! @return A bool representing whether the overflow menu contains elements
+static bool overflow_contains_elements() {
     for (uint8_t i=1; i < ARRAY_LENGTH(tile->texts); i+=2) {
-        if (strlen(tile->texts[i]) != 0) {
+        if (tile_index_enabled(i)) {
             return true;
         }
     }
@@ -41,21 +51,7 @@ static bool overflow_contains_text() {
 //! @param id A ButtonId, either Up, Select or Down
 //! @return A tile element index
 static uint8_t tile_index_lookup(ButtonId id) {
-    uint8_t idx;
-    switch(id) {
-        case BUTTON_ID_UP:
-            idx = 0;
-            break;
-        case BUTTON_ID_SELECT:
-            idx = 2;
-            break;
-        case BUTTON_ID_DOWN:
-            idx = 4;
-            break;
-        default:
-            idx = 0;
-    }
-    return idx + s_tap_toggle;
+    return (id - 1) * 2 + s_tap_toggle;
 }
 
 //! Finds an element within the current tile
@@ -74,7 +70,6 @@ static char *tile_element_lookup(ButtonId id, TileDataType type) {
     }
 }
 
-
 //! Generate a unique number using parameters that would be sent in an XHR request
 //! @return A unique number that incorporates current tile index, button and click count
 uint32_t action_window_generate_hash() {
@@ -83,27 +78,30 @@ uint32_t action_window_generate_hash() {
 
 //! Refreshes all icons if current window is visible, used when icon_array is modified
 void action_window_refresh_icons() {
-    if (s_action_bar_layer && window_stack_get_top_window() == s_action_window) {
-        action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile_element_lookup(BUTTON_ID_UP, TILE_DATA_ICON_KEY)), true);
+    if (!s_action_bar_layer || window_stack_get_top_window() != s_action_window) {return;}
+    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile_element_lookup(BUTTON_ID_UP, TILE_DATA_ICON_KEY)), true);
+    if (!s_mid_button_down) {
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)), true);
-        action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_ICON_KEY)), true);
-        layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
+    } else {
+        data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY));
     }
+    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_ICON_KEY)), true);
+    layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
 }
 
 //! Transitions to/from the overflow menu, which exposes a different set of up to 3 buttons
 static void action_window_swap_buttons() {
     if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
-    action_bar_reset_spinner(true);
+    
     s_last_button = BUTTON_ID_BACK;
     s_tap_toggle = !s_tap_toggle;
 
-    action_window_reset_elements(false);
+    action_window_reset_elements(!s_mid_click_timer);
+    s_mid_click_timer = NULL;
 
     layer_mark_dirty(text_layer_get_layer(s_up_label_layer));
     layer_mark_dirty(text_layer_get_layer(s_mid_label_layer));
     layer_mark_dirty(text_layer_get_layer(s_down_label_layer));
-
     layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
     layer_mark_dirty(window_get_root_layer(s_action_window));
 }
@@ -230,22 +228,19 @@ static void action_bar_start_spinner() {
 //! @param context Pointer to application specified data 
 static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     ButtonId button = click_recognizer_get_button_id(recognizer);
+    uint8_t button_index = tile_index_lookup(button);
+    if (!tile_index_enabled(button_index)) {return;}
+
     if (button == s_last_button) {
         s_consecutive_clicks++;
     } else {
         s_consecutive_clicks = 0;
     }
-
-    uint8_t button_index = tile_index_lookup(button);
-    if (strlen(tile->texts[button_index]) == 0) {
-        action_window_set_color(COLOR_ACTION_RESET_ONLY);
-    } else {
-        s_spinner_target = button;
-        s_spinner_timer = app_timer_register(200, action_bar_start_spinner, NULL);
-        action_window_set_color(COLOR_ACTION_VIBRATE_INIT);
-        action_window_inset_highlight(button);
-        comm_xhr_request(s_tile_index, button_index, s_consecutive_clicks);
-    }
+    s_spinner_target = button;
+    s_spinner_timer = app_timer_register(200, action_bar_start_spinner, NULL);
+    action_window_set_color(COLOR_ACTION_VIBRATE_INIT);
+    action_window_inset_highlight(button);
+    comm_xhr_request(s_tile_index, button_index, s_consecutive_clicks);
     s_last_button = button;
 }
 
@@ -253,18 +248,23 @@ static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
 //! @param recognizer The click recognizer that detected a "click" pattern
 //! @param context Pointer to application specified data 
 static void mid_hold_click_down_callback(ClickRecognizerRef recognizer, void *ctx) {
+    s_mid_button_down = true;
+    action_bar_reset_spinner(true);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, s_overflow_icon, true);
+    if (!s_overflow_enabled) {return;}
     OVERFLOW_VIBE();
-    if (s_overflow_enabled) {
-        app_timer_register(200, action_window_swap_buttons, NULL);
-    } 
+    s_mid_click_timer = app_timer_register(200, action_window_swap_buttons, NULL);
 }
 
 //! Select long press released callback, replaces overflow icon with proper icon
 //! @param recognizer The click recognizer that detected a "click" pattern
 //! @param context Pointer to application specified data 
 static void mid_hold_click_up_callback(ClickRecognizerRef recognizer, void *ctx) {
-    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)), true);
+    if (!s_mid_click_timer) {
+        action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)), true);
+    }
+    s_mid_click_timer = NULL;
+    s_mid_button_down = false;
 }
 
 //! Back click callback, exits app completly, skipping menu_window, if double click is detected
@@ -283,7 +283,7 @@ static void click_config_provider(void *ctx) {
     window_single_click_subscribe(BUTTON_ID_SELECT, normal_click_callback);
     window_single_click_subscribe(BUTTON_ID_DOWN, normal_click_callback);
     window_long_click_subscribe(BUTTON_ID_SELECT, 350, mid_hold_click_down_callback, mid_hold_click_up_callback);
-    window_multi_click_subscribe(BUTTON_ID_BACK, 1, 2, 150, true, back_click_callback);
+    window_multi_click_subscribe(BUTTON_ID_BACK, 1, 2, 250, true, back_click_callback);
 }
 
 //! Resets texts, icons, positions and colours
@@ -338,7 +338,7 @@ static void action_window_reset_elements(bool select_icon) {
 
 static void action_window_load(Window *window) {
     apng_set_data(RESOURCE_ID_LOADING_MINI, &action_bar_set_spinner);
-    s_overflow_enabled = overflow_contains_text();
+    s_overflow_enabled = overflow_contains_elements();
     Layer *window_layer = window_get_root_layer(window);
     s_action_bar_layer = action_bar_layer_create();
     s_overflow_icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_OVERFLOW);
@@ -380,6 +380,7 @@ static void action_window_load(Window *window) {
 static void action_window_unload(Window *window) {
     if (s_action_window) {
         if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
+        if (s_mid_click_timer) { app_timer_cancel(s_mid_click_timer); s_mid_click_timer = NULL; }
         apng_stop_animation();
         s_last_button = BUTTON_ID_BACK;
         text_layer_destroy(s_up_label_layer);

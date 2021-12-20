@@ -14,7 +14,7 @@ var clayConfig = require('./config')
 var messageKeys = require('message_keys');
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 
-var image = require('./modules/image')
+// var image = require('./modules/image')
 
 
 // Called when incoming message from the Pebble is received
@@ -96,8 +96,8 @@ Pebble.addEventListener("appmessage", function(e) {
 
 Pebble.addEventListener('ready', function() {
   console.log("And we're back");
-  image.load('http://thinboy.int/icons/tv_8bit.png');
-  image.load('https://i.imgur.com/Bwvvn3P.png');
+  // image.load('http://thinboy.int/icons/tv_8bit.png');
+  // image.load('https://i.imgur.com/Bwvvn3P.png');
   Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccess, messageFailure);
 });
 

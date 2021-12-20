@@ -7,7 +7,8 @@
         "data.h": "c",
         "action_window.h": "c",
         "loading_window.h": "c",
-        "random": "c"
+        "random": "c",
+        "menu_window.h": "c"
     },
     "C_Cpp.dimInactiveRegions": false
 }
