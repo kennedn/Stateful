@@ -9,7 +9,7 @@
   "dependencies": {
     "bluebird": "^3.7.2",
     "buffer": "^6.0.3",
-    "pebble-clay": "kennedn/clay#TextArea",
+    "pebble-clay": "file:../clay",
     "xmlhttprequest": "^1.8.0",
     "zlib": "^1.0.5"
   },
@@ -68,11 +68,6 @@
         },
         {
           "type": "png",
-          "name": "ICON_TEST",
-          "file": "icons/test.png"
-        },
-        {
-          "type": "png",
           "name": "ICON_CALL",
           "file": "icons/call.png"
         },
@@ -110,6 +105,11 @@
           "type": "png",
           "name": "ICON_ASPECT",
           "file": "icons/aspect.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_PLANT",
+          "file": "icons/plant.png"
         },
         {
           "type": "png",

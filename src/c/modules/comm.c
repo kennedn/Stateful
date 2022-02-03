@@ -256,7 +256,7 @@ void comm_xhr_request(uint8_t tile_index, uint8_t button_index, uint8_t consecut
 //! Resets all data and locks, kicks off a callback loop that awaits a pebblekit ready message
 //! @param fast_menu Immediately retrieve tile data from storage without waiting
 //! for pebblekit ready message
-void comm_callback_start(bool fast_menu) {
+void comm_callback_start() {
   data_tile_array_free();
   data_icon_array_free();
   data_icon_array_init(ICON_ARRAY_SIZE);
@@ -268,7 +268,10 @@ void comm_callback_start(bool fast_menu) {
   s_retry_timer = NULL;
   s_ready_timer = NULL;
   app_timer_register(RETRY_READY_TIMEOUT, comm_ready_callback, NULL);
-  if(fast_menu) { data_retrieve_persist(); }
+  if(s_fast_menu) { 
+    s_fast_menu = false;
+    data_retrieve_persist();
+  }
 }
 
 
@@ -279,11 +282,12 @@ static void comm_bluetooth_event(bool connected) {
   window_stack_pop_all(true);
   if (connected) {
     loading_window_push(NULL);
-    comm_callback_start(s_fast_menu);
+    // comm_callback_start had the ability to call data_retrieve_persist. Calling this function too early
+    // causes window spawning issues by hogging cpu. Using app_timer_register delays enough to work around this. 
+    app_timer_register(0, comm_callback_start, NULL);
   } else {
     loading_window_push("Phone not connected...");
   }
-  s_fast_menu = false;
 }
 
 //! Initialise AppMessage, timers and icon_array

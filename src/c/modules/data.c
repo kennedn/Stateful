@@ -188,6 +188,10 @@ void data_icon_array_add_icon(uint8_t *data, int8_t index) {
   debug(2, "Created icon with key %s at index %d, free bytes: %dB", icon->key, index, heap_bytes_free());
   menu_window_refresh_icons();
   action_window_refresh_icons();
+  // for (uint8_t i=0; i < icon_array->size; i++) {
+  //   debug(1, "%d:\t%s", i, icon_array->icons[i]->key);
+  // }
+  // debug(1, " ");
 }
 
 //! Searches icon_array for an icon matching a passed key, when no match is found locally
@@ -254,7 +258,7 @@ bool data_retrieve_persist() {
   uint8_t *buffer = (uint8_t*) malloc(sizeof(uint8_t) * PERSIST_DATA_MAX_LENGTH);
   uint8_t i = 0;
   while (persist_read_data(PERSIST_TILE_START + i, buffer, PERSIST_DATA_MAX_LENGTH) != E_DOES_NOT_EXIST) {
-    debug(2, "Found tile at persist key %d", 2 + i);
+    debug(2, "Found tile at persist key %d", PERSIST_TILE_START + i);
     int ptr = 0;
     tile = (Tile*) malloc(sizeof(Tile));
     uint8_t text_size = 0;
@@ -298,13 +302,11 @@ bool data_retrieve_persist() {
       icon_index++;
     }
 
-    // Pushing nested windows to stack too quickly causes undocumented behaviour in the SDK. 
-    // Using app_timer_register delays enough to work around this. 
-    app_timer_register(1, menu_window_push, NULL);
+    menu_window_push();
 
     free(buffer);
     debug(2, "Completed persist retrieve, free bytes: %dB", heap_bytes_free());
-    return true; {}
+    return true;
   } else {
     free(buffer);
     debug(2, "No data retrieved");

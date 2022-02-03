@@ -25,6 +25,14 @@ var self = module.exports = {
 
     // if tiles object has at least 1 tile
     if (tiles != null && Object.keys(tiles).length != 0  && tiles.tiles != null && tiles.tiles.length != 0) {
+      for (var i=0; i < tiles.tiles.length; i++) {
+        var icon_keys = tiles.tiles[i].payload.icon_keys;
+        for (var j=0; j < icon_keys.length; j++) {
+          if (icon_keys[j] != "" && Object.keys(Icons).indexOf(icon_keys[j]) == -1) {
+            icon_keys[j] = Default_Icon;
+          }
+        }
+      }
       localStorage.setItem('tiles', JSON.stringify(tiles));
       Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
       Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccess, messageFailure);

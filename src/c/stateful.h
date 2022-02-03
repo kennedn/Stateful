@@ -1,7 +1,7 @@
 #pragma once
 #include <pebble.h>
 
-#define DEBUG 0 
+#define DEBUG 1
 #define debug(level, ...) \
   do { if (level <= DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__); } while (0)
 
@@ -15,6 +15,7 @@
 #endif
 
 #define MAX_PERSIST_TILES 16
+#define DEFAULT_ICON_KEY "356a192b"
 
 extern GFont ubuntu18;
 extern VibePattern short_vibe; 
