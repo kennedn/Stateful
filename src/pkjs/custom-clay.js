@@ -16,10 +16,10 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   });
   $(textarea).trigger('input');
 
-  var pebblekit_header = clayConfig.getItemById('pebblekit_header')
-  var pebblekit_message = clayConfig.getItemById('pebblekit_message')
-  var json_header = clayConfig.getItemById('json_header')
-  var json_string = clayConfig.getItemById('json_string')
+  var pebblekit_header = clayConfig.getItemById('pebblekit_header');
+  var pebblekit_message = clayConfig.getItemById('pebblekit_message');
+  var json_header = clayConfig.getItemById('json_header');
+  var json_string = clayConfig.getItemById('json_string');
 
   pebblekit_header.on('click', function() {
     if (pebblekit_message.$element.get("$display") == 'none') {

@@ -40,6 +40,38 @@ module.exports =
     "type": "section",
     "items": [
       {
+        "type": "heading",
+        "defaultValue": "API Login"
+      },
+      {
+        "type": "text",
+        "defaultValue": "Use this section to define a username and password that will be POSTed to the login URL to obtain a token. All values must be defined to be used."
+      },
+      {
+        "type": "input",
+        "label": "API Username",
+        "id": "api_username"
+      },
+      {
+        "type": "input",
+        "label": "API Password",
+        "id": "api_password",
+        "attributes": {
+          "type": "password"
+        }
+      },
+      {
+        "type": "input",
+        "label": "Login URL",
+        "description": "After base_url, without leading slash",
+        "id": "login_url"
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
         "type": "button",
         "id": "Submit",
         "defaultValue": "Submit",

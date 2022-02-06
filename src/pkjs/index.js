@@ -8,13 +8,16 @@ var clayConfig = require('./config')
 var messageKeys = require('message_keys')
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var keepAliveTimeout;
+var watch;
 
-var DEBUG = 0; 
-var MAX_CHUNK_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 256 : 8200;
-var ICON_BUFFER_SIZE = (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 4 : 10;
- 
+var MAX_CHUNK_SIZE;
+var ICON_BUFFER_SIZE;
+
+const DEBUG = 0; 
+
 var no_transfer_lock = false;
 
+var bearerToken;
 
 
 // Called when the message send attempt succeeds
@@ -160,7 +163,7 @@ function packIcon(key, index) {
   
   if (DEBUG > 1) { console.log("Sending icon " + key); }
   if (typeof(icon) == 'string') {
-    if(Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) {
+    if(!watch || watch.platform.indexOf('aplite') != -1) {
       if (DEBUG > 1) { console.log("aplite detected, icon_size: " + 1); }
       uint8[ptr++] = 1;
       uint8[ptr++] = 0;
@@ -211,7 +214,9 @@ function packTiles() {
   } else {
     clearTimeout(keepAliveTimeout);
     if(tiles.keep_alive && typeof(tiles.base_url) == 'string' && tiles.base_url.length > 0) {
-      xhrKeepAlive(tiles.base_url, tiles.headers);
+      loginIfNecessary(function() {
+        xhrKeepAlive(tiles.base_url, tiles.headers);
+      });
     }
   }
 
@@ -245,7 +250,7 @@ function packTiles() {
     }
   }
   // Aplite doesn't have the memory capacity to support external icons
-  if (!Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) {
+  if (watch && watch.platform.indexOf('aplite') == -1) {
     // Generate a unique list of icon_keys and pack as many as the icon buffer can store without looping to 
     // send alongside the tile data. This is just to try and speed up icon download a little on initial app open
     icon_keys = icon_keys.filter(function(v, i, s) {return (s.indexOf(v) === i); });
@@ -396,6 +401,33 @@ function downloadImage(i, callback) {
   // }
 }
 
+// If API username, password, and login_url are all defined, then make a login request if the bearerToken is not set.
+function loginIfNecessary(callback) {
+  var tiles = JSON.parse(localStorage.getItem('tiles'));
+  var headers = tiles.headers ? tiles.headers : [];
+  var claySettings = JSON.parse(localStorage.getItem('clay-settings'));
+
+  var username = claySettings['api_username'];
+  var password = claySettings['api_password'];
+  var login_url = claySettings['login_url'];
+
+  if (username && password && login_url && !bearerToken) {
+    if (DEBUG > 0) { console.log("Logging in to server: " + username); }
+    xhrRequest("POST", tiles.base_url + login_url, headers, {"username": username, "password": password}, 5, 
+    function(data) {
+      if (DEBUG > 1) { console.log("Got login callback."); }
+      if (data && data["access_token"]) {
+        if (DEBUG > 1) { console.log("Found access_token in response"); } 
+        bearerToken = data["access_token"];
+      }
+      callback();
+    });
+  }
+  else {
+    callback();
+  }
+}
+
 function xhrRequest(method, url, headers, data, maxRetries, callback) {
   if (typeof(maxRetries) == 'number'){
     maxRetries = [maxRetries, maxRetries];
@@ -411,14 +443,16 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
           console.log("Response data: " + JSON.stringify(returnData));
         }
       } catch(e) {
+        if (DEBUG > 1) { console.log("Error parsing response: " + this.responseText); }
         Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
         return;
       }
       Pebble.sendAppMessage({"TransferType": TransferType.ACK}, messageSuccessCallback, messageFailureCallback);
       if (DEBUG > 1) { console.log("Status: " + this.status); }
-      if (callback) { callback(); } 
+      if (callback) { callback(returnData); } 
     } else {
       // Pebble.sendAppMessage({"TransferType": TransferType.ERROR}, messageSuccessCallback, messageFailureCallback);
+      if (DEBUG > 1) { console.log ("Error status: " + this.status); }
       Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
     }
   };
@@ -429,7 +463,11 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
     console.log("Data: " + JSON.stringify(data));
   }
   request.onerror = function(e) { 
-    if (DEBUG > 1 ) { console.log("Timed out"); }
+    if (DEBUG > 1 ) { console.log("Request Error"); }
+    if (bearerToken && request.status === 401) {
+      if (DEBUG > 2) { console.log("Unauthorized, unsetting bearerToken"); }
+      bearerToken = null;
+    }
     Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
   };
   request.ontimeout  = function(e) { 
@@ -448,8 +486,12 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
       request.setRequestHeader(key, headers[key]);
     }
   }
+  if (bearerToken) {
+    if (DEBUG > 1) { console.log("Setting Authorization header with bearerToken."); }
+    request.setRequestHeader("Authorization", "Bearer " + bearerToken);
+  }
   request.send(JSON.stringify(data));  
-}				
+}
 
 function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) {
   var request = new XMLHttpRequest();
@@ -580,9 +622,10 @@ Pebble.addEventListener("appmessage", function(e) {
         return;
       }
 
+      var tiles = JSON.parse(localStorage.getItem('tiles'));
 
       // find the tile that matches the id recieved from appmessage
-      var tiles = JSON.parse(localStorage.getItem('tiles'));
+
       var tile = tiles.tiles[dict.RequestIndex];
       if (tile == null) { 
         if (DEBUG > 1) { console.log("Could not locate tile with id " + id); }
@@ -615,8 +658,10 @@ Pebble.addEventListener("appmessage", function(e) {
             if (DEBUG > 1) { console.log("Button has single endpoint")}
             data = button.data;
           }
-          xhrRequest(button.method, url, headers, data, 20, function() { 
-            xhrStatus(status.method, status_url, status_headers, status.data, status.variable, status.good, status.bad, 25); 
+          loginIfNecessary(function() {
+            xhrRequest(button.method, url, headers, data, 20, function() { 
+              xhrStatus(status.method, status_url, status_headers, status.data, status.variable, status.good, status.bad, 25); 
+            });
           });
           break;
         case CallType.LOCAL:
@@ -635,12 +680,16 @@ Pebble.addEventListener("appmessage", function(e) {
             data = button.data;
           }
           if (DEBUG > 1) { console.log("highlight idx: " + highlight_idx)}
-          xhrRequest(button.method, url, headers, data, 20, function() { 
-            Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": highlight_idx }, messageSuccessCallback, messageFailureCallback);
+          loginIfNecessary(function() {
+            xhrRequest(button.method, url, headers, data, 20, function() { 
+              Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": highlight_idx }, messageSuccessCallback, messageFailureCallback);
+            });
           });
           break;
         case CallType.STATUS_ONLY:
-          xhrStatus(button.method, url, headers, button.data, button.variable, button.good, button.bad, 25); 
+          loginIfNecessary(function() {
+            xhrStatus(button.method, url, headers, button.data, button.variable, button.good, button.bad, 25); 
+          });
           break;
         default:
           if (DEBUG > 1) { console.log("Unknown type: " + button.type); }
@@ -654,6 +703,10 @@ Pebble.addEventListener("appmessage", function(e) {
 
 Pebble.addEventListener('ready', function() {
   console.log("And we're back");
+  watch = Pebble.getActiveWatchInfo ? Pebble.getActiveWatchInfo() : null;
+  MAX_CHUNK_SIZE = (!watch || watch.platform.indexOf('aplite') != -1) ? 256 : 8200;
+  ICON_BUFFER_SIZE = (!watch || watch.platform.indexOf('aplite') != -1) ? 4 : 10;
+
   Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccessCallback, messageFailureCallback);
 });
 
