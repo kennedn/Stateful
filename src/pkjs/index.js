@@ -10,14 +10,14 @@ var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var keepAliveTimeout;
 var watch;
 
+const DEBUG = 2; 
+
 var MAX_CHUNK_SIZE;
 var ICON_BUFFER_SIZE;
 
-const DEBUG = 0; 
-
 var no_transfer_lock = false;
 
-var bearerToken;
+var savedToken;
 
 
 // Called when the message send attempt succeeds
@@ -401,26 +401,39 @@ function downloadImage(i, callback) {
   // }
 }
 
-// If API username, password, and login_url are all defined, then make a login request if the bearerToken is not set.
+// If authentication login_url and data are defined, then make a login request if the savedToken is not set.
 function loginIfNecessary(callback) {
   var tiles = JSON.parse(localStorage.getItem('tiles'));
-  var headers = tiles.headers ? tiles.headers : [];
-  var claySettings = JSON.parse(localStorage.getItem('clay-settings'));
 
-  var username = claySettings['api_username'];
-  var password = claySettings['api_password'];
-  var login_url = claySettings['login_url'];
+  if (!tiles.hasOwnProperty('authentication')) {
+    callback();
+  }
 
-  if (username && password && login_url && !bearerToken) {
-    if (DEBUG > 0) { console.log("Logging in to server: " + username); }
-    xhrRequest("POST", tiles.base_url + login_url, headers, {"username": username, "password": password}, 5, 
+    var method = tiles.authentication.method;
+    var url = tiles.base_url ? tiles.base_url + tiles.authentication.url : tiles.authentication.url;
+    var data = tiles.authentication.data;
+    var token_prefix = tiles.authentication.prefix ? tiles.authentication.prefix : "Bearer ";
+    var headers = tiles.authentication.headers ? tiles.authentication.headers : tiles.headers;
+    var variable = tiles.authentication.variable ? tiles.authentication.variable : "access_token";
+
+  if (method && url && data && !savedToken) {
+    xhrRequest(method, url, headers, data, 5, 
     function(data) {
-      if (DEBUG > 1) { console.log("Got login callback."); }
-      if (data && data["access_token"]) {
-        if (DEBUG > 1) { console.log("Found access_token in response"); } 
-        bearerToken = data["access_token"];
+      if (DEBUG > 2) { console.log("Got login callback."); }
+      try {
+        var variable_split = variable.split(".")
+          for (var j in variable_split) {
+            data = data[variable_split[j]];
+          }
+        if (data) {
+          if (DEBUG > 1) { console.log("Found token variable " + variable + " in response"); } 
+          savedToken = token_prefix + data;
+        }
+        callback();
       }
-      callback();
+      catch (e) {
+        if (DEBUG > 0) { console.log("Failed to extract token variable from response."); } 
+      }
     });
   }
   else {
@@ -464,9 +477,9 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
   }
   request.onerror = function(e) { 
     if (DEBUG > 1 ) { console.log("Request Error"); }
-    if (bearerToken && request.status === 401) {
-      if (DEBUG > 2) { console.log("Unauthorized, unsetting bearerToken"); }
-      bearerToken = null;
+    if (savedToken && request.status === 401) {
+      if (DEBUG > 2) { console.log("Unauthorized, unsetting savedToken"); }
+      savedToken = null;
     }
     Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": Color.ERROR }, messageSuccessCallback, messageFailureCallback);
   };
@@ -486,9 +499,9 @@ function xhrRequest(method, url, headers, data, maxRetries, callback) {
       request.setRequestHeader(key, headers[key]);
     }
   }
-  if (bearerToken) {
-    if (DEBUG > 1) { console.log("Setting Authorization header with bearerToken."); }
-    request.setRequestHeader("Authorization", "Bearer " + bearerToken);
+  if (savedToken) {
+    if (DEBUG > 1) { console.log("Setting Authorization header with stored token."); }
+    request.setRequestHeader("Authorization", savedToken);
   }
   request.send(JSON.stringify(data));  
 }

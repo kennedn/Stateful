@@ -5,6 +5,7 @@
 - [Interface](#interface)
 - [JSON Structure](#json-structure)
 - [Global Settings](#global-settings)
+  - [Authentication](#authentication)
 - [Tiles](#tiles)
   - [Payload](#payload)
   - [Buttons](#buttons)
@@ -52,7 +53,8 @@ Currently due to limitations in how clay config works, I have opted to directly 
   "keep_alive": false,
   "base_url": "",
   "headers": {},
-  "tiles": []
+  "tiles": [],
+  "authentication": {...}
 }
 ```
 
@@ -82,6 +84,44 @@ Example:
   ]
 }
 ```
+
+## Authentication
+
+The authentication key is an optional key in the global section of the config that allows you to configure a login endpoint for storing a token to interact with the rest of your endpoints. At minimum, `method`, `url` and `data` are required in order for authentication to be used in the application.
+
+
+```json
+ "authentication": {
+    "method": "",
+    "url": "",
+    "data": {},
+    "headers": {},
+    "variable": "",
+    "prefix": ""
+  }
+```
+
+|Key          |Expected type|Description|
+|-------------|-------------|-----------|
+|method       |`string`     |XHR Method to use for authentication endpoint. |
+|url          |`string`     |Partial or full url, see `base_url` in [global settings](#global-settings)|
+|data         |`Object`     |Data object to send to the endpoint. (Such as credentials) |
+|headers      |`Object`     |Optional headers to send alongside data, overidden by `headers` in [global settings](#global-settings)|
+|prefix       |`string`     |The prefix before the token in the header, defaults to `"Bearer "`|
+|variable     |`string`     |A variable to extract from the return data, use dot notation to traverse a nested object. Defaults to `"access_token"`. |
+
+Example: 
+```json
+ "authentication": {
+    "method": "POST",
+    "url": "login",
+    "data": {"username": "user", "password": "password123"},
+    "headers": {"Content-Type": "application/json"},
+    "variable": "access_token",
+    "prefix": "Bearer "
+  }
+```
+
 
 # Tiles
 
