@@ -10,7 +10,7 @@ var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var keepAliveTimeout;
 var watch;
 
-const DEBUG = 2; 
+const DEBUG = 0; 
 
 var MAX_CHUNK_SIZE;
 var ICON_BUFFER_SIZE;
@@ -523,8 +523,13 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
 
   request.ontimeout = request.onerror = function(e) { 
     if (DEBUG > 1 ) { console.log("Timed out"); }
+    if (savedToken && request.status === 401) {
+      if (DEBUG > 2) { console.log("Unauthorized, unsetting savedToken"); }
+      savedToken = null;
+    }
     repeatCall();
   };
+
 
   request.onload = function() {
     if(this.status < 400) {
@@ -559,6 +564,7 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
       }
 
     } else {
+        if (DEBUG > 1) { console.log("Status: " + this.status); }
         repeatCall();
     }
   };
@@ -577,6 +583,12 @@ function xhrStatus(method, url, headers, data, variable, good, bad, maxRetries) 
       request.setRequestHeader(key, headers[key]);
     }
   }
+
+  if (savedToken) {
+    if (DEBUG > 1) { console.log("Setting Authorization header with stored token."); }
+    request.setRequestHeader("Authorization", savedToken);
+  }
+
   request.send(JSON.stringify(data));  
 }				
 
@@ -591,7 +603,10 @@ function xhrKeepAlive(url, headers) {
       if (DEBUG > 2) { console.log('xhrKeepAlive fired'); }
       xhrKeepAlive(url, headers);
     }, 5000);
-
+    if (savedToken && request.status === 401) {
+      if (DEBUG > 2) { console.log("Unauthorized, unsetting savedToken"); }
+      savedToken = null;
+    }
   }
   request.open('GET', url);
   for (var key in headers) {
@@ -600,6 +615,11 @@ function xhrKeepAlive(url, headers) {
       request.setRequestHeader(key, headers[key]);
     }
   }
+  if (savedToken) {
+    if (DEBUG > 1) { console.log("Setting Authorization header with stored token."); }
+    request.setRequestHeader("Authorization", savedToken);
+  }
+
   request.send();  
 }				
 
