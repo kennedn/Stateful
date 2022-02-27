@@ -10,8 +10,8 @@
     "bluebird": "^3.7.2",
     "buffer": "^6.0.3",
     "pebble-clay": "file:../clay",
-    "xmlhttprequest": "^1.8.0",
-    "zlib": "^1.0.5"
+    "sha1": "^1.1.1",
+    "xmlhttprequest": "^1.8.0"
   },
   "pebble": {
     "displayName": "Stateful",

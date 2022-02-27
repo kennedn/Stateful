@@ -12,7 +12,7 @@ var self = module.exports = {
     var claySettings = JSON.parse(localStorage.getItem('clay-settings'));
 
     try {
-      tiles = JSON.parse(claySettings['json_string']);
+      tiles = JSON.parse(claySettings['ClayJSON']);
       claySettings['pebblekit_message'] = "Current JSON loaded correctly";
       localStorage.setItem('clay-settings', JSON.stringify(claySettings));
     } catch(e) {

@@ -195,5 +195,43 @@ var self = module.exports = {
       }
       xhrRetry(method, url, headers, data, origin_hash, variable, good, bad, maxRetries);
     });
-  }
+  },
+  xhrArrayBuffer: function(url, maxRetries) {
+    return new Promise(function(resolve, reject) {
+
+      var xhrRetry = function(url, maxRetries) {
+        if (typeof(maxRetries) == 'number'){
+          maxRetries = [maxRetries, maxRetries];
+        }
+
+        var request = new XMLHttpRequest();
+        request.onload = function() {
+          if(this.status < 400) {
+            debug(1, "Status: " + this.status);
+            resolve(this);
+          } else {
+            if (maxRetries[1] > 0) {
+              setTimeout(function() { 
+                xhrRetry(url, [maxRetries[0], maxRetries[1] - 1]); 
+              }, 307 * (maxRetries[0] - maxRetries[1]));
+            } else {
+              debug(1, "Max retries reached");
+              reject(this);
+            }
+          }
+        };
+
+        debug(1, "URL: " + url);
+
+        request.onerror = function(e) { 
+          reject(this);
+        };
+
+        request.open('GET', url);
+        request.responseType = 'arraybuffer';
+        request.send(); 
+      }
+      xhrRetry(url, maxRetries);
+    });
+  },
 };

@@ -268,9 +268,11 @@ var PNG = (function () {
             return new Uint8Array(0);
           }
 
-          data = new zlib.FlateStream(data);
-          data = data.getBytes();
-          console.log(JSON.stringify(data));
+          // data = new zlib.FlateStream(data);
+          // data = data.getBytes();
+          data = new Zlib.Inflate(data);
+          data = data.decompress();
+          // console.log(JSON.stringify(data));
 
           var width = this.width;
           var height = this.height;

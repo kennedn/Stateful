@@ -15,7 +15,8 @@
 #endif
 
 #define MAX_PERSIST_TILES 16
-#define DEFAULT_ICON_KEY "356a192b"
+#define DEFAULT_ICON_KEY "c4ca4238"
+#define DEFAULT_ICON_KEY_SIZE 9
 
 extern GFont ubuntu18;
 extern VibePattern short_vibe; 

@@ -322,11 +322,14 @@ static void action_window_reset_elements(bool select_icon) {
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile_element_lookup(BUTTON_ID_UP, TILE_DATA_ICON_KEY)), true);
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, default_icon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_ICON_KEY)), true);
+
+    action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_UP, (tile_index_enabled(tile_index_lookup(BUTTON_ID_UP))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
+    // action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_SELECT, (tile_index_enabled(tile_index_lookup(BUTTON_ID_SELECT))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
+    action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_DOWN, (tile_index_enabled(tile_index_lookup(BUTTON_ID_DOWN))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
     if (select_icon) {
         action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, default_icon);
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)), true);
     }
-
     GColor8 toggle_color = (!s_tap_toggle) ? tile->color :tile->highlight;
     GColor8 toggle_highlight = (s_tap_toggle) ? tile->color :tile->highlight;
     text_layer_set_text_color(s_up_label_layer, text_color_legible_over(toggle_color));

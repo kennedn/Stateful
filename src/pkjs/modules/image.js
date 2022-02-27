@@ -1,7 +1,8 @@
-require("../polyfills/array")
+require("../polyfills/array");
 var PNG = require('../vendor/png');
 var PNGEncoder = require('../vendor/png-encoder');
-
+var XHR = require('./xhr');
+var sha1 = require('sha1');
 
 window.global = window;
 var Buffer = require('buffer/').Buffer;
@@ -246,7 +247,7 @@ image.toPng8 = function(pixels, width, height) {
   var colorType = 3; // 8-bit palette
   var bytes = PNGEncoder.encode(raster, bitdepth, colorType, palette, transparency);
 
-  debug(1, "PNG8: data:image/png;base64," + Buffer.from(bytes.array).toString('base64'));
+  debug(3, "PNG8: data:image/png;base64," + Buffer.from(bytes.array).toString('base64'));
   return bytes.array;
 };
 
@@ -276,35 +277,57 @@ image.toPng2 = function(pixels, width, height) {
   var transparency = [0];
   var bytes = PNGEncoder.encode(raster, bitdepth, colorType, palette, transparency);
 
-  debug(1, "PNG8: data:image/png;base64," + Buffer.from(bytes.array).toString('base64'));
+  debug(3, "PNG2: data:image/png;base64," + Buffer.from(bytes.array).toString('base64'));
   return bytes.array;
 };
 
-image.load = function(url) {
-  PNG.load(url, function(png) {
-    var pixels = png.decode();
-    if(png.colorType == 3) {
-      var rawPalette = png.decodePalette();
-      var rawpixels = png.decodePixels();
-      var rawPalette = Object.keys(rawPalette).map(function(key) { return rawPalette[key]; });
-      var palette = [];
-      var chunkSize = 3;
-      for (var i = 0; i < rawPalette.length; i += chunkSize) {
-        palette.push(rawPalette.slice(i, i + chunkSize));
-      }
-    }
+// var imageObject = {
+//   png8,
+//   png2,
+//   url,
+//   success
+// }
+
+image.load = function(url, callback) {
+  var img = {};
+  var urlHash = sha1(url).substring(0,8)
+  var customIcons = localStorage.getItem('custom-icons');
+  try {
+    customIcons = JSON.parse(customIcons);
+  } catch(e) {
+    customIcons = {};
+  }
+
+  if (customIcons && customIcons.hasOwnProperty(urlHash)) { 
+    callback({'state': URLStatus.DUPLICATE, 'hash': urlHash});
+    return;
+  } else if (!customIcons) {
+    customIcons = {};
+  }
+
+  XHR.xhrArrayBuffer(url, 1).then(function(xhr) {
+    var png = new PNG(new Uint8Array(xhr.response))
+    var pixels =  png.decode();
     var target_width = ICON_SIZE_PX;
     var target_height = ICON_SIZE_PX;
+    var bytes = PNGEncoder.encode(image.toRaster(pixels, png.width, png.height), 8, 6);
+    debug(3, "PNG_ORIG: data:image/png;base64," + Buffer.from(bytes.array).toString('base64'));
     pixels = image.resize(pixels, png.width, png.height, target_width, target_height);
     png.width = target_width;
     png.height = target_height;
-    // image.dither(pixels, png.width, png.height, image.dithers['default'], getChannel2)
-    var bytes = PNGEncoder.encode(image.toRaster(pixels, png.width, png.height), 8, 6);
-    debug(1, "PNG8: data:image/png;base64," + Buffer.from(bytes.array).toString('base64'));
-    image.toPng8(pixels, png.width, png.height);
-    image.toPng2(pixels, png.width, png.height);
+
+
+    img.status = xhr.status;
+    img.url = url;
+    img.png8 = image.toPng8(pixels, png.width, png.height);
+    img.png2 = image.toPng2(pixels, png.width, png.height);
+    customIcons[urlHash] = img;
+    localStorage.setItem('custom-icons', JSON.stringify(customIcons));
+    callback({'state': URLStatus.SUCCESS, 'hash': urlHash});
+  }, function(xhr) {
+    // debug(1, "PNG Retrieval failed with code " + xhr.status);
+    callback({'state': URLStatus.ERROR, 'status': xhr.status});
   });
-  // return pixels;
 };
 
 module.exports = image;

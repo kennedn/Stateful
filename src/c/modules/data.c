@@ -98,8 +98,13 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
 
       for(uint8_t i=0; i < ARRAY_LENGTH(tile->icon_key); i++) {
         key_size = data[ptr++];
-        tile->icon_key[i] = (char*) malloc(key_size * sizeof(char));
-        strncpy(tile->icon_key[i], (char*) &data[ptr], key_size);
+        if (key_size > 1) {
+          tile->icon_key[i] = (char*) malloc(key_size * sizeof(char));
+          strncpy(tile->icon_key[i], (char*) &data[ptr], key_size);
+        } else {
+          tile->icon_key[i] = (char*) malloc(DEFAULT_ICON_KEY_SIZE * sizeof(char));
+          strncpy(tile->icon_key[i], (char*) DEFAULT_ICON_KEY, DEFAULT_ICON_KEY_SIZE);
+        }
         ptr += key_size;
         tile->mask &= ~((key_size <= 1) << i);
       }
@@ -115,6 +120,7 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
       strncpy(tmp_str, (char*) &data[ptr], str_size);
       data_icon_array_search(tmp_str);
       free(tmp_str);
+      tmp_str = NULL;
       ptr += str_size;
     }
 
@@ -201,7 +207,7 @@ void data_icon_array_add_icon(uint8_t *data, int8_t index) {
 //! @param key A unique lookup key associated with a specific icon
 //! @return An icon from a slot in icon_array
 GBitmap *data_icon_array_search(char *key){
-  if (!icon_array || strlen(key) == 0) { return NULL; }
+  if (!icon_array || !key || strlen(key) == 0) { return NULL; }
   // Search for icon locally and return the icon if found
   for (int i=0; i < icon_array->size; i++) {
     Icon *icon = icon_array->icons[i];
@@ -277,8 +283,13 @@ bool data_retrieve_persist() {
 
     for(uint8_t i=0; i < ARRAY_LENGTH(tile->icon_key); i++) {
       key_size = buffer[ptr++];
-      tile->icon_key[i] = (char*) malloc(key_size * sizeof(char));
-      strncpy(tile->icon_key[i], (char*) &buffer[ptr], key_size);
+      if (key_size > 1) {
+        tile->icon_key[i] = (char*) malloc(key_size * sizeof(char));
+        strncpy(tile->icon_key[i], (char*) &buffer[ptr], key_size);
+      } else {
+        tile->icon_key[i] = (char*) malloc(DEFAULT_ICON_KEY_SIZE * sizeof(char));
+        strncpy(tile->icon_key[i], (char*) DEFAULT_ICON_KEY, DEFAULT_ICON_KEY_SIZE);
+      }
       ptr += key_size;
       tile->mask &= ~((key_size <= 1) << i);
     }
