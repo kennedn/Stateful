@@ -18,7 +18,11 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   }
   
   function setClayItem(item, value) {
-    if (typeof(value) === 'undefined') {return;}
+    if (typeof(value) === 'undefined') {
+      item.set('');
+      return;
+    }
+
     if (typeof(value) === 'object') {
       item.set(JSON.stringify(value));
     } else {
@@ -131,28 +135,9 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   });
   buttonTypeSelector.trigger('change');
 
-  headingItems.forEach(function(heading) {
-    heading.on('click', function() {
-      var visible = !(this.$element.get("$").endsWith('hidden'));
-      switch(this.id) {
-        case "TileHeading":
-          tileItems.forEach(function(item) {
-            visibility(item, visible);
-          });
-          break;
-        case "ButtonHeading":
-          buttonItems.forEach(function(item) {
-            visibility(item, visible);
-            if (visible) { buttonTypeSelector.trigger('change'); }
-          });
-          break;
-      }
-    });
-  });
-
 
   tileSelector.on('change', function() {
-    clayConfig.getItemById('TileHeading').set("Tile [" + this.$manipulatorTarget.get('options')[this.$manipulatorTarget.get('selectedIndex')].text + "]");
+    clayConfig.getItemById('TileHeading').set("Tile <font style='color:#ff4700;'>[" + this.$manipulatorTarget.get('options')[this.$manipulatorTarget.get('selectedIndex')].text + "]</font>");
     clayConfig.getItemById('TileName').set(tiles.tiles[this.get('value')].payload.texts[6]);
     clayConfig.getItemById('TileColor').set(tiles.tiles[this.get('value')].payload.color);
     clayConfig.getItemById('TileHighlight').set(tiles.tiles[this.get('value')].payload.highlight);
@@ -164,12 +149,17 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     var tile = tiles.tiles[i];
     tileSelector.$manipulatorTarget.add(new Option(tile.payload.texts[6], i));
   }
+  tileSelector.$manipulatorTarget.set('value', 0);
+  tileSelector.$manipulatorTarget.trigger('change');
+
 
   buttonSelector.on('change', function() {
     var button = tiles.tiles[tileSelector.get('value')].buttons[this.get('value')];
     var name = tiles.tiles[tileSelector.get('value')].payload.texts[buttonToIndex(this.get('value'))];
     var icon = tiles.tiles[tileSelector.get('value')].payload.icon_keys[buttonToIndex(this.get('value'))];
-    clayConfig.getItemById('ButtonHeading').set("Button [" + this.$manipulatorTarget.get('options')[this.$manipulatorTarget.get('selectedIndex')].text + "]");
+    var buttonInputItems = ['method', 'url', 'headers', 'data', 'statusmethod', 'statusurl', 'statusdata', 'statusheaders', 'statusvariable', 'statusgood', 'statusbad'];
+    buttonInputItems.forEach(function(item) {buttonDict[item].set('');})
+    clayConfig.getItemById('ButtonHeading').set("Button <font style='color:#ff4700;'>[" + this.$manipulatorTarget.get('options')[this.$manipulatorTarget.get('selectedIndex')].text + "]</font>");
     buttonTypeSelector.$manipulatorTarget.set('value', button.type);
     buttonTypeSelector.$manipulatorTarget.trigger('change');
     setClayItem(buttonDict['name'], name);
@@ -212,9 +202,24 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   });
   buttonSelector.trigger('change');
 
-
-  tileSelector.$manipulatorTarget.set('value', 0);
-  tileSelector.$manipulatorTarget.trigger('change');
+  headingItems.forEach(function(heading) {
+    heading.on('click', function() {
+      var visible = !(this.$element.get("$").endsWith('hidden'));
+      switch(this.id) {
+        case "TileHeading":
+          tileItems.forEach(function(item) {
+            visibility(item, visible);
+          });
+          break;
+        case "ButtonHeading":
+          buttonItems.forEach(function(item) {
+            visibility(item, visible);
+            if (visible) { buttonTypeSelector.trigger('change'); }
+          });
+          break;
+      }
+    });
+  });
 
 
   submitButton.on('click', function () {
