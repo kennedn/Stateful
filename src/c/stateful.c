@@ -20,19 +20,25 @@ GFont ubuntu18;
 
 //! Returns a color that is legible over the provided bg_color
 //! @param bg_color color to test for legibility
-//! @return A legable color, either white or a darkened derivative of bg_color
-GColor8 text_color_legible_over(GColor8 bg_color) {
+//! @param text_color A legable color, either white or a darkened derivative of bg_color
+//! @return Boolean representing whether luminance threshold was exceeded
+bool text_color_legible_over_bg(const GColor8 *bg_color, GColor8 *text_color) {
   // constants taken from https://www.w3.org/TR/AERT/#color-contrast
-  uint16_t luminance = (uint16_t)((0.299 * bg_color.r + 0.587 * bg_color.g + 0.114 * bg_color.b) * 100);
+  uint16_t luminance = (uint16_t)((0.299 * bg_color->r + 0.587 * bg_color->g + 0.114 * bg_color->b) * 100);
+  bool exceeds_threshold = (luminance >= 200);
+  if(!text_color) {
+    return exceeds_threshold;
+  }
   #ifdef PBL_COLOR
   GColor8 derivative = (GColor8) {.a = 3,
-                                  .r = MAX(0, bg_color.r - 2),
-                                  .g = MAX(0, bg_color.g - 2),
-                                  .b = MAX(0, bg_color.b - 2)};
-  return (luminance < 200) ? GColorWhite : derivative;
+                                  .r = MAX(0, bg_color->r - 2),
+                                  .g = MAX(0, bg_color->g - 2),
+                                  .b = MAX(0, bg_color->b - 2)};
+  *text_color = (exceeds_threshold) ? derivative : GColorWhite;
   #else
-  return (luminance < 200) ? GColorWhite : GColorBlack;
+  *text_color = (exceeds_threshold) ? GColorBlack : GColorWhite;
   #endif
+  return exceeds_threshold;
 }
 
 

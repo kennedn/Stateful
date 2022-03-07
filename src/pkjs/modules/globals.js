@@ -1,15 +1,18 @@
 var self = module.exports = {
-  MAX_CHUNK_SIZE: (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 256 : 8200,
-  ICON_BUFFER_SIZE: (Pebble.getActiveWatchInfo().model.indexOf('aplite') != -1) ? 11: 16,
   ICON_SIZE_PX: 18,
   DEBUG: 1,
-
+  getPlatformLimits: function() {
+    var aplite = (Pebble.getActiveWatchInfo().platform.indexOf('aplite') != -1);
+    return {
+      'maxChunkSize': aplite ? 256 : 8200,
+      'iconBufferSize': aplite ? 11: 16
+    };
+  },
   debug: function(level, msg) {
     if (level <= self.DEBUG) {
       console.log(msg);
     }
   },
-
   messageSuccess: function() {
     self.debug(3, "Message send succeeded.");  
   },

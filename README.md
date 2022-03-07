@@ -20,10 +20,10 @@
 
 `Stateful` is a pebble watchapp designed to control RESTful API's with minimal clicks. 
 
-![](resources/images/example1.png)
-![](resources/images/example2.png)
-![](resources/images/example3.png)
-![](resources/images/example4.png)
+![](markdown_resources/example1.png)
+![](markdown_resources/example2.png)
+![](markdown_resources/example3.png)
+![](markdown_resources/example4.png)
 
 # Interface
 
@@ -33,13 +33,13 @@ Each tile has an overflow menu that can be accessed by long pressing the middle 
 
 Multiple tiles can coexist. There is a menu system which allows navigation between tiles:
 
-![](resources/images/menuing.gif)
+![](markdown_resources/menuing.gif)
 
 # JSON Structure
 
 Currently due to limitations in how clay config works, I have opted to directly parse JSON provided via clay config in lieu of a user friendly configuration interface. This will likely change in the future, but for the moment in order to use stateful an understanding of the JSON structure is a pre-requisite. 
 
-![](resources/images/clay.png)
+![](markdown_resources/clay.png)
 
 # Global Settings
 
@@ -633,4 +633,4 @@ Fully constructed JSON objects can be pasted directly into clay config to parse.
 
 Which produces the following in the watch app:
 
-![](resources/images/full_json.gif)
+![](markdown_resources/full_json.gif)

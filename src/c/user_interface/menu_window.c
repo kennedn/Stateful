@@ -65,8 +65,11 @@ static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex 
 static void selection_changed_callback(struct MenuLayer *menu_layer, MenuIndex cell_index, MenuIndex cell_old_index, void *context) {
   if (tile_array) {
     Tile *tile = tile_array->tiles[cell_index.row];
-    menu_layer_set_highlight_colors(s_menu_layer, tile->color, text_color_legible_over(tile->color));
-    menu_layer_set_normal_colors(s_menu_layer, tile->highlight,text_color_legible_over(tile->highlight));
+    GColor8 text_color;
+    text_color_legible_over_bg(&(tile->color), &text_color);
+    menu_layer_set_highlight_colors(s_menu_layer, tile->color, text_color);
+    text_color_legible_over_bg(&(tile->highlight), &text_color);
+    menu_layer_set_normal_colors(s_menu_layer, tile->highlight, text_color);
     layer_mark_dirty(menu_layer_get_layer(menu_layer));
   }
 }
@@ -142,8 +145,11 @@ static void menu_window_load(Window *window) {
   if (tile_array) {
     Tile *default_tile = tile_array->tiles[tile_array->default_idx];
     persist_write_data(PERSIST_COLOR, &(default_tile->color), sizeof(GColor8));
-    menu_layer_set_highlight_colors(s_menu_layer, default_tile->color, text_color_legible_over(default_tile->color));
-    menu_layer_set_normal_colors(s_menu_layer, default_tile->highlight,text_color_legible_over(default_tile->highlight));
+    GColor8 text_color;
+    text_color_legible_over_bg(&(default_tile->color), &text_color);
+    menu_layer_set_highlight_colors(s_menu_layer, default_tile->color, text_color);
+    text_color_legible_over_bg(&(default_tile->highlight), &text_color);
+    menu_layer_set_normal_colors(s_menu_layer, default_tile->highlight, text_color);
     menu_layer_set_selected_index(s_menu_layer, (MenuIndex) {.section = 0, .row = tile_array->default_idx}, MenuRowAlignCenter, false);
     layer_add_child(window_layer, menu_layer_root);
     // Pushing nested windows to stack too quickly causes undocumented behaviour in the SDK. 

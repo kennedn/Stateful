@@ -203,7 +203,7 @@ var PNG = (function () {
                   break;
               }
 
-              this.hasAlphaChannel = [4, 6].includes(this.colorType);
+              this.hasAlphaChannel = ([4, 6].indexOf(this.colorType) != -1);
               var colors = this.colors + (this.hasAlphaChannel ? 1 : 0);
               this.pixelBitlength = this.bits * colors;
 

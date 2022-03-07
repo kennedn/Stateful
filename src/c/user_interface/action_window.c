@@ -11,13 +11,14 @@ static ActionBarLayer *s_action_bar_layer;
 static TextLayer *s_up_label_layer, *s_mid_label_layer, *s_down_label_layer;
 static GRect s_default_label_rect;
 static uint8_t s_tap_toggle;
-static Tile *tile;
+static Tile *s_tile;
 static GBitmap *s_overflow_icon;
 static uint8_t s_spinner_target;
 static AppTimer *s_spinner_timer, *s_mid_click_timer;
 static bool s_mid_button_down;
 static void action_bar_reset_spinner(bool preserve_overflow);
 static void action_window_reset_elements(bool select_icon);
+void action_bar_set_spinner(GBitmap *icon);
 
 static ButtonId s_last_button;
 static uint8_t s_consecutive_clicks;
@@ -33,13 +34,13 @@ typedef enum {
 //! @param index An index referring to a position in the tiles element arrays
 //! @return A bool representing the enabled state of the passed index
 static bool tile_index_enabled(uint8_t index) {
-    return (tile->mask >> index) & 1;
+    return (s_tile->mask >> index) & 1;
 }
 
 //! Calculates whether the overflow menu contains any enabled elements
 //! @return A bool representing whether the overflow menu contains elements
 static bool overflow_contains_elements() {
-    for (uint8_t i=1; i < ARRAY_LENGTH(tile->texts); i+=2) {
+    for (uint8_t i=1; i < ARRAY_LENGTH(s_tile->texts); i+=2) {
         if (tile_index_enabled(i)) {
             return true;
         }
@@ -50,7 +51,7 @@ static bool overflow_contains_elements() {
 //! Calculates an index for icon_key or text elements in the current tile
 //! @param id A ButtonId, either Up, Select or Down
 //! @return A tile element index
-static uint8_t tile_index_lookup(ButtonId id) {
+static uint8_t tile_index_lookup(const ButtonId id) {
     return (id - 1) * 2 + s_tap_toggle;
 }
 
@@ -58,13 +59,13 @@ static uint8_t tile_index_lookup(ButtonId id) {
 //! @param id A ButtonId, either Up, Select or Down
 //! @param type Which data type to return
 //! @return A pointer to an element in the current tile
-static char *tile_element_lookup(ButtonId id, TileDataType type) {
+static char *tile_element_lookup(const ButtonId id, const TileDataType type) {
     uint8_t idx = tile_index_lookup(id);
     switch(type) {
         case TILE_DATA_ICON_KEY:
-            return tile->icon_key[idx];
+            return s_tile->icon_key[idx];
         case TILE_DATA_TEXT:
-            return tile->texts[idx];
+            return s_tile->texts[idx];
         default:
             return "";
     }
@@ -143,16 +144,21 @@ void action_window_set_color(ColorAction action) {
         case COLOR_ACTION_VIBRATE_INIT:
             SHORT_VIBE();
         case COLOR_ACTION_RESET_ONLY:
-            new_color = (s_tap_toggle) ? tile->highlight : tile->color;
-            new_highlight = (s_tap_toggle) ? tile->color : tile->highlight;
+            new_color = (s_tap_toggle) ? s_tile->highlight : s_tile->color;
+            new_highlight = (s_tap_toggle) ? s_tile->color : s_tile->highlight;
             break;
     }
 
     window_set_background_color(s_action_window, new_color);
     action_bar_layer_set_background_color(s_action_bar_layer, new_highlight);
-    text_layer_set_text_color(s_up_label_layer, text_color_legible_over(new_color));
-    text_layer_set_text_color(s_mid_label_layer, text_color_legible_over(new_color));
-    text_layer_set_text_color(s_down_label_layer, text_color_legible_over(new_color));
+    GColor8 text_color;
+    text_color_legible_over_bg(&new_color, &text_color);
+    bool bg_exceeds_threshold = text_color_legible_over_bg(&new_highlight, NULL);
+    apng_stop_animation();
+    apng_set_data((bg_exceeds_threshold) ? RESOURCE_ID_LOADING_MINI_BLACK : RESOURCE_ID_LOADING_MINI, &action_bar_set_spinner);
+    text_layer_set_text_color(s_up_label_layer, text_color);
+    text_layer_set_text_color(s_mid_label_layer, text_color);
+    text_layer_set_text_color(s_down_label_layer, text_color);
 
     layer_mark_dirty(text_layer_get_layer(s_up_label_layer));
     layer_mark_dirty(text_layer_get_layer(s_mid_label_layer));
@@ -323,24 +329,32 @@ static void action_window_reset_elements(bool select_icon) {
     action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, default_icon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_ICON_KEY)), true);
 
+    // Disable animations for button if not enabled, neglecting BUTTON_ID_SELECT as it needs animations for longpress
     action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_UP, (tile_index_enabled(tile_index_lookup(BUTTON_ID_UP))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
-    // action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_SELECT, (tile_index_enabled(tile_index_lookup(BUTTON_ID_SELECT))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
     action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_DOWN, (tile_index_enabled(tile_index_lookup(BUTTON_ID_DOWN))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
     if (select_icon) {
         action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, default_icon);
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)), true);
     }
-    GColor8 toggle_color = (!s_tap_toggle) ? tile->color :tile->highlight;
-    GColor8 toggle_highlight = (s_tap_toggle) ? tile->color :tile->highlight;
-    text_layer_set_text_color(s_up_label_layer, text_color_legible_over(toggle_color));
-    text_layer_set_text_color(s_mid_label_layer, text_color_legible_over(toggle_color));
-    text_layer_set_text_color(s_down_label_layer, text_color_legible_over(toggle_color));
+    GColor8 toggle_color = (!s_tap_toggle) ? s_tile->color :s_tile->highlight;
+    GColor8 toggle_highlight = (s_tap_toggle) ? s_tile->color :s_tile->highlight;
+    GColor8 text_color;
+    text_color_legible_over_bg(&toggle_color, &text_color);
+    bool bg_exceeds_threshold = text_color_legible_over_bg(&toggle_highlight, NULL);
+    apng_stop_animation();
+    apng_set_data((bg_exceeds_threshold) ? RESOURCE_ID_LOADING_MINI_BLACK : RESOURCE_ID_LOADING_MINI, &action_bar_set_spinner);
+    text_layer_set_text_color(s_up_label_layer, text_color);
+    text_layer_set_text_color(s_mid_label_layer, text_color);
+    text_layer_set_text_color(s_down_label_layer, text_color);
     window_set_background_color(s_action_window, toggle_color);
     action_bar_layer_set_background_color(s_action_bar_layer, toggle_highlight);
 }  
 
 static void action_window_load(Window *window) {
-    apng_set_data(RESOURCE_ID_LOADING_MINI, &action_bar_set_spinner);
+    GColor8 text_color;
+    text_color_legible_over_bg(&(s_tile->color), &text_color);
+    bool bg_exceeds_threshold = text_color_legible_over_bg(&(s_tile->highlight), NULL);
+    apng_set_data((bg_exceeds_threshold) ? RESOURCE_ID_LOADING_MINI_BLACK : RESOURCE_ID_LOADING_MINI, &action_bar_set_spinner);
     s_overflow_enabled = overflow_contains_elements();
     Layer *window_layer = window_get_root_layer(window);
     s_action_bar_layer = action_bar_layer_create();
@@ -351,15 +365,15 @@ static void action_window_load(Window *window) {
     s_up_label_layer = text_layer_create(GRectZero);
     s_mid_label_layer = text_layer_create(GRectZero);
     s_down_label_layer = text_layer_create(GRectZero);
-    text_layer_set_text(s_up_label_layer, tile->texts[0]);
-    text_layer_set_text(s_mid_label_layer, tile->texts[2]);
-    text_layer_set_text(s_down_label_layer, tile->texts[4]);
+    text_layer_set_text(s_up_label_layer, s_tile->texts[0]);
+    text_layer_set_text(s_mid_label_layer, s_tile->texts[2]);
+    text_layer_set_text(s_down_label_layer, s_tile->texts[4]);
     text_layer_set_background_color(s_up_label_layer, GColorClear);
     text_layer_set_background_color(s_mid_label_layer, GColorClear);
     text_layer_set_background_color(s_down_label_layer, GColorClear);
-    text_layer_set_text_color(s_up_label_layer, text_color_legible_over(tile->color));
-    text_layer_set_text_color(s_mid_label_layer, text_color_legible_over(tile->color));
-    text_layer_set_text_color(s_down_label_layer, text_color_legible_over(tile->color));
+    text_layer_set_text_color(s_up_label_layer, text_color);
+    text_layer_set_text_color(s_mid_label_layer, text_color);
+    text_layer_set_text_color(s_down_label_layer, text_color);
     text_layer_set_text_alignment(s_up_label_layer, GTextAlignmentRight);
     text_layer_set_text_alignment(s_mid_label_layer, GTextAlignmentRight);
     text_layer_set_text_alignment(s_down_label_layer, GTextAlignmentRight);
@@ -400,10 +414,10 @@ static void action_window_unload(Window *window) {
 
 void action_window_push(Tile *current_tile, uint8_t index) {
     if (!s_action_window) {
-        tile = current_tile;
+        s_tile = current_tile;
         s_tile_index = index;
         s_action_window = window_create();
-        window_set_background_color(s_action_window, tile->color);
+        window_set_background_color(s_action_window, s_tile->color);
         window_set_window_handlers(s_action_window, (WindowHandlers) {
             .load = action_window_load,
             .unload = action_window_unload,

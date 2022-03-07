@@ -123,8 +123,18 @@
         },
         {
           "type": "raw",
+          "name": "LOADING_ANIMATION_BLACK",
+          "file": "images/loading_black.png"
+        },
+        {
+          "type": "raw",
           "name": "LOADING_MINI",
           "file": "images/loading_mini.png"
+        },
+        {
+          "type": "raw",
+          "name": "LOADING_MINI_BLACK",
+          "file": "images/loading_mini_black.png"
         },
         {
           "file": "fonts/Ubuntu-M.ttf",

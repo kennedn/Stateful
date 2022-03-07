@@ -10,7 +10,7 @@ static Window *s_window;
 static TextLayer *s_text_layer;
 static uint8_t s_text_counter;
 static char *s_custom_text;
-static GColor8 s_bg_color;
+static GColor8 s_bg_color, s_text_color;
 
 //! apng module callback, assigns animation data to bitmap layer every frame
 //! @param icon A bitmap image representing a frame in an ongoing animation
@@ -60,7 +60,7 @@ static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool
     GRect text_bounds = GRect(bounds.origin.x + ((bounds.size.w - text_size.w) / 2), bounds.origin.y + ((bounds.size.h - text_size.h) / 2),
                               text_size.w, bounds.size.h);
     s_text_layer = text_layer_create(text_bounds);
-    text_layer_set_text_color(s_text_layer, text_color_legible_over(s_bg_color));
+    text_layer_set_text_color(s_text_layer, s_text_color);
     text_layer_set_background_color(s_text_layer, PBL_IF_BW_ELSE(GColorBlack, GColorClear));
     text_layer_set_overflow_mode(s_text_layer, GTextOverflowModeWordWrap);
     text_layer_set_font(s_text_layer, ubuntu18);
@@ -89,6 +89,7 @@ static void window_load(Window *window) {
   s_text_timer = NULL;
   s_timeout_timer = NULL;
   s_text_counter = 0;
+  bool bg_exceeds_threshold = text_color_legible_over_bg(&s_bg_color, &s_text_color);
   if (s_custom_text) {
     setup_text_layer(s_custom_text, window_layer, bounds, false, false);
     return;
@@ -102,7 +103,7 @@ static void window_load(Window *window) {
   bitmap_layer_set_alignment(s_loading_bitmap_layer, GAlignCenter);
   bitmap_layer_set_compositing_mode(s_loading_bitmap_layer, GCompOpSet);
   layer_add_child(window_layer, bitmap_layer_get_layer(s_loading_bitmap_layer));
-  apng_set_data(RESOURCE_ID_LOADING_ANIMATION, &loading_layer_set_icon);
+  apng_set_data((bg_exceeds_threshold) ? RESOURCE_ID_LOADING_ANIMATION_BLACK : RESOURCE_ID_LOADING_ANIMATION, &loading_layer_set_icon);
   apng_start_animation();
   bounds.origin.y = bounds.size.h *.7;
   bounds.size.h = bounds.size.h *.25;

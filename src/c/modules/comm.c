@@ -4,12 +4,12 @@
 #include "c/user_interface/menu_window.h"
 #include "c/stateful.h"
 #include "c/user_interface/loading_window.h"
-static uint8_t *raw_data;
-static AppTimer *s_retry_timer, *s_ready_timer;
-static bool data_transfer_lock = false;
-static bool clay_needs_config = false;
-static bool is_ready = false;
-static int outbox_attempts = 0;
+static uint8_t *s_raw_data;
+static AppTimer *s_icon_retry_timer, *s_tile_retry_timer, *s_ready_timer;
+static bool s_data_transfer_lock = false;
+static bool s_clay_needs_config = false;
+static bool s_is_ready = false;
+static int s_outbox_attempts = 0;
 static bool s_fast_menu = true;
 static void comm_bluetooth_event(bool connected);
 
@@ -67,7 +67,7 @@ void process_data(DictionaryIterator *dict, uint8_t **data, uint8_t transfer_typ
       }
       free(*data);
       *data = NULL;
-      data_transfer_lock = false;
+      s_data_transfer_lock = false;
     }
 }
 
@@ -81,12 +81,12 @@ static void inbox(DictionaryIterator *dict, void *context) {
     switch(type_t->value->int32) {
       case TRANSFER_TYPE_ICON:
         debug(2, "Received icon chunk");
-        process_data(dict, &raw_data, TRANSFER_TYPE_ICON);
+        process_data(dict, &s_raw_data, TRANSFER_TYPE_ICON);
         break;
       case TRANSFER_TYPE_TILE:
         debug(2, "Received tile chunk");
-        clay_needs_config = false;
-        process_data(dict, &raw_data, TRANSFER_TYPE_TILE);
+        s_clay_needs_config = false;
+        process_data(dict, &s_raw_data, TRANSFER_TYPE_TILE);
         break;
       case TRANSFER_TYPE_XHR:
         break;
@@ -113,15 +113,15 @@ static void inbox(DictionaryIterator *dict, void *context) {
         break;
       case TRANSFER_TYPE_READY:
         debug(1, "Pebblekit environment ready");
-        is_ready = true;
+        s_is_ready = true;
         if (!tile_array && !data_retrieve_persist()) { 
           comm_tile_request(); 
         }
         break;
       case TRANSFER_TYPE_NO_CLAY:
         debug(1, "No clay config present");
-        if(!clay_needs_config) {
-          clay_needs_config = true;
+        if(!s_clay_needs_config) {
+          s_clay_needs_config = true;
           data_clear_persist();
           window_stack_pop_all(true);
           loading_window_push("No tiles configured in watch app");
@@ -136,7 +136,7 @@ static void inbox(DictionaryIterator *dict, void *context) {
 
 //! AppTimer callback function, reattempts a comm_icon_request call
 //! @param data Void cast RetryTimerData struct, contains parameter data to pass to function
-void retry_timer_callback(void *data) {
+void icon_retry_timer_callback(void *data) {
   RetryTimerData *timerData = (RetryTimerData*) data;
   comm_icon_request(timerData->icon_key, timerData->icon_index);
   free(data);
@@ -155,7 +155,7 @@ void xhr_timer_callback(void *data) {
 //! initial READY response was missed.
 //! @param data NULL pointer
 void comm_ready_callback(void *data) {
-  if (!tile_array && !clay_needs_config) {
+  if (!s_is_ready && !s_clay_needs_config) {
     DictionaryIterator *dict;
     uint32_t result = app_message_outbox_begin(&dict);
     debug(2, "Ready result: %d", (int)result);
@@ -164,9 +164,9 @@ void comm_ready_callback(void *data) {
       dict_write_end(dict);
       app_message_outbox_send();
     }
-    outbox_attempts = MIN(30, outbox_attempts + 1);
-    debug(2, "Not ready, waiting %d ms", 500 * outbox_attempts);
-    s_ready_timer = app_timer_register(500 * outbox_attempts, comm_ready_callback, NULL);
+    s_outbox_attempts = MIN(30, s_outbox_attempts + 1);
+    debug(2, "Not ready, waiting %d ms", 500 * s_outbox_attempts);
+    s_ready_timer = app_timer_register(500 * s_outbox_attempts, comm_ready_callback, NULL);
   } else {
     s_ready_timer = NULL;
   }
@@ -176,46 +176,52 @@ void comm_ready_callback(void *data) {
 //! @param icon_key An 8 character SHA1 hash of a png icon or an internal resource id
 //! @param icon_index The location in icon_array that this icon should be inserted at
 void comm_icon_request(char* icon_key, uint8_t icon_index) {
-    bool retry = false;
-    if (!data_transfer_lock && is_ready) {
-      s_retry_timer = NULL;
+    bool retry = true;
+    s_icon_retry_timer = NULL;
+    if (!s_data_transfer_lock && s_is_ready) {
       DictionaryIterator *dict;
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
-        data_transfer_lock = true;
+        retry = false;
+        s_data_transfer_lock = true;
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_ICON);
         dict_write_uint8(dict, MESSAGE_KEY_IconIndex, icon_index);
         dict_write_cstring(dict, MESSAGE_KEY_IconKey, icon_key);
         dict_write_end(dict);
         app_message_outbox_send();
-      } else {
-        retry = true;
-      }
-    } else {
-      retry = true;
-    }
+      } 
+    } 
 
     if (retry) {
       // data transfer is in-flight (locked), create a timer to re-attempt the call in a bit
       RetryTimerData *retry_data = malloc(sizeof(RetryTimerData));
       retry_data->icon_index = icon_index;
       strncpy(retry_data->icon_key, icon_key, ARRAY_LENGTH(retry_data->icon_key));
-      s_retry_timer = app_timer_register(100, retry_timer_callback, (void*) retry_data);
+      s_icon_retry_timer = app_timer_register(100, icon_retry_timer_callback, (void*) retry_data);
     }
 
 }
 
 //! Asks pebblekit to send tile data
 void comm_tile_request() {
-    if (!data_transfer_lock) {
+    bool retry = true;
+    s_tile_retry_timer = NULL;
+    if (!s_data_transfer_lock) {
       DictionaryIterator *dict;
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
-        data_transfer_lock = true;
+        retry = false;
+        s_data_transfer_lock = true;
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_TILE);
         dict_write_end(dict);
         app_message_outbox_send();
       } 
+    } else {
+      retry = false;
+    }
+
+    if (retry) {
+      s_tile_retry_timer = app_timer_register(100, comm_tile_request, NULL);
     }
 }
 
@@ -227,7 +233,7 @@ void comm_tile_request() {
 void comm_xhr_request(uint8_t tile_index, uint8_t button_index, uint8_t consecutive_clicks) {
     DictionaryIterator *dict;
     bool retry = false;
-    if (is_ready) {
+    if (s_is_ready) {
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
           dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_XHR);
@@ -249,7 +255,7 @@ void comm_xhr_request(uint8_t tile_index, uint8_t button_index, uint8_t consecut
       xhr_data->index = tile_index;
       xhr_data->button = button_index;
       xhr_data->clicks = consecutive_clicks;
-      s_retry_timer = app_timer_register(500, xhr_timer_callback, (void*) xhr_data);
+      s_icon_retry_timer = app_timer_register(500, xhr_timer_callback, (void*) xhr_data);
     }
 }
 
@@ -260,18 +266,21 @@ void comm_callback_start() {
   data_tile_array_free();
   data_icon_array_free();
   data_icon_array_init(ICON_ARRAY_SIZE);
-  is_ready = false;
-  data_transfer_lock = false;
-  outbox_attempts = 0;
-  if (s_retry_timer) {app_timer_cancel(s_retry_timer);}
+  s_is_ready = false;
+  s_data_transfer_lock = false;
+  s_outbox_attempts = 0;
+  if (s_icon_retry_timer) {app_timer_cancel(s_icon_retry_timer);}
+  if (s_tile_retry_timer) {app_timer_cancel(s_tile_retry_timer);}
   if (s_ready_timer) {app_timer_cancel(s_ready_timer);}
-  s_retry_timer = NULL;
+  s_tile_retry_timer = NULL;
+  s_icon_retry_timer = NULL;
   s_ready_timer = NULL;
-  app_timer_register(RETRY_READY_TIMEOUT, comm_ready_callback, NULL);
+  // app_timer_register(RETRY_READY_TIMEOUT, comm_ready_callback, NULL);
   if(s_fast_menu) { 
     s_fast_menu = false;
     data_retrieve_persist();
   }
+  comm_ready_callback(NULL);
 }
 
 
@@ -293,7 +302,8 @@ static void comm_bluetooth_event(bool connected) {
 //! Initialise AppMessage, timers and icon_array
 void comm_init() {
   s_ready_timer = NULL;
-  s_retry_timer = NULL;
+  s_icon_retry_timer = NULL;
+  s_tile_retry_timer = NULL;
   data_icon_array_init(ICON_ARRAY_SIZE);
   app_message_register_inbox_received(inbox);
 
@@ -310,11 +320,13 @@ void comm_init() {
 void comm_deinit() {
   connection_service_unsubscribe();
   app_message_deregister_callbacks();
-  if (raw_data) { free(raw_data);}
+  if (s_raw_data) { free(s_raw_data);}
   data_tile_array_free();
   data_icon_array_free();
-  if (s_retry_timer) {app_timer_cancel(s_retry_timer);}
+  if (s_icon_retry_timer) {app_timer_cancel(s_icon_retry_timer);}
+  if (s_tile_retry_timer) {app_timer_cancel(s_tile_retry_timer);}
   if (s_ready_timer) {app_timer_cancel(s_ready_timer);}
   s_ready_timer = NULL;
-  s_retry_timer = NULL;
+  s_icon_retry_timer = NULL;
+  s_tile_retry_timer = NULL;
 }

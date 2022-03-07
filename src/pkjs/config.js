@@ -44,10 +44,10 @@ module.exports =
       {
         "type": "select2",
         "id": "TileIcon",
-        "defaultValue": "0",
+        "defaultValue": 0,
         "label": "Icon",
         "options": [
-          {"src": "", "label": "", "value": "0"}
+          {"src": "#", "label": "", "value": 0}
         ],
       }
     ]
@@ -98,11 +98,21 @@ module.exports =
       {
         "type": "select2",
         "id": "ButtonIcon",
-        "defaultValue": "0",
+        "defaultValue": 0,
         "label": "Icon",
         "options": [
-          {"src": "", "label": "", "value": "0"}
+          {"src": "#", "label": "", "value": 0}
         ],
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Button <font style='color:#ff4700;'>[ACTION]</font>",
+        "id": "ButtonActionHeading"
       },
       {
         "type": "select",
@@ -150,12 +160,22 @@ module.exports =
           "autocomplete": "off",
           "spellcheck": "false"
         }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Button <font style='color:#ff4700;'>[STATUS]</font>",
+        "id": "ButtonStatusHeading"
       },
       {
         "type": "select",
         "id": "ButtonStatusMethod",
         "defaultValue": "PUT",
-        "label": "<font style='color:#ff4700;'>*</font> Status Method",
+        "label": "<font style='color:#ff4700;'>*</font> Method",
         "options": [
           { "label": "GET", "value": "GET"},
           { "label": "POST", "value": "POST"},
@@ -166,7 +186,7 @@ module.exports =
       {
         "type": "input",
         "id": "ButtonStatusURL",
-        "label": "<font style='color:#ff4700;'>*</font> Status URL",
+        "label": "<font style='color:#ff4700;'>*</font> URL",
         "attributes": {
           "autocapitalize": "off",
           "autocorrect": "off",
@@ -202,7 +222,7 @@ module.exports =
       {
         "type": "input",
         "id": "ButtonStatusVariable",
-        "label": "<font style='color:#ff4700;'>*</font> Status Variable",
+        "label": "<font style='color:#ff4700;'>*</font> Variable",
         "attributes": {
           "autocapitalize": "off",
           "autocorrect": "off",
@@ -213,7 +233,7 @@ module.exports =
       {
         "type": "input",
         "id": "ButtonStatusGood",
-        "label": "<font style='color:#ff4700;'>*</font> Status <font style='color:green;'>Good Value</font>",
+        "label": "<font style='color:#ff4700;'>*</font> <font style='color:green;'>Good Value</font>",
         "attributes": {
           "autocapitalize": "off",
           "autocorrect": "off",
@@ -224,7 +244,7 @@ module.exports =
       {
         "type": "input",
         "id": "ButtonStatusBad",
-        "label": "<font style='color:#ff4700;'>*</font> Status <font style='color:red;'>Bad Value</font>",
+        "label": "<font style='color:#ff4700;'>*</font> <font style='color:red;'>Bad Value</font>",
         "attributes": {
           "autocapitalize": "off",
           "autocorrect": "off",

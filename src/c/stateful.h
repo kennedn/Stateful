@@ -1,7 +1,7 @@
 #pragma once
 #include <pebble.h>
 
-#define DEBUG 1
+#define DEBUG 3
 #define debug(level, ...) \
   do { if (level <= DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__); } while (0)
 
@@ -51,4 +51,4 @@ typedef enum {
   TRANSFER_TYPE_REFRESH = 8
 } TransferType;
 
-GColor8 text_color_legible_over(GColor8 bg_color);
+bool text_color_legible_over_bg(const GColor8 *bg_color, GColor8 *text_color);
