@@ -42,7 +42,8 @@ void apng_start_animation() {
 
   s_loading_sequence = gbitmap_sequence_create_with_resource(s_resource_id);
   s_loading_bitmap = gbitmap_create_blank(gbitmap_sequence_get_bitmap_size(s_loading_sequence), GBitmapFormat8Bit);
-  s_loading_timer = app_timer_register(0, timer_handler, NULL);
+  // s_loading_timer = app_timer_register(0, timer_handler, NULL);
+  timer_handler(NULL);
 }
 
 //! Cancels any inflight timers

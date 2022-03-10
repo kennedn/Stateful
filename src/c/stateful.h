@@ -1,7 +1,7 @@
 #pragma once
 #include <pebble.h>
 
-#define DEBUG 3
+#define DEBUG 1
 #define debug(level, ...) \
   do { if (level <= DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG, __VA_ARGS__); } while (0)
 
@@ -24,7 +24,7 @@ extern VibePattern long_vibe;
 extern VibePattern overflow_vibe; 
 
 #define RETRY_READY_TIMEOUT 500
-#define LONG_LOAD_TIMEOUT 6000
+#define LONG_LOAD_TIMEOUT 8500
 #define SHORT_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(short_vibe); }
 #define LONG_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(long_vibe); }
 #define OVERFLOW_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(overflow_vibe); }

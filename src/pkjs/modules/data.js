@@ -84,7 +84,7 @@ var self = module.exports = {
     var uint8_2 = new Uint8Array(buffer_2);
 
     debug(3, Array.apply([], uint8_2).join(","));
-    debug(1, "Completed icon packing: " + key);
+    debug(1, "Completed icon packing (" + (ptr / 1024).toFixed(2) + "kB): " + key);
 
     Comms.processData(buffer_2, TransferType.ICON, index);
   },
@@ -170,7 +170,7 @@ var self = module.exports = {
       debug(3, key + ": " + payload[key]);
       debug(3, Array.apply([], uint8_2).join(","));
     }
-    debug(1, "Completed tile packing");
+    debug(1, "Completed tile packing (" + (ptr / 1024).toFixed(2) + "kB)");
     Comms.processData(buffer_2, TransferType.TILE);
   }
 };

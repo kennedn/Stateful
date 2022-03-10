@@ -9,6 +9,8 @@ TileArray *tile_array = NULL;
 IconArray *icon_array = NULL;
 GBitmap *default_icon = NULL;
 
+bool data_retrieve_persist_icon();
+
 
 //! Initialise a tile_array object, this struct is used to store an arbitrary number of tiles
 //! and associated metadata
@@ -112,8 +114,11 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
       data_tile_array_add_tile(tile); 
       i++;
     }
+    persist_write_data(PERSIST_COLOR, &(tile_array->tiles[tile_array->default_idx]->color), sizeof(GColor8));
     // Fires data_icon_array_search for any passed icon_keys for faster icon retrieval
     // (this is usually performed when an icon is first used in the app)
+
+    data_retrieve_persist_icon();
     while (ptr < data_size) {
       uint8_t str_size = data[ptr++];
       char *tmp_str = (char*) malloc(str_size * sizeof(char));
@@ -156,7 +161,9 @@ void data_icon_array_free() {
   }
   free(icon_array->icons);
   free(icon_array);
+  icon_array = NULL;
   gbitmap_destroy(default_icon);
+  default_icon = NULL;
 }
 
 //! Extract an icon and associated metadata from a raw uint8_t array, pack this information
@@ -173,7 +180,6 @@ void data_icon_array_add_icon(uint8_t *data, int8_t index) {
 
   uint8_t key_size = data[ptr++];
   free(icon->key);
-  icon->key = NULL;
   icon->key = (char*) malloc(key_size * sizeof(char));
   strncpy(icon->key, (char*) &data[ptr], key_size);
   ptr += key_size;
@@ -181,7 +187,7 @@ void data_icon_array_add_icon(uint8_t *data, int8_t index) {
   uint16_t icon_size = *(uint16_t*) &data[ptr];
   if (heap_bytes_free() < icon_size) { return; }
   ptr +=2;
-  if (icon->icon) { gbitmap_destroy(icon->icon); icon->icon = NULL; }
+  if (icon->icon) { gbitmap_destroy(icon->icon); }
   if (icon_size == 1) {
     icon->icon = gbitmap_create_with_resource(data[ptr]);
     if(!persist_exists(PERSIST_ICON_START + index)) {
@@ -208,6 +214,9 @@ void data_icon_array_add_icon(uint8_t *data, int8_t index) {
 //! @return An icon from a slot in icon_array
 GBitmap *data_icon_array_search(char *key){
   if (!icon_array || !key || strlen(key) == 0) { return NULL; }
+  if (strcmp(key, DEFAULT_ICON_KEY) == 0) {
+    return default_icon;
+  }
   // Search for icon locally and return the icon if found
   for (int i=0; i < icon_array->size; i++) {
     Icon *icon = icon_array->icons[i];
@@ -220,18 +229,17 @@ GBitmap *data_icon_array_search(char *key){
 
   // Build a temporary icon to return to caller and send a request to pebblekit to replace with real icon
   free(icon->key);
-  icon->key = NULL;
   icon->key = (char*) malloc(strlen(key) + 1 * sizeof(char));
   strcpy(icon->key, key);
 
   if (icon->icon) { gbitmap_destroy(icon->icon); }
-  icon->icon = NULL;
   icon->icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_DEFAULT);
 
   comm_icon_request(key, icon_array->ptr);
   icon_array->ptr = (icon_array->ptr + 1) % icon_array->size;
   return icon->icon;
 }
+
 
 //! Clears down all persistant storage keys
 void data_clear_persist() {
@@ -249,6 +257,26 @@ void data_clear_persist() {
     i++;
   }
 }
+
+bool data_retrieve_persist_icon() {
+  if (!persist_exists(PERSIST_ICON_START)) { return false;}
+  uint8_t icon_index = PERSIST_ICON_START;
+  uint8_t *buffer = (uint8_t*) malloc(sizeof(uint8_t) * PERSIST_DATA_MAX_LENGTH);
+  while (icon_index < PERSIST_ICON_START + ICON_ARRAY_SIZE) {
+    if (!persist_exists(icon_index)) { 
+      icon_index++;
+      continue; 
+    }
+
+    persist_read_data(icon_index, buffer, PERSIST_DATA_MAX_LENGTH);
+    data_icon_array_add_icon(buffer, icon_array->ptr);
+    icon_array->ptr = (icon_array->ptr + 1) % icon_array->size;
+    icon_index++;
+  }
+  return true;
+}
+
+
 //! Attempts to retrieve tile_array and icon_array information from persistant storage.
 //! Due to size limitations only a finite number of tiles can be stored and retrieved this way
 //! (MAX_PERSIST_TILES). Additionally icon_array entries that contain raw PNG data are too large
@@ -300,19 +328,7 @@ bool data_retrieve_persist() {
 
 
   if (i > 0) {
-    uint8_t icon_index = PERSIST_ICON_START;
-    while (icon_index < PERSIST_ICON_START + ICON_ARRAY_SIZE) {
-      if (!persist_exists(icon_index)) { 
-        icon_index++;
-        continue; 
-      }
-
-      persist_read_data(icon_index, buffer, PERSIST_DATA_MAX_LENGTH);
-      data_icon_array_add_icon(buffer, icon_array->ptr);
-      icon_array->ptr = (icon_array->ptr + 1) % icon_array->size;
-      icon_index++;
-    }
-
+    data_retrieve_persist_icon();
     menu_window_push();
 
     free(buffer);
@@ -323,4 +339,10 @@ bool data_retrieve_persist() {
     debug(2, "No data retrieved");
     return false;
   }
+}
+
+void data_free(bool init_icon) {
+  data_tile_array_free();
+  data_icon_array_free();
+  if (init_icon) {data_icon_array_init(ICON_ARRAY_SIZE);}
 }

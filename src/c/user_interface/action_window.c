@@ -278,6 +278,10 @@ static void mid_hold_click_up_callback(ClickRecognizerRef recognizer, void *ctx)
 //! @param context Pointer to application specified data 
 static void back_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     if (click_number_of_clicks_counted(recognizer) > 1) {
+        if (DEBUG >= 1) {
+            comm_refresh_request();
+            data_clear_persist();
+        }
         window_stack_pop_all(true);
     } else {
         window_stack_pop(true);

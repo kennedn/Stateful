@@ -144,7 +144,6 @@ static void menu_window_load(Window *window) {
   Layer *menu_layer_root = menu_layer_get_layer(s_menu_layer);
   if (tile_array) {
     Tile *default_tile = tile_array->tiles[tile_array->default_idx];
-    persist_write_data(PERSIST_COLOR, &(default_tile->color), sizeof(GColor8));
     GColor8 text_color;
     text_color_legible_over_bg(&(default_tile->color), &text_color);
     menu_layer_set_highlight_colors(s_menu_layer, default_tile->color, text_color);

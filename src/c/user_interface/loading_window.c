@@ -7,6 +7,8 @@
 static BitmapLayer *s_loading_bitmap_layer;
 static AppTimer *s_timeout_timer, *s_text_timer;
 static Window *s_window;
+static Layer *s_window_layer;
+static GRect s_window_bounds;
 static TextLayer *s_text_layer;
 static uint8_t s_text_counter;
 static char *s_custom_text;
@@ -59,6 +61,9 @@ static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool
     GSize text_size = graphics_text_layout_get_content_size(text, ubuntu18, bounds, GTextOverflowModeWordWrap, GTextAlignmentLeft);
     GRect text_bounds = GRect(bounds.origin.x + ((bounds.size.w - text_size.w) / 2), bounds.origin.y + ((bounds.size.h - text_size.h) / 2),
                               text_size.w, bounds.size.h);
+    if (s_text_layer) {
+      text_layer_destroy(s_text_layer);
+    }
     s_text_layer = text_layer_create(text_bounds);
     text_layer_set_text_color(s_text_layer, s_text_color);
     text_layer_set_background_color(s_text_layer, PBL_IF_BW_ELSE(GColorBlack, GColorClear));
@@ -75,15 +80,16 @@ static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool
 
 //! Callback function that unhides text layer
 //! @param data Any user provided data
-static void text_layer_unhide(void *data) {
+static void display_long_load_message(void *data) {
   s_timeout_timer = NULL;
+  setup_text_layer("Phone not responding", s_window_layer, s_window_bounds, true, false); 
   layer_set_hidden(text_layer_get_layer(s_text_layer), false);
 }
 
 //! Builds and displays a loading animation and/or a text based message
 static void window_load(Window *window) {
-  Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
+  s_window_layer = window_get_root_layer(window);
+  s_window_bounds = layer_get_bounds(s_window_layer);
   s_loading_bitmap_layer = NULL;
   s_text_layer = NULL;
   s_text_timer = NULL;
@@ -91,25 +97,24 @@ static void window_load(Window *window) {
   s_text_counter = 0;
   bool bg_exceeds_threshold = text_color_legible_over_bg(&s_bg_color, &s_text_color);
   if (s_custom_text) {
-    setup_text_layer(s_custom_text, window_layer, bounds, false, false);
+    setup_text_layer(s_custom_text, s_window_layer, s_window_bounds, false, false);
     return;
   }
   #ifdef PBL_BW
-    setup_text_layer("Loading...", window_layer, bounds, false, true);
+    setup_text_layer("Loading...", s_window_layer, s_window_bounds, false, true);
     return;
   #endif 
 
-  s_loading_bitmap_layer = bitmap_layer_create(bounds);
+  s_loading_bitmap_layer = bitmap_layer_create(s_window_bounds);
   bitmap_layer_set_alignment(s_loading_bitmap_layer, GAlignCenter);
   bitmap_layer_set_compositing_mode(s_loading_bitmap_layer, GCompOpSet);
-  layer_add_child(window_layer, bitmap_layer_get_layer(s_loading_bitmap_layer));
+  layer_add_child(s_window_layer, bitmap_layer_get_layer(s_loading_bitmap_layer));
   apng_set_data((bg_exceeds_threshold) ? RESOURCE_ID_LOADING_ANIMATION_BLACK : RESOURCE_ID_LOADING_ANIMATION, &loading_layer_set_icon);
   apng_start_animation();
-  bounds.origin.y = bounds.size.h *.7;
-  bounds.size.h = bounds.size.h *.25;
-  char *texts[] = {"hmm...", "um...", "maybe...", "(;-_-)", "(¬_¬)"};
-  setup_text_layer(texts[rand() % ARRAY_LENGTH(texts)], window_layer, bounds, true, false); 
-  s_timeout_timer = app_timer_register(LONG_LOAD_TIMEOUT, text_layer_unhide, NULL);
+  s_window_bounds.origin.y = s_window_bounds.size.h *.7;
+  s_window_bounds.size.h = s_window_bounds.size.h *.25;
+  setup_text_layer("Loading", s_window_layer, s_window_bounds, false, false); 
+  s_timeout_timer = app_timer_register(LONG_LOAD_TIMEOUT, display_long_load_message, NULL);
 
 }
 
@@ -143,6 +148,7 @@ void loading_window_push(char *text) {
       if(persist_read_data(PERSIST_COLOR, &s_bg_color, sizeof(GColor8)) == E_DOES_NOT_EXIST) {
         GColor8 colors[] = {GColorCobaltBlue, GColorIslamicGreen, GColorImperialPurple, GColorFolly, GColorChromeYellow};
         s_bg_color = colors[rand() % ARRAY_LENGTH(colors)]; 
+        persist_write_data(PERSIST_COLOR, &s_bg_color, sizeof(GColor8));
       }
     #endif
     window_set_background_color(s_window, s_bg_color);

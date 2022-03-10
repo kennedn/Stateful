@@ -40,6 +40,11 @@ Pebble.addEventListener("appmessage", function(e) {
       Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccess, messageFailure);
     break;
 
+    case TransferType.REFRESH:
+      debug(1, "Refresh message received");
+      localStorage.clear();
+    break;
+
     case TransferType.XHR:
       if (!(dict.hasOwnProperty("RequestIndex"))) {
         debug(1, "didn't receive expected data");
@@ -124,7 +129,7 @@ Pebble.addEventListener('ready', function() {
     localStorage.setItem('clay-settings', JSON.stringify(settingsStorage));
     ClayHelper.clayToTiles(clay);
   } else {
-    Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccess, messageFailure);
+    Pebble.sendAppMessage({"TransferType": TransferType.READY}, messageSuccess, messageFailure);
   }
 });
 

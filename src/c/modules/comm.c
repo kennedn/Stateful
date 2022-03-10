@@ -11,6 +11,7 @@ static bool s_clay_needs_config = false;
 static bool s_is_ready = false;
 static int s_outbox_attempts = 0;
 static bool s_fast_menu = true;
+static bool s_last_connection_state = false;
 static void comm_bluetooth_event(bool connected);
 
 
@@ -113,10 +114,10 @@ static void inbox(DictionaryIterator *dict, void *context) {
         break;
       case TRANSFER_TYPE_READY:
         debug(1, "Pebblekit environment ready");
-        s_is_ready = true;
-        if (!tile_array && !data_retrieve_persist()) { 
+        if (!s_is_ready && !tile_array && !data_retrieve_persist()) { 
           comm_tile_request(); 
         }
+        s_is_ready = true;
         break;
       case TRANSFER_TYPE_NO_CLAY:
         debug(1, "No clay config present");
@@ -150,12 +151,23 @@ void xhr_timer_callback(void *data) {
   free(data);
 }
 
+
 //! AppTimer callback function, sends a READY request to JS side on repeat until
 //! tile_array has been created. This ensures that tile data gets sent when the
 //! initial READY response was missed.
 //! @param data NULL pointer
 void comm_ready_callback(void *data) {
-  if (!s_is_ready && !s_clay_needs_config) {
+  if (s_clay_needs_config) {
+    s_ready_timer = NULL;
+    return;
+  }
+
+  if (!s_is_ready) {
+    if (s_outbox_attempts == 2) {
+      data_free(true);
+      window_stack_pop_all(true);
+      loading_window_push(NULL);
+    }
     DictionaryIterator *dict;
     uint32_t result = app_message_outbox_begin(&dict);
     debug(2, "Ready result: %d", (int)result);
@@ -232,21 +244,18 @@ void comm_tile_request() {
 //! @param consecutive_clicks The number of times this same button has been clicked previously
 void comm_xhr_request(uint8_t tile_index, uint8_t button_index, uint8_t consecutive_clicks) {
     DictionaryIterator *dict;
-    bool retry = false;
+    bool retry = true;
     if (s_is_ready) {
       uint32_t result = app_message_outbox_begin(&dict);
       if (result == APP_MSG_OK) {
-          dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_XHR);
-          dict_write_uint8(dict, MESSAGE_KEY_RequestIndex, tile_index);
-          dict_write_uint8(dict, MESSAGE_KEY_RequestButton, button_index);
-          dict_write_uint8(dict, MESSAGE_KEY_RequestClicks, consecutive_clicks);
-          dict_write_end(dict);
-          app_message_outbox_send();
-      } else {
-        retry = true;
-      }
-    } else {
-      retry = true;
+        retry = false;
+        dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_XHR);
+        dict_write_uint8(dict, MESSAGE_KEY_RequestIndex, tile_index);
+        dict_write_uint8(dict, MESSAGE_KEY_RequestButton, button_index);
+        dict_write_uint8(dict, MESSAGE_KEY_RequestClicks, consecutive_clicks);
+        dict_write_end(dict);
+        app_message_outbox_send();
+      } 
     }
 
     if (retry) {
@@ -259,15 +268,27 @@ void comm_xhr_request(uint8_t tile_index, uint8_t button_index, uint8_t consecut
     }
 }
 
+//! Asks pebblekit to perform a refresh, this will clear down localstorage
+//! @param data NULL pointer
+void comm_refresh_request(void *data) {
+    DictionaryIterator *dict;
+    uint32_t result = app_message_outbox_begin(&dict);
+    debug(2, "Refresh result: %d", (int)result);
+    if (result == APP_MSG_OK) {
+      dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_REFRESH);
+      dict_write_end(dict);
+      app_message_outbox_send();
+    }
+}
+
 //! Resets all data and locks, kicks off a callback loop that awaits a pebblekit ready message
 //! @param fast_menu Immediately retrieve tile data from storage without waiting
 //! for pebblekit ready message
 void comm_callback_start() {
-  data_tile_array_free();
-  data_icon_array_free();
-  data_icon_array_init(ICON_ARRAY_SIZE);
+  data_free(true);
   s_is_ready = false;
   s_data_transfer_lock = false;
+  s_clay_needs_config = false;
   s_outbox_attempts = 0;
   if (s_icon_retry_timer) {app_timer_cancel(s_icon_retry_timer);}
   if (s_tile_retry_timer) {app_timer_cancel(s_tile_retry_timer);}
@@ -275,27 +296,29 @@ void comm_callback_start() {
   s_tile_retry_timer = NULL;
   s_icon_retry_timer = NULL;
   s_ready_timer = NULL;
-  // app_timer_register(RETRY_READY_TIMEOUT, comm_ready_callback, NULL);
   if(s_fast_menu) { 
     s_fast_menu = false;
     data_retrieve_persist();
   }
-  comm_ready_callback(NULL);
+  app_timer_register(RETRY_READY_TIMEOUT, comm_ready_callback, NULL);
 }
 
 
 //! Callback function for pebble connectivity events
 //! @param connected Connection state of pebble
-static void comm_bluetooth_event(bool connected) {
-  debug(1, "Connection state changed to %d", connected);
-  window_stack_pop_all(true);
-  if (connected) {
+static void comm_bluetooth_event(bool connection_state) {
+  debug(1, "Connection state changed to %d", connection_state);
+  s_last_connection_state = !connection_state;
+  if (connection_state && s_last_connection_state != connection_state) {
+    window_stack_pop_all(true);
     loading_window_push(NULL);
+
     // comm_callback_start had the ability to call data_retrieve_persist. Calling this function too early
-    // causes window spawning issues by hogging cpu. Using app_timer_register delays enough to work around this. 
+    // causes undocumented behaviour in the SDK. Using app_timer_register delays enough to work around this. 
     app_timer_register(0, comm_callback_start, NULL);
-  } else {
-    loading_window_push("Phone not connected...");
+  } else if(!connection_state) {
+    window_stack_pop_all(true);
+    loading_window_push("Phone not connected");
   }
 }
 
@@ -304,7 +327,7 @@ void comm_init() {
   s_ready_timer = NULL;
   s_icon_retry_timer = NULL;
   s_tile_retry_timer = NULL;
-  data_icon_array_init(ICON_ARRAY_SIZE);
+  data_free(true);
   app_message_register_inbox_received(inbox);
 
   app_message_open(INBOX_SIZE, OUTBOX_SIZE);
@@ -321,8 +344,7 @@ void comm_deinit() {
   connection_service_unsubscribe();
   app_message_deregister_callbacks();
   if (s_raw_data) { free(s_raw_data);}
-  data_tile_array_free();
-  data_icon_array_free();
+  data_free(false);
   if (s_icon_retry_timer) {app_timer_cancel(s_icon_retry_timer);}
   if (s_tile_retry_timer) {app_timer_cancel(s_tile_retry_timer);}
   if (s_ready_timer) {app_timer_cancel(s_ready_timer);}

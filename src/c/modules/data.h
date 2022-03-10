@@ -40,3 +40,4 @@ void data_tile_array_free();
 
 void data_clear_persist();
 bool data_retrieve_persist();
+void data_free(bool init_icon);
