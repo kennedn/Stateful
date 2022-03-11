@@ -11,7 +11,7 @@ static bool s_clay_needs_config = false;
 static bool s_is_ready = false;
 static int s_outbox_attempts = 0;
 static bool s_fast_menu = true;
-static bool s_last_connection_state = false;
+static uint32_t s_session_id = 0;
 static void comm_bluetooth_event(bool connected);
 
 
@@ -79,12 +79,15 @@ static void inbox(DictionaryIterator *dict, void *context) {
     Tuple *type_t = dict_find(dict, MESSAGE_KEY_TransferType);
     Tuple *color_t = dict_find(dict, MESSAGE_KEY_Color);
     Tuple *hash_t = dict_find(dict, MESSAGE_KEY_Hash);
+    Tuple *session_t = dict_find(dict, MESSAGE_KEY_Session);
     switch(type_t->value->int32) {
       case TRANSFER_TYPE_ICON:
+        if (!session_t || session_t->value->uint32 != s_session_id) {debug(1, "Rejecting icon chunk due to session ID mismatch"); return;}
         debug(2, "Received icon chunk");
         process_data(dict, &s_raw_data, TRANSFER_TYPE_ICON);
         break;
       case TRANSFER_TYPE_TILE:
+        if (!session_t || session_t->value->uint32 != s_session_id) {debug(1, "Rejecting tile chunk due to session ID mismatch"); return;}
         debug(2, "Received tile chunk");
         s_clay_needs_config = false;
         process_data(dict, &s_raw_data, TRANSFER_TYPE_TILE);
@@ -113,7 +116,7 @@ static void inbox(DictionaryIterator *dict, void *context) {
         debug(1, "Received acknowledge");
         break;
       case TRANSFER_TYPE_READY:
-        debug(1, "Pebblekit environment ready");
+        debug(1, "Pebblekit environment ready, session id: %d", (int)s_session_id);
         if (!s_is_ready && !tile_array && !data_retrieve_persist()) { 
           comm_tile_request(); 
         }
@@ -177,8 +180,8 @@ void comm_ready_callback(void *data) {
       app_message_outbox_send();
     }
     s_outbox_attempts = MIN(30, s_outbox_attempts + 1);
-    debug(2, "Not ready, waiting %d ms", 500 * s_outbox_attempts);
-    s_ready_timer = app_timer_register(500 * s_outbox_attempts, comm_ready_callback, NULL);
+    debug(2, "Not ready, waiting %d ms", RETRY_READY_TIMEOUT * s_outbox_attempts);
+    s_ready_timer = app_timer_register(RETRY_READY_TIMEOUT * s_outbox_attempts, comm_ready_callback, NULL);
   } else {
     s_ready_timer = NULL;
   }
@@ -197,6 +200,7 @@ void comm_icon_request(char* icon_key, uint8_t icon_index) {
         retry = false;
         s_data_transfer_lock = true;
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_ICON);
+        dict_write_uint32(dict, MESSAGE_KEY_Session, s_session_id);
         dict_write_uint8(dict, MESSAGE_KEY_IconIndex, icon_index);
         dict_write_cstring(dict, MESSAGE_KEY_IconKey, icon_key);
         dict_write_end(dict);
@@ -225,6 +229,7 @@ void comm_tile_request() {
         retry = false;
         s_data_transfer_lock = true;
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_TILE);
+        dict_write_uint32(dict, MESSAGE_KEY_Session, s_session_id);
         dict_write_end(dict);
         app_message_outbox_send();
       } 
@@ -307,9 +312,9 @@ void comm_callback_start() {
 //! Callback function for pebble connectivity events
 //! @param connected Connection state of pebble
 static void comm_bluetooth_event(bool connection_state) {
-  debug(1, "Connection state changed to %d", connection_state);
-  s_last_connection_state = !connection_state;
-  if (connection_state && s_last_connection_state != connection_state) {
+  debug(1, "Connection state changed to %u", connection_state);
+  if (connection_state) {
+    s_session_id++;
     window_stack_pop_all(true);
     loading_window_push(NULL);
 

@@ -8,7 +8,7 @@ var Buffer = require('buffer/').Buffer;
 
 var self = module.exports = {
 
-  processData: function(data, type) {
+  processData: function(data, type, session) {
     // Convert to a array
     var byteArray = new Uint8Array(data);
     var array = [];
@@ -16,26 +16,28 @@ var self = module.exports = {
       array.push(byteArray[i]);
     }
     // Send chunks to Pebble
-    self.transmitData(array, type);
+    self.transmitData(array, type, session);
   },
 
-  transmitData: function(array, type) {
+  transmitData: function(array, type, session) {
     var index = 0;
     var arrayLength = array.length;
     
     // Transmit the length for array allocation
     Pebble.sendAppMessage({
       'TransferLength': arrayLength,
-      'TransferType' : type}, function(e) {
+      'TransferType': type,
+      'Session': session
+    }, function(e) {
       // Success, begin sending chunks
-      self.sendChunk(array, index, arrayLength, type);
+      self.sendChunk(array, index, arrayLength, type, session);
     }, function(e) {
       debug(1, 'Failed to send data length to Pebble, reattempting');
       setTimeout(1000, function() {self.transmitData(array, type);});
     });
   },
 
-  sendChunk: function(array, index, arrayLength, type) {
+  sendChunk: function(array, index, arrayLength, type, session) {
     // Determine the next chunk size, there needs to be 5 bits of padding for every key sent to stay under threshold
     var chunkSize = getPlatformLimits().maxChunkSize - (24 * 2);
     if(arrayLength - index < chunkSize) {
@@ -48,7 +50,8 @@ var self = module.exports = {
       'TransferChunk': array.slice(index, index + chunkSize),
       'TransferChunkLength': chunkSize,
       'TransferIndex': index,
-      'TransferType': type
+      'TransferType': type,
+      'Session': session
     };
 
     // Send the chunk
@@ -63,7 +66,9 @@ var self = module.exports = {
       // Done
       Pebble.sendAppMessage({
         'TransferComplete': arrayLength,
-        'TransferType': type}, null, function() {
+        'TransferType': type,
+        'Session': session
+      }, null, function() {
         debug(1, 'Failed to send complete message, reattempting');
         setTimeout(1000, function() {self.sendChunk(array, index, arrayLength, type);});
         });

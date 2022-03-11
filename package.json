@@ -33,6 +33,7 @@
       "RequestClicks",
       "Color",
       "Hash",
+      "Session",
       "IconKey",
       "IconIndex",
       "XHRData",

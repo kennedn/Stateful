@@ -12,6 +12,7 @@
 - Test clay_needs_config against changes made in comm_ready_callback
 - ~~Attempt to retrieve icons from storage in `data_tile_array_pack_tiles()` for faster loads~~
 - ~~Detect startup connectivity issues in `comm_ready_callback()`~~
+- Implement custom icon storage and pulldown to clay
 
 ## Clay Config
 - Handle Submit payload
@@ -21,6 +22,8 @@
 - Add global settings
 - Add section for tile data
 
-## Nice to have
-- Session management (via session token) in comm.c to prevent old requests causing a race condition in `comm_bluetooth_event()`. Currently an assumption is made that when READY is received the subsequent TILE chunk transfers will be received without interruption, which under a limited set of circumstances is not the case and can cause app crashes.
-- 
+## Nice to have / ideas
+- ~~Session management (via incrementing int) in comm.c to prevent old requests causing a race condition in `comm_bluetooth_event()`. Currently an assumption is made that when READY is received the subsequent TILE chunk transfers will be received without interruption, which under a limited set of circumstances is not the case and can cause app crashes.~~
+- Use image urls from github repo as a fallback position for webp data uris
+  - Create promise in ready event to verify url's are reachable, validate promise in showConfiguration event, resolve should return either list of data uris, list of urls or a mix of both. Store icon-set in a js file and use require to pull in.
+- Static loading image for b/w models on xhr request (rotate overflow icon?)

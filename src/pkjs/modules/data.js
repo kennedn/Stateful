@@ -45,7 +45,7 @@ var self = module.exports = {
     return c+idx+1
   },
 
-  packIcon: function(key, index) {
+  packIcon: function(key, index, session) {
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);
     var ptr = 0;
@@ -86,10 +86,10 @@ var self = module.exports = {
     debug(3, Array.apply([], uint8_2).join(","));
     debug(1, "Completed icon packing (" + (ptr / 1024).toFixed(2) + "kB): " + key);
 
-    Comms.processData(buffer_2, TransferType.ICON, index);
+    Comms.processData(buffer_2, TransferType.ICON, session);
   },
 
-  packTiles: function() {
+  packTiles: function(session) {
     // create a big temporary buffer as we don't know the size we will end up with yet
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);
@@ -171,6 +171,6 @@ var self = module.exports = {
       debug(3, Array.apply([], uint8_2).join(","));
     }
     debug(1, "Completed tile packing (" + (ptr / 1024).toFixed(2) + "kB)");
-    Comms.processData(buffer_2, TransferType.TILE);
+    Comms.processData(buffer_2, TransferType.TILE, session);
   }
 };
