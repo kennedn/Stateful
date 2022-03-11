@@ -113,6 +113,41 @@
         },
         {
           "type": "png",
+          "name": "ICON_MAIL",
+          "file": "icons/mail.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_BOLT",
+          "file": "icons/bolt.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_NOTIFICATION",
+          "file": "icons/notification.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_FLAME",
+          "file": "icons/flame.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_UNLOCK",
+          "file": "icons/unlock.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_LOCK",
+          "file": "icons/lock.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_DROPLET",
+          "file": "icons/droplet.png"
+        },
+        {
+          "type": "png",
           "name": "ICON_OVERFLOW",
           "file": "icons/overflow.png"
         },

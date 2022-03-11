@@ -7,7 +7,7 @@ module.exports = function(minified) {
   
 clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
-  
+
   function setClayItem(item, value) {
     if (typeof(value) === 'undefined') {
       item.set('');

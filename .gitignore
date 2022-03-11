@@ -5,3 +5,5 @@ tests/
 .lock-waf*
 headers.json
 .*
+src/pkjs/stateful.js
+*.webp

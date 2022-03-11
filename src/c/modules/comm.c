@@ -163,7 +163,7 @@ void comm_ready_callback(void *data) {
   }
 
   if (!s_is_ready) {
-    if (s_outbox_attempts == 2) {
+    if (s_outbox_attempts == 3) {
       data_free(true);
       window_stack_pop_all(true);
       loading_window_push(NULL);

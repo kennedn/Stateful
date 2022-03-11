@@ -8,7 +8,7 @@ working_dir=$(dirname "$(readlink -f "$0")")
 cd "${working_dir}/.."
 i=1
 [ "$1" == "clay" ] && CLAY=1
-[ "$1" == "clay_png" ] && CLAY_PNG=1
+#[ "$1" == "clay_png" ] && CLAY_PNG=1
 [ "$1" == "debug" ] && DEBUG=1 && debug_file=$(mktemp)
 [ -n "$DEBUG" ] && echo "NAME,PNG,WEBP,REDUCTION" > "$debug_file"
 total_png_size=0
@@ -16,16 +16,12 @@ total_webp_size=0
 while read -r img; do
   name=$(jq -r '.name' <<<"$img" | sed 's/ICON_\(.\)\(.*\)/\1\L\2/')
   path="resources/$(jq -r '.file' <<<"$img")"
-  if [ -n "$CLAY_PNG" ]; then
+  if [ -n "$CLAY" ]; then
     b64="data:image/png;base64,$(base64 -w0 "$path")"
-  else
-    webp=${path/.png/.webp}
-    cwebp -q 60 "$path" -o "$webp" &> /dev/null || exit 1
-    b64="data:image/webp;base64,$(base64 -w0 "$webp")"
   fi
   [ -n "$DEBUG" ] && b64_png="data:image/png;base64,$(base64 -w0 "$path")"
   md5=$(printf "$i" | md5sum | head -c 8)
-  if [ -n "$CLAY" ] || [ -n "$CLAY_PNG" ]; then
+  if [ -n "$CLAY" ]; then
     echo -e "{\"src\": \"$b64\",\"label\": \"$name\",\"value\": \"$md5\"},"
   elif [ -n "$DEBUG" ]; then
     png_size="${#b64_png}"
@@ -43,4 +39,3 @@ if [ -n "$DEBUG" ]; then
     echo -e "\nTotal PNG size: $((total_png_size/1024)) kB, Total WEBP size: $((total_webp_size/1024)) kB, Total Reduction: $((total_png_size/total_webp_size*100))%"
 fi
   
-

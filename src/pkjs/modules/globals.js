@@ -89,6 +89,13 @@ var self = module.exports = {
     "6512bd43": 11, //Mute
     "c20ad4d7": 12, //Aspect
     "c51ce410": 13, //Plant
+    "aab32389": 14, //Mail
+    "9bf31c7f": 15, //Bolt
+    "c74d97b0": 16, //Notification
+    "70efdf2e": 17, //Flame
+    "6f4922f4": 18, //Unlock
+    "1f0e3dad": 19, //Lock
+    "98f13708": 20, //Droplet
     //"008d2f3f": "iVBORw0KGgoAAAANSUhEUgAAABIAAAASAgMAAAAroGbEAAAACVBMVEUAAAAAAAD///+D3c/SAAAAAXRSTlMAQObYZgAAAEZJREFUeJxlyzEOwCAIheEytOfqERyKSZ3r4nn0CA5ySh4wOJThC4H8R8yZzOsvP9v3c2vIN+5Z4Ci2y4IkE19q3eLQW1cBkpkPSEeWjUgAAAAASUVORK5CYII=",
   },
   Default_Icon: "c4ca4238"

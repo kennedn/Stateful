@@ -1,8 +1,9 @@
 # Todo
 ## Icons
 - ~~Ditch `.webp` (thanks apple)~~
-- Create standard set of icons
-- Convert png8 icon set under `resources/icons` to RGB png and allow `pebble build` to convert down to png8, this will reduce filesize of `tools/webp.sh` output a bit.
+- ~~Un-ditch `.webp` due to size contraints (f*ck you apple)~~
+- ~~Create standard set of icons~~
+- ~~Convert png8 icon set under `resources/icons` to RGB png and allow `pebble build` to convert down to png8, this will reduce filesize of `tools/webp.sh` output a bit.~~
 - ~~Create black spinner icon and tie into `text_color_legible_over()`~~
 
 ## General
@@ -22,3 +23,4 @@
 
 ## Nice to have
 - Session management (via session token) in comm.c to prevent old requests causing a race condition in `comm_bluetooth_event()`. Currently an assumption is made that when READY is received the subsequent TILE chunk transfers will be received without interruption, which under a limited set of circumstances is not the case and can cause app crashes.
+- 
