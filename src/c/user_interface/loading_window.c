@@ -1,10 +1,8 @@
 #include <pebble.h>
 #include "c/user_interface/loading_window.h"
 #include "c/modules/comm.h"
-#include "c/modules/apng.h"
 #include "c/stateful.h"
 
-static BitmapLayer *s_loading_bitmap_layer;
 static AppTimer *s_timeout_timer, *s_text_timer;
 static Window *s_window;
 static Layer *s_window_layer;
@@ -13,23 +11,11 @@ static TextLayer *s_text_layer;
 static uint8_t s_text_counter;
 static char *s_custom_text;
 static GColor8 s_bg_color, s_text_color;
+static uint32_t s_anim_time;
 
-//! apng module callback, assigns animation data to bitmap layer every frame
-//! @param icon A bitmap image representing a frame in an ongoing animation
-static void loading_layer_set_icon(GBitmap *icon) {
-    bitmap_layer_set_bitmap(s_loading_bitmap_layer, icon);
-    layer_mark_dirty(bitmap_layer_get_layer(s_loading_bitmap_layer));
-}
 
-//! apng helper function, stop currently playing animation and hide bitmap layer
-static void loading_window_stop_animation() {
-  apng_stop_animation();
-  #ifdef PBL_COLOR
-  if (s_loading_bitmap_layer) { layer_set_hidden(bitmap_layer_get_layer(s_loading_bitmap_layer), true); }
-  #endif
-}
-
-//! Fallback function where apng is not supported (B/W), drives a simple text based animation
+//! Drives a simple text based animation
+//! @param data Null pointer
 static void text_callback(void *data) {
   switch(s_text_counter) {
     case 0:
@@ -48,7 +34,7 @@ static void text_callback(void *data) {
   }
   layer_mark_dirty(text_layer_get_layer(s_text_layer));
   s_text_counter = (s_text_counter + 1 ) % 4;
-  s_text_timer = app_timer_register(150, text_callback, NULL);
+  s_text_timer = app_timer_register(s_anim_time, text_callback, NULL);
 }
 
 //! Builds a text layer and optionally kicks off a text_animation
@@ -70,12 +56,17 @@ static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool
     text_layer_set_overflow_mode(s_text_layer, GTextOverflowModeWordWrap);
     text_layer_set_font(s_text_layer, ubuntu18);
     text_layer_set_text(s_text_layer, text);
-    text_layer_set_text_alignment(s_text_layer,GTextAlignmentLeft);
+    text_layer_set_text_alignment(s_text_layer,(text_animation) ? GTextAlignmentLeft : GTextAlignmentCenter);
     Layer * text_layer_root = text_layer_get_layer(s_text_layer);
+
+    if (text_animation) { 
+      s_text_timer = app_timer_register(0, text_callback, NULL); } 
+    else {
+      if(s_text_timer) {app_timer_cancel(s_text_timer); s_text_timer = NULL;}
+    }
+
     layer_set_hidden(text_layer_root, hidden);
     layer_add_child(window_layer, text_layer_root);
-
-    if (text_animation) { s_text_timer = app_timer_register(150, text_callback, NULL); }
 }
 
 //! Callback function that unhides text layer
@@ -90,42 +81,25 @@ static void display_long_load_message(void *data) {
 static void window_load(Window *window) {
   s_window_layer = window_get_root_layer(window);
   s_window_bounds = layer_get_bounds(s_window_layer);
-  s_loading_bitmap_layer = NULL;
   s_text_layer = NULL;
   s_text_timer = NULL;
   s_timeout_timer = NULL;
   s_text_counter = 0;
-  bool bg_exceeds_threshold = text_color_legible_over_bg(&s_bg_color, &s_text_color);
+  text_color_legible_over_bg(&s_bg_color, &s_text_color);
   if (s_custom_text) {
     setup_text_layer(s_custom_text, s_window_layer, s_window_bounds, false, false);
     return;
   }
-  #ifdef PBL_BW
-    setup_text_layer("Loading...", s_window_layer, s_window_bounds, false, true);
-    return;
-  #endif 
-
-  s_loading_bitmap_layer = bitmap_layer_create(s_window_bounds);
-  bitmap_layer_set_alignment(s_loading_bitmap_layer, GAlignCenter);
-  bitmap_layer_set_compositing_mode(s_loading_bitmap_layer, GCompOpSet);
-  layer_add_child(s_window_layer, bitmap_layer_get_layer(s_loading_bitmap_layer));
-  apng_set_data((bg_exceeds_threshold) ? RESOURCE_ID_LOADING_ANIMATION_BLACK : RESOURCE_ID_LOADING_ANIMATION, &loading_layer_set_icon);
-  apng_start_animation();
-  s_window_bounds.origin.y = s_window_bounds.size.h *.7;
-  s_window_bounds.size.h = s_window_bounds.size.h *.25;
-  setup_text_layer("Loading", s_window_layer, s_window_bounds, false, false); 
+  setup_text_layer("Loading...", s_window_layer, s_window_bounds, false, true);
   s_timeout_timer = app_timer_register(LONG_LOAD_TIMEOUT, display_long_load_message, NULL);
-
+  return;
 }
 
 void window_unload(Window *window) {
   if(s_window) {
-    apng_stop_animation();
     if (s_text_layer) { text_layer_destroy(s_text_layer); }
-    if (s_loading_bitmap_layer) { bitmap_layer_destroy(s_loading_bitmap_layer); }
     if (s_timeout_timer) { app_timer_cancel(s_timeout_timer); s_timeout_timer = NULL;}
     if (s_text_timer) { app_timer_cancel(s_text_timer); s_text_timer = NULL;}
-    loading_window_stop_animation();
     window_destroy(s_window);
     s_window = NULL;
     s_custom_text = NULL;
@@ -141,6 +115,7 @@ static void window_disappear(Window *window) {
 void loading_window_push(char *text) {
   if(!s_window) {
     s_custom_text = text;
+    s_anim_time = 200;
     s_window = window_create();
     s_bg_color = GColorBlack;
     #ifdef PBL_COLOR

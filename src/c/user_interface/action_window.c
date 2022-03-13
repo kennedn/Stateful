@@ -12,8 +12,7 @@ static TextLayer *s_up_label_layer, *s_mid_label_layer, *s_down_label_layer;
 static GRect s_default_label_rect;
 static uint8_t s_tap_toggle;
 static Tile *s_tile;
-static GBitmap *s_overflow_icon;
-static uint8_t s_spinner_target;
+static uint8_t s_active_button;
 static AppTimer *s_spinner_timer, *s_mid_click_timer;
 static bool s_mid_button_down;
 static void action_bar_reset_spinner(bool preserve_overflow);
@@ -113,15 +112,21 @@ static void action_window_swap_buttons() {
 void action_window_set_color(ColorAction action) {
     if (!s_action_window) { return; }
     light_enable_interaction();
-    #ifndef PBL_COLOR
-        return;
-    #endif
-
+    debug(1, "s_active_button: %d, action: %d", s_active_button, action);
     if (action == COLOR_ACTION_GOOD || action == COLOR_ACTION_BAD || action == COLOR_ACTION_ERROR) {
         if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
         action_bar_reset_spinner(false);
+        action_bar_layer_set_icon_animated(s_action_bar_layer, s_active_button, indicator_icons[action], true);
         LONG_VIBE();
-    } 
+    } else if(action == COLOR_ACTION_VIBRATE_INIT) {
+        SHORT_VIBE();
+    }
+
+    #ifndef PBL_COLOR
+    layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
+    SHORT_VIBE();
+    return;
+    #endif
 
     GColor8 new_color, new_highlight;
     switch(action) {
@@ -142,7 +147,6 @@ void action_window_set_color(ColorAction action) {
             if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
             action_bar_reset_spinner(false);
         case COLOR_ACTION_VIBRATE_INIT:
-            SHORT_VIBE();
         case COLOR_ACTION_RESET_ONLY:
             new_color = (s_tap_toggle) ? s_tile->highlight : s_tile->color;
             new_highlight = (s_tap_toggle) ? s_tile->color : s_tile->highlight;
@@ -206,7 +210,7 @@ void action_window_inset_highlight(ButtonId button_id) {
 //! apng module callback, assigns animation data to last clicked button every frame
 //! @param icon A bitmap image representing a frame in an ongoing animation
 void action_bar_set_spinner(GBitmap *icon) {
-    action_bar_layer_set_icon(s_action_bar_layer, s_spinner_target, icon);
+    action_bar_layer_set_icon(s_action_bar_layer, s_active_button, icon);
     layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
 }
 
@@ -242,8 +246,10 @@ static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     } else {
         s_consecutive_clicks = 0;
     }
-    s_spinner_target = button;
+    s_active_button = button;
+    #ifdef PBL_COLOR
     s_spinner_timer = app_timer_register(200, action_bar_start_spinner, NULL);
+    #endif
     action_window_set_color(COLOR_ACTION_VIBRATE_INIT);
     action_window_inset_highlight(button);
     comm_xhr_request(s_tile_index, button_index, s_consecutive_clicks);
@@ -256,7 +262,7 @@ static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
 static void mid_hold_click_down_callback(ClickRecognizerRef recognizer, void *ctx) {
     s_mid_button_down = true;
     action_bar_reset_spinner(true);
-    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, s_overflow_icon, true);
+    action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, indicator_icons[3], true);
     if (!s_overflow_enabled) {return;}
     OVERFLOW_VIBE();
     s_mid_click_timer = app_timer_register(200, action_window_swap_buttons, NULL);
@@ -362,10 +368,9 @@ static void action_window_load(Window *window) {
     s_overflow_enabled = overflow_contains_elements();
     Layer *window_layer = window_get_root_layer(window);
     s_action_bar_layer = action_bar_layer_create();
-    s_overflow_icon = gbitmap_create_with_resource(RESOURCE_ID_ICON_OVERFLOW);
     s_tap_toggle = 0;
     s_spinner_timer = NULL;
-    s_spinner_target = 0;
+    s_active_button = 0;
     s_up_label_layer = text_layer_create(GRectZero);
     s_mid_label_layer = text_layer_create(GRectZero);
     s_down_label_layer = text_layer_create(GRectZero);
@@ -407,7 +412,6 @@ static void action_window_unload(Window *window) {
         text_layer_destroy(s_up_label_layer);
         text_layer_destroy(s_mid_label_layer);
         text_layer_destroy(s_down_label_layer);
-        if(s_overflow_icon) { gbitmap_destroy(s_overflow_icon); s_overflow_icon = NULL; }
         action_bar_layer_destroy(s_action_bar_layer);
         s_action_bar_layer = NULL;
         free(window_get_user_data(s_action_window));

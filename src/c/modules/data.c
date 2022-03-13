@@ -155,7 +155,7 @@ void data_icon_array_init(uint8_t size) {
 void data_icon_array_free() {
   if (!icon_array) { return; }
   for(uint8_t i=0; i < icon_array->size; i++) {
-      gbitmap_destroy((*icon_array->icons[i]).icon);
+      if ((*icon_array->icons[i]).icon != default_icon) {gbitmap_destroy((*icon_array->icons[i]).icon);}
       free((*icon_array->icons[i]).key);
       free(icon_array->icons[i]);
   }
@@ -190,6 +190,10 @@ void data_icon_array_add_icon(uint8_t *data, int8_t index) {
   if (icon->icon) { gbitmap_destroy(icon->icon); }
   if (icon_size == 1) {
     icon->icon = gbitmap_create_with_resource(data[ptr]);
+    if (!icon->icon) {
+      debug(2, "gbitmap creation failed for key %s, setting back to default", icon->key);
+      icon->icon = default_icon;
+    }
     if(!persist_exists(PERSIST_ICON_START + index)) {
       persist_write_data(PERSIST_ICON_START + index, data, icon_size + ptr + 1);
     }

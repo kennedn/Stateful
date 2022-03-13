@@ -4,7 +4,7 @@
 #include "c/modules/data.h"
 #include "c/modules/apng.h"
 #include "c/stateful.h"
-
+GBitmap *indicator_icons[4];
 
 VibePattern short_vibe = { 
     .durations = (uint32_t []) {50},
@@ -44,12 +44,21 @@ bool text_color_legible_over_bg(const GColor8 *bg_color, GColor8 *text_color) {
 
 static void init() {
   ubuntu18 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_UBUNTU_BOLD_18));
+  // On aplite, the limited memory can become too segmented to be able to create icons later on, so do it now.
+  indicator_icons[0] = gbitmap_create_with_resource(RESOURCE_ID_ICON_TICK);
+  indicator_icons[1] = gbitmap_create_with_resource(RESOURCE_ID_ICON_CROSS);
+  indicator_icons[2] = gbitmap_create_with_resource(RESOURCE_ID_ICON_QUESTION);
+  indicator_icons[3] = gbitmap_create_with_resource(RESOURCE_ID_ICON_OVERFLOW);
   apng_init();
   comm_init();
 }
 
 static void deinit() { 
   fonts_unload_custom_font(ubuntu18);
+  for (uint8_t i=0; i < ARRAY_LENGTH(indicator_icons); i++) {
+      gbitmap_destroy(indicator_icons[i]);
+      indicator_icons[i] = NULL;
+  }
   comm_deinit();
   apng_deinit();
 }

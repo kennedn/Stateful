@@ -35,7 +35,7 @@ var self = module.exports = {
       // }
       localStorage.setItem('tiles', JSON.stringify(tiles));
       Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
-      Pebble.sendAppMessage({"TransferType": TransferType.READY }, messageSuccess, messageFailure);
+      Pebble.sendAppMessage({"TransferType": TransferType.READY}, messageSuccess, messageFailure);
       }, messageFailure);
     } else {
       claySettings['pebblekit_message'] = "No tiles present in JSON";

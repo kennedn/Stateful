@@ -39,7 +39,7 @@ var self = module.exports = {
 
   sendChunk: function(array, index, arrayLength, type, session) {
     // Determine the next chunk size, there needs to be 5 bits of padding for every key sent to stay under threshold
-    var chunkSize = getPlatformLimits().maxChunkSize - (24 * 2);
+    var chunkSize = getPlatformLimits().maxChunkSize - (29 * 2);
     if(arrayLength - index < chunkSize) {
       // Will only need one more chunk
       chunkSize = arrayLength - index;
@@ -61,7 +61,7 @@ var self = module.exports = {
 
       if(index < arrayLength) {
       // Send the next chunk
-      self.sendChunk(array, index, arrayLength, type);
+      self.sendChunk(array, index, arrayLength, type, session);
       } else {
       // Done
       Pebble.sendAppMessage({
@@ -70,12 +70,12 @@ var self = module.exports = {
         'Session': session
       }, null, function() {
         debug(1, 'Failed to send complete message, reattempting');
-        setTimeout(1000, function() {self.sendChunk(array, index, arrayLength, type);});
+        setTimeout(1000, function() {self.sendChunk(array, index, arrayLength, type, session);});
         });
       }
     }, function(obj, error) {
       debug(1, 'Failed to send chunk, reattempting');
-      setTimeout(1000, function() {self.sendChunk(array, index, arrayLength, type);});
+      setTimeout(1000, function() {self.sendChunk(array, index, arrayLength, type, session);});
     });
   }
 };

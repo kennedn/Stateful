@@ -13,7 +13,8 @@
 - ~~Attempt to retrieve icons from storage in `data_tile_array_pack_tiles()` for faster loads~~
 - ~~Detect startup connectivity issues in `comm_ready_callback()`~~
 - Implement custom icon storage and pulldown to clay
-
+- Implement tile limits - aplite (16), basalt (backend 64, frontend 49)
+- png decode failure on aplite? Maybe need ~bw variants? 
 ## Clay Config
 - Handle Submit payload
 - Handle Icon payload (url)
@@ -27,3 +28,4 @@
 - Use image urls from github repo as a fallback position for webp data uris
   - Create promise in ready event to verify url's are reachable, validate promise in showConfiguration event, resolve should return either list of data uris, list of urls or a mix of both. Store icon-set in a js file and use require to pull in.
 - Static loading image for b/w models on xhr request (rotate overflow icon?)
+- ~~Use LZString library to reduce transfer sizes (needs to be below ~256kb or android app crashes)~~

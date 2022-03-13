@@ -11,7 +11,7 @@ static bool s_clay_needs_config = false;
 static bool s_is_ready = false;
 static int s_outbox_attempts = 0;
 static bool s_fast_menu = true;
-static uint32_t s_session_id = 0;
+static uint8_t s_session_id = 0;
 static void comm_bluetooth_event(bool connected);
 
 
@@ -82,13 +82,13 @@ static void inbox(DictionaryIterator *dict, void *context) {
     Tuple *session_t = dict_find(dict, MESSAGE_KEY_Session);
     switch(type_t->value->int32) {
       case TRANSFER_TYPE_ICON:
-        if (!session_t || session_t->value->uint32 != s_session_id) {debug(1, "Rejecting icon chunk due to session ID mismatch"); return;}
-        debug(2, "Received icon chunk");
+        if (!session_t || session_t->value->uint8 != s_session_id) {debug(1, "Rejecting icon chunk due to session ID mismatch(%d)", (int)session_t->value->uint8); return;}
+        debug(2, "Received icon chunk, free bytes: %dB", heap_bytes_free());
         process_data(dict, &s_raw_data, TRANSFER_TYPE_ICON);
         break;
       case TRANSFER_TYPE_TILE:
-        if (!session_t || session_t->value->uint32 != s_session_id) {debug(1, "Rejecting tile chunk due to session ID mismatch"); return;}
-        debug(2, "Received tile chunk");
+        if (!session_t || session_t->value->uint8 != s_session_id) {debug(1, "Rejecting tile chunk due to session ID mismatch (%d)", (int)session_t->value->uint8); return;}
+        debug(2, "Received tile chunk, free bytes: %dB", heap_bytes_free());
         s_clay_needs_config = false;
         process_data(dict, &s_raw_data, TRANSFER_TYPE_TILE);
         break;
@@ -117,10 +117,11 @@ static void inbox(DictionaryIterator *dict, void *context) {
         break;
       case TRANSFER_TYPE_READY:
         debug(1, "Pebblekit environment ready, session id: %d", (int)s_session_id);
-        if (!s_is_ready && !tile_array && !data_retrieve_persist()) { 
+        s_is_ready = true;
+        if (!tile_array && s_raw_data) {free(s_raw_data); s_raw_data = NULL;}
+        if (!tile_array && !data_retrieve_persist()) { 
           comm_tile_request(); 
         }
-        s_is_ready = true;
         break;
       case TRANSFER_TYPE_NO_CLAY:
         debug(1, "No clay config present");
@@ -175,6 +176,7 @@ void comm_ready_callback(void *data) {
     uint32_t result = app_message_outbox_begin(&dict);
     debug(2, "Ready result: %d", (int)result);
     if (result == APP_MSG_OK) {
+      s_session_id++;
       dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_READY);
       dict_write_end(dict);
       app_message_outbox_send();
@@ -200,7 +202,7 @@ void comm_icon_request(char* icon_key, uint8_t icon_index) {
         retry = false;
         s_data_transfer_lock = true;
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_ICON);
-        dict_write_uint32(dict, MESSAGE_KEY_Session, s_session_id);
+        dict_write_uint8(dict, MESSAGE_KEY_Session, s_session_id);
         dict_write_uint8(dict, MESSAGE_KEY_IconIndex, icon_index);
         dict_write_cstring(dict, MESSAGE_KEY_IconKey, icon_key);
         dict_write_end(dict);
@@ -229,7 +231,7 @@ void comm_tile_request() {
         retry = false;
         s_data_transfer_lock = true;
         dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_TILE);
-        dict_write_uint32(dict, MESSAGE_KEY_Session, s_session_id);
+        dict_write_uint8(dict, MESSAGE_KEY_Session, s_session_id);
         dict_write_end(dict);
         app_message_outbox_send();
       } 
@@ -314,7 +316,6 @@ void comm_callback_start() {
 static void comm_bluetooth_event(bool connection_state) {
   debug(1, "Connection state changed to %u", connection_state);
   if (connection_state) {
-    s_session_id++;
     window_stack_pop_all(true);
     loading_window_push(NULL);
 
@@ -323,7 +324,7 @@ static void comm_bluetooth_event(bool connection_state) {
     app_timer_register(0, comm_callback_start, NULL);
   } else if(!connection_state) {
     window_stack_pop_all(true);
-    loading_window_push("Phone not connected");
+    loading_window_push("No connection to phone");
   }
 }
 
