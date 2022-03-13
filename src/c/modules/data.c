@@ -277,6 +277,7 @@ bool data_retrieve_persist_icon() {
     icon_array->ptr = (icon_array->ptr + 1) % icon_array->size;
     icon_index++;
   }
+  free(buffer);
   return true;
 }
 
