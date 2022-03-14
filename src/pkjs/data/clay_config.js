@@ -5,6 +5,116 @@ module.exports =
     "items": [
       {
         "type": "heading",
+        "defaultValue": "JSON Manager",
+        "id": "JSONHeading"
+      },
+      {
+        "type": "textarea",
+        "id": "JSONInput",
+        "label": "JSON",
+        "attributes": {
+          "autocapitalize": "off",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "spellcheck": "false"
+        }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Icon Manager",
+        "id": "IconHeading"
+      },
+      {
+        "type": "select",
+        "label": "Custom Icons",
+        "id": "IconIndex",
+        "defaultValue": "0",
+        "options": [
+        ],
+      },
+      {
+        "type": "input",
+        "id": "IconURL",
+        "label": "<font style='color:#ff4700;'>* </font>URL",
+        "attributes": {
+          "autocapitalize": "off",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "type": "url",
+          "spellcheck": "false"
+        }
+      },
+      {
+        "type": "input",
+        "id": "IconName",
+        "label": "Name",
+        "defaultValue": "{}",
+        "attributes": {
+          "autocapitalize": "off",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "spellcheck": "false"
+        }
+      },
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Global",
+        "id": "GlobalHeading"
+      },
+      {
+        "type": "select",
+        "label": "Default Index",
+        "id": "GlobalIndex",
+        "defaultValue": "0",
+        "options": [
+        ],
+      },
+      {
+        "type": "toggle",
+        "label": "Open Default",
+        "id": "GlobalToggle",
+      },
+      {
+        "type": "input",
+        "id": "GlobalURL",
+        "label": "Base URL",
+        "attributes": {
+          "autocapitalize": "off",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "type": "url",
+          "spellcheck": "false"
+        }
+      },
+      {
+        "type": "input",
+        "id": "GlobalHeaders",
+        "label": "Global Headers",
+        "defaultValue": "{}",
+        "attributes": {
+          "autocapitalize": "off",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "spellcheck": "false"
+        }
+      },
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
         "defaultValue": "Tile",
         "id": "TileHeading"
       },
@@ -134,7 +244,8 @@ module.exports =
           "autocapitalize": "off",
           "autocorrect": "off",
           "autocomplete": "off",
-          "spellcheck": "false"
+          "spellcheck": "false",
+          "required": true,
         }
       },
       {
@@ -191,6 +302,7 @@ module.exports =
           "autocapitalize": "off",
           "autocorrect": "off",
           "autocomplete": "off",
+          "required": true,
           "spellcheck": "false"
         }
       },
@@ -227,6 +339,7 @@ module.exports =
           "autocapitalize": "off",
           "autocorrect": "off",
           "autocomplete": "off",
+          "required": true,
           "spellcheck": "false"
         }
       },
@@ -238,6 +351,7 @@ module.exports =
           "autocapitalize": "off",
           "autocorrect": "off",
           "autocomplete": "off",
+          "required": true,
           "spellcheck": "false"
         }
       },
@@ -249,6 +363,7 @@ module.exports =
           "autocapitalize": "off",
           "autocorrect": "off",
           "autocomplete": "off",
+          "required": true,
           "spellcheck": "false"
         }
       }
@@ -259,14 +374,9 @@ module.exports =
     "items": [
       {
         "type": "button",
-        "id": "ClayDummySubmit",
+        "id": "ClaySubmit",
         "defaultValue": "Submit",
         "primary": true,
-      },
-      {
-        "type": "submit",
-        "id": "ClaySubmit",
-        "defaultValue": "",
       },
       {
         "type": "input",
