@@ -171,6 +171,17 @@ Pebble.addEventListener('showConfiguration', function(e) {
   //   {"src": "https://github.com/kennedn/Stateful/raw/working/resources/icons/droplet.png","label": "Droplet","value": "98f13708"}
   //   ]
   // ]));
+  var j = {
+    "src": {
+      "url": "https://github.com/kennedn/Stateful/raw/working/resources/icons/default.png",
+      "png2": "",
+      "png8": "",
+      "webp": "",
+    },
+    "resource": ""
+    "label": "Default",
+    "value": "c4ca4238"
+  };
   claySettings['ClayJSON'] = LZString.compressToEncodedURIComponent(JSON.stringify([
     require('./stateful'), [
       {"src": "data:image/webp;base64,UklGRoIAAABXRUJQVlA4WAoAAAAQAAAAEQAAEQAAQUxQSBcAAAABDzD/ERGCINtmBlO+/YcQ0f8JoJ1HCQBWUDggRAAAADADAJ0BKhIAEgA+nUCYSaWkIqE36ACwE4lpAACI5keDacAA/vtlb/5D9x2H5w56LybczrgYn/wCr8QL/QmieRjwAAAA","label": "Default","value": "c4ca4238"},

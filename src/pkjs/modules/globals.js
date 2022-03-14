@@ -1,6 +1,6 @@
 var self = module.exports = {
   ICON_SIZE_PX: 18,
-  DEBUG: 2,
+  DEBUG: 1,
   getPlatformLimits: function() {
     var aplite = (Pebble.getActiveWatchInfo().platform.indexOf('aplite') != -1);
     return {

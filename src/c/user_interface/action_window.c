@@ -249,6 +249,8 @@ static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
     s_active_button = button;
     #ifdef PBL_COLOR
     s_spinner_timer = app_timer_register(200, action_bar_start_spinner, NULL);
+    #else
+    action_bar_reset_spinner(false);
     #endif
     action_window_set_color(COLOR_ACTION_VIBRATE_INIT);
     action_window_inset_highlight(button);
