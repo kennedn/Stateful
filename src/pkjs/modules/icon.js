@@ -8,8 +8,7 @@ var default_icons = require('../data/default_icons');
 var self = module.exports = {
     getClay: function() {
         var returnArray = [];
-        var iDevice = /.*iPhone|iPad|iPod.+OS[\s|\_](\d+)[\_|\.]?(\d+)[\_|\.]?(\d+).*/.exec(navigator.userAgent)
-        
+        var iDevice = /(.+)(iPhone|iPad|iPod)(.+)OS[\s|\_](\d+)[\_|\.]?(\d+)[\_|\.]?(\d+).*/.exec(navigator.userAgent)
         if (iDevice && iDevice[4] < 14) {
             for (var i in default_icons) {
                 returnArray.push({
