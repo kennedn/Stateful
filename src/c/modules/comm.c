@@ -82,26 +82,26 @@ static void inbox(DictionaryIterator *dict, void *context) {
     Tuple *session_t = dict_find(dict, MESSAGE_KEY_Session);
     switch(type_t->value->int32) {
       case TRANSFER_TYPE_ICON:
-        if (!session_t || session_t->value->uint8 != s_session_id) {debug(1, "Rejecting icon chunk due to session ID mismatch(%d)", (int)session_t->value->uint8); return;}
-        debug(2, "Received icon chunk, free bytes: %dB", heap_bytes_free());
+        if (!session_t || session_t->value->uint8 != s_session_id) {debug(2, "Rejecting icon chunk due to session ID mismatch(%d)", (int)session_t->value->uint8); return;}
+        debug(3, "Received icon chunk, free bytes: %dB", heap_bytes_free());
         process_data(dict, &s_raw_data, TRANSFER_TYPE_ICON);
         break;
       case TRANSFER_TYPE_TILE:
-        if (!session_t || session_t->value->uint8 != s_session_id) {debug(1, "Rejecting tile chunk due to session ID mismatch (%d)", (int)session_t->value->uint8); return;}
-        debug(2, "Received tile chunk, free bytes: %dB", heap_bytes_free());
+        if (!session_t || session_t->value->uint8 != s_session_id) {debug(2, "Rejecting tile chunk due to session ID mismatch (%d)", (int)session_t->value->uint8); return;}
+        debug(3, "Received tile chunk, free bytes: %dB", heap_bytes_free());
         s_clay_needs_config = false;
         process_data(dict, &s_raw_data, TRANSFER_TYPE_TILE);
         break;
       case TRANSFER_TYPE_XHR:
         break;
       case TRANSFER_TYPE_COLOR:
-        debug(1, "Received color change request");
+        debug(2, "Received color change request");
         if (color_t && hash_t) { 
           // Verifies that this color request was initiated by the last button to be clicked
           uint32_t js_hash = hash_t->value->uint32;
           uint32_t origin_hash = action_window_generate_hash();
 
-          debug(2, "Calced hash: %d, JS hash: %d, Result: %s", 
+          debug(3, "Calced hash: %d, JS hash: %d, Result: %s", 
                 (int) origin_hash, (int) js_hash, (origin_hash == js_hash) ? "Accepted" : "Rejected");
 
           if (origin_hash == js_hash) {
@@ -110,13 +110,13 @@ static void inbox(DictionaryIterator *dict, void *context) {
         }
         break;
       case TRANSFER_TYPE_ERROR:
-        debug(1, "Received error");
+        debug(2, "Received error");
         break;
       case TRANSFER_TYPE_ACK:
-        debug(1, "Received acknowledge");
+        debug(2, "Received acknowledge");
         break;
       case TRANSFER_TYPE_READY:
-        debug(1, "Pebblekit environment ready, session id: %d", (int)s_session_id);
+        debug(2, "Pebblekit environment ready, session id: %d", (int)s_session_id);
         s_is_ready = true;
         if (!tile_array && s_raw_data) {free(s_raw_data); s_raw_data = NULL;}
         if (!tile_array && !data_retrieve_persist()) { 
@@ -124,7 +124,7 @@ static void inbox(DictionaryIterator *dict, void *context) {
         }
         break;
       case TRANSFER_TYPE_NO_CLAY:
-        debug(1, "No clay config present");
+        debug(2, "No clay config present");
         if(!s_clay_needs_config) {
           s_clay_needs_config = true;
           data_clear_persist();
@@ -174,7 +174,7 @@ void comm_ready_callback(void *data) {
     }
     DictionaryIterator *dict;
     uint32_t result = app_message_outbox_begin(&dict);
-    debug(2, "Ready result: %d", (int)result);
+    debug(3, "Ready result: %d", (int)result);
     if (result == APP_MSG_OK) {
       s_session_id++;
       dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_READY);
@@ -182,7 +182,7 @@ void comm_ready_callback(void *data) {
       app_message_outbox_send();
     }
     s_outbox_attempts = MIN(30, s_outbox_attempts + 1);
-    debug(2, "Not ready, waiting %d ms", RETRY_READY_TIMEOUT * s_outbox_attempts);
+    debug(3, "Not ready, waiting %d ms", RETRY_READY_TIMEOUT * s_outbox_attempts);
     s_ready_timer = app_timer_register(RETRY_READY_TIMEOUT * s_outbox_attempts, comm_ready_callback, NULL);
   } else {
     s_ready_timer = NULL;
@@ -280,7 +280,7 @@ void comm_xhr_request(uint8_t tile_index, uint8_t button_index, uint8_t consecut
 void comm_refresh_request(void *data) {
     DictionaryIterator *dict;
     uint32_t result = app_message_outbox_begin(&dict);
-    debug(2, "Refresh result: %d", (int)result);
+    debug(3, "Refresh result: %d", (int)result);
     if (result == APP_MSG_OK) {
       dict_write_uint8(dict, MESSAGE_KEY_TransferType, TRANSFER_TYPE_REFRESH);
       dict_write_end(dict);
@@ -314,7 +314,7 @@ void comm_callback_start() {
 //! Callback function for pebble connectivity events
 //! @param connected Connection state of pebble
 static void comm_bluetooth_event(bool connection_state) {
-  debug(1, "Connection state changed to %u", connection_state);
+  debug(2, "Connection state changed to %u", connection_state);
   if (connection_state) {
     window_stack_pop_all(true);
     loading_window_push(NULL);

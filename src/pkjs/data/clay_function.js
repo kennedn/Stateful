@@ -39,24 +39,51 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     self.clay = clayConfig.getItemById(id);
     self.tileEntry = tileEntry;
     self.tiles = tiles;
+    self.visible = true;
+
+    self.setVisibility = function(visible) {
+      self.visible = visible
+      if (visible) {
+        self.clay.show();
+      } else {
+        self.clay.hide();
+      }
+    }
+
+    self.hide = function() {
+      self.clay.hide();
+    }
+
+    self.show = function() {
+      if (self.visible) {
+        self.clay.show();
+      }
+    }
 
     self.objectByString = function(str, val) {
-      var object = self.tiles;
+      var object = tiles;
       if (typeof(str) !== 'string') {return str;}
       str = str.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
       str = str.replace(/^\./, '');           // strip a leading dot
-      var a = str.split('.');
-      for (var i = 0, n = a.length; i < n; ++i) {
-          var k = a[i];
-          if (k in object) {
-              if (i == n - 1 && typeof(val) !== 'undefined') {
-                object[k] = val;
-                console.log("tiles." + str + ": " + JSON.stringify(val));
-              }
-              object = object[k];
-          } else {
-              return str;
-          }
+      if  (str === '') {
+        if (typeof(val) !== 'undefined') {
+          object = val;
+          console.log("tiles." + str + ": " + JSON.stringify(val));
+        }
+      } else {
+        var a = str.split('.');
+        for (var i = 0, n = a.length; i < n; ++i) {
+            var k = a[i];
+            if (k in object) {
+                if (i == n - 1 && typeof(val) !== 'undefined') {
+                  object[k] = val;
+                  console.log("tiles." + str + ": " + JSON.stringify(val));
+                }
+                object = object[k];
+            } else {
+                return '';
+            }
+        }
       }
       return object;
     }
@@ -75,7 +102,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       }
 
       if (typeof(value) === 'object') {
-        self.clay.set(JSON.stringify(value));
+        self.clay.set(JSON.stringify(value, null, 2));
       } else {
         self.clay.set(value);
       }
@@ -91,8 +118,13 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       if (self.jsonObject) {
         try {
           self.objectByString(self.tileEntry, JSON.parse(self.clay.get()));
+          $(self.clay.$manipulatorTarget[0]).set('$background-color', 'rgba(0,170,0,0.2)');
+          self.clay.$manipulatorTarget[0].setCustomValidity('')
           return true;
         } catch(e) {
+          $(self.clay.$manipulatorTarget[0]).set('$background-color', 'rgba(255,0,85,0.2)');
+          self.clay.$manipulatorTarget[0].setCustomValidity('JSON parse error')
+          self.clay.$manipulatorTarget[0].reportValidity();
           return false;
         }
       } else {
@@ -143,10 +175,10 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
       if (visible) {
         this.headingItem.$element.set("$", "-hidden")
-        this.items.forEach(function(item) {item.clay.show();});
+        this.items.forEach(function(item) {item.show();});
       } else {
         this.headingItem.$element.set("$", "+hidden")
-        this.items.forEach(function(item) {item.clay.hide();});
+        this.items.forEach(function(item) {item.hide();});
       }
       this.visible = visible;
     };
@@ -186,20 +218,48 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     item.$manipulatorTarget.set('value', icons[0].value);
     item.$manipulatorTarget.trigger('change');
   });
+
+  var JSONSection = new Section(['JSONHeading'], ['JSONInput'], ['.'], tiles);
+
+  var iconSection = new Section(['IconHeading'], ['IconIndex', 'IconURL', 'IconName'],
+                                [null, null, null], tiles);
+
   var globalSection = new Section(['GlobalHeading'], ['GlobalIndex', 'GlobalToggle', 'GlobalURL', 'GlobalHeaders'],
                                   ["default_idx", "open_default", "base_url",  "headers"], tiles);
-  globalSection.setVisibility(false,false);
   
   var tileSection = new Section(['TileHeading'], ['TileIndex', 'TileName', 'TileColor', 'TileHighlight', 'TileIcon'],
                                 [null, "tiles[0].payload.texts[6]", "tiles[0].payload.color", 
                                 "tiles[0].payload.highlight",  "tiles[0].payload.icon_keys[6]"]
                                 , tiles);
-  tileSection.setVisibility(false,false);
 
   var buttonSection = new Section(['ButtonHeading'], ['ButtonIndex', 'ButtonType', 'ButtonName', 'ButtonIcon'],
                                 [null, "tiles[0].buttons.up.type", "tiles[0].payload.texts[" + buttonToIndex('up') + "]", 
                                 "tiles[0].payload.icon_keys[" + buttonToIndex('up') + "]"], tiles);
-  buttonSection.setVisibility(false,false);
+
+  var buttonActionSection = new Section(['ButtonActionHeading'], ['ButtonMethod', 'ButtonURL', 'ButtonHeaders', 'ButtonData'],
+                                ["tiles[0].buttons.up.method", "tiles[0].buttons.up.url", "tiles[0].buttons.up.headers", 
+                                 "tiles[0].buttons.up.data"], tiles);
+
+  var buttonStatusSection = new Section(['ButtonStatusHeading'], ['ButtonStatusMethod', 'ButtonStatusURL', 'ButtonStatusHeaders', 
+                                         'ButtonStatusData', 'ButtonStatusVariable', 'ButtonStatusGood', 'ButtonStatusBad'],
+                                        ["tiles[0].buttons.up.status.method", "tiles[0].buttons.up.status.url", "tiles[0].buttons.up.status.headers", 
+                                         "tiles[0].buttons.up.status.data", "tiles[0].buttons.up.status.variable", "tiles[0].buttons.up.status.good", 
+                                         "tiles[0].buttons.up.status.bad"], tiles);
+
+  var textAreas = clayConfig.getItemsByType('textarea');
+  textAreas.forEach(function(item){
+    item.on('input', function() {
+      var t = $(this.$manipulatorTarget);
+      t.set("$height", "auto")
+      t.set('$height', t.get('scrollHeight') + "px");
+    });
+    item.trigger('input');
+  });
+
+  JSONSection.setVisibility(false,false);
+  iconSection.setVisibility(false,false);
+  globalSection.setVisibility(false,false);
+  tileSection.setVisibility(false,false);
 
   var onTileIndexChange = function() {
     if (this.get() == 'remove') {
@@ -256,10 +316,58 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     buttonSection.find('ButtonType').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".type");
     buttonSection.find('ButtonName').setTileEntry("tiles[" + tileSelector.get('value') + "].payload.texts[" + buttonToIndex(this.get())+"]");
     buttonSection.find('ButtonIcon').setTileEntry("tiles[" + tileSelector.get('value') + "].payload.icon_keys[" + buttonToIndex(this.get())+"]");
+
+    buttonActionSection.find('ButtonMethod').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".method");
+    buttonActionSection.find('ButtonURL').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".url");
+    buttonActionSection.find('ButtonHeaders').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".headers");
+    buttonActionSection.find('ButtonData').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".data");
+
+    buttonStatusSection.find('ButtonStatusMethod').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".status.method");
+    buttonStatusSection.find('ButtonStatusURL').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".status.url");
+    buttonStatusSection.find('ButtonStatusHeaders').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".status.headers");
+    buttonStatusSection.find('ButtonStatusData').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".status.data");
+    buttonStatusSection.find('ButtonStatusVariable').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".status.variable");
+    buttonStatusSection.find('ButtonStatusGood').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".status.good");
+    buttonStatusSection.find('ButtonStatusBad').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".status.bad");
+    
+    textAreas.forEach(function(item){
+      item.trigger('input');
+    });
   };
 
+  var onButtonTypeIndexChange = function() {
+    switch(this.get()) {
+      case '0':
+        buttonStatusSection.setVisibility(false, true);
+        buttonActionSection.setVisibility(true, true);
+        buttonSection.find('ButtonName').setVisibility(true);
+        buttonSection.find('ButtonIcon').setVisibility(true);
+        break;
+      case '1':
+        buttonStatusSection.setVisibility(true, true);
+        buttonActionSection.setVisibility(true, true);
+        buttonSection.find('ButtonName').setVisibility(true);
+        buttonSection.find('ButtonIcon').setVisibility(true);
+        break;
+      case '2':
+        buttonStatusSection.setVisibility(true, true);
+        buttonActionSection.setVisibility(false, true);
+        buttonSection.find('ButtonName').setVisibility(true);
+        buttonSection.find('ButtonIcon').setVisibility(true);
+        break;
+      case '3':
+        buttonStatusSection.setVisibility(false, true);
+        buttonActionSection.setVisibility(false, true);
+        buttonSection.find('ButtonName').setVisibility(false);
+        buttonSection.find('ButtonIcon').setVisibility(false);
+        break;
+    }
+  }
+
+  buttonTypeSelector.on('change', onButtonTypeIndexChange);
   buttonSelector.on('change', onButtonIndexChange);
   tileSelector.on('change', onTileIndexChange);
+
 
   submitButton.on('click', function () {
     if (!validateForm()) {return;}

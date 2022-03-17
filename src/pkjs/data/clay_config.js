@@ -97,7 +97,7 @@ module.exports =
         }
       },
       {
-        "type": "input",
+        "type": "textarea",
         "id": "GlobalHeaders",
         "label": "Global Headers",
         "defaultValue": "{}",
@@ -249,7 +249,7 @@ module.exports =
         }
       },
       {
-        "type": "input",
+        "type": "textarea",
         "id": "ButtonHeaders",
         "label": "Headers",
         "defaultValue": "{}",
@@ -261,7 +261,7 @@ module.exports =
         }
       },
       {
-        "type": "input",
+        "type": "textarea",
         "id": "ButtonData",
         "label": "Data",
         "defaultValue": "{}",
@@ -307,9 +307,9 @@ module.exports =
         }
       },
       {
-        "type": "input",
+        "type": "textarea",
         "id": "ButtonStatusHeaders",
-        "label": "Status Headers",
+        "label": "Headers",
         "defaultValue": "{}",
         "attributes": {
           "autocapitalize": "off",
@@ -319,9 +319,9 @@ module.exports =
         }
       },
       {
-        "type": "input",
+        "type": "textarea",
         "id": "ButtonStatusData",
-        "label": "Status Data",
+        "label": "Data",
         "defaultValue": "{}",
         "attributes": {
           "autocapitalize": "off",

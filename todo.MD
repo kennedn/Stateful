@@ -17,6 +17,7 @@
 - Implement tile limits - aplite (10?), basalt (64)
 - ~~png decode failure on aplite due to memory segmentation on initial download~~ 
 `won't fix - Added catch that will set default icon on allocation failure. persistent_storage still works when png allocation fails so subsequent app launches will display images. The reason for this issue is due to the limited memory on aplite.`
+- ~~Does setting default icon on failure go into app storage?~~
 ## Clay Config
 - Handle Submit payload
 - Handle Icon payload (url)
@@ -36,3 +37,4 @@
 - ~~Static loading image for b/w models on xhr request (rotate overflow icon?)~~
 `Not doing, indicator icons are enough`
 - ~~Use LZString library to reduce transfer sizes (needs to be below ~256kb or android app crashes)~~
+- ~~Crash counter in stateful.c via local storage? Clear local storage if 2+ crashes?~~

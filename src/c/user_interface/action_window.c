@@ -112,21 +112,28 @@ static void action_window_swap_buttons() {
 void action_window_set_color(ColorAction action) {
     if (!s_action_window) { return; }
     light_enable_interaction();
-    debug(1, "s_active_button: %d, action: %d", s_active_button, action);
+
+    #ifndef PBL_COLOR
+
     if (action == COLOR_ACTION_GOOD || action == COLOR_ACTION_BAD || action == COLOR_ACTION_ERROR) {
         if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
         action_bar_reset_spinner(false);
         action_bar_layer_set_icon_animated(s_action_bar_layer, s_active_button, indicator_icons[action], true);
         LONG_VIBE();
-    } else if(action == COLOR_ACTION_VIBRATE_INIT) {
+    } else if (action == COLOR_ACTION_VIBRATE_INIT) {
         SHORT_VIBE();
     }
-
-    #ifndef PBL_COLOR
     layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
-    SHORT_VIBE();
-    return;
-    #endif
+
+    #else
+
+    debug(2, "s_active_button: %d, action: %d", s_active_button, action);
+    if (action == COLOR_ACTION_GOOD || action == COLOR_ACTION_BAD || action == COLOR_ACTION_ERROR) {
+        if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
+        action_bar_reset_spinner(false);
+        action_bar_layer_set_icon_animated(s_action_bar_layer, s_active_button, indicator_icons[action], true);
+        LONG_VIBE();
+    } 
 
     GColor8 new_color, new_highlight;
     switch(action) {
@@ -147,6 +154,7 @@ void action_window_set_color(ColorAction action) {
             if (s_spinner_timer) { app_timer_cancel(s_spinner_timer); s_spinner_timer = NULL; }
             action_bar_reset_spinner(false);
         case COLOR_ACTION_VIBRATE_INIT:
+            SHORT_VIBE();
         case COLOR_ACTION_RESET_ONLY:
             new_color = (s_tap_toggle) ? s_tile->highlight : s_tile->color;
             new_highlight = (s_tap_toggle) ? s_tile->color : s_tile->highlight;
@@ -169,6 +177,7 @@ void action_window_set_color(ColorAction action) {
     layer_mark_dirty(text_layer_get_layer(s_down_label_layer));
     layer_mark_dirty(window_get_root_layer(s_action_window));
     layer_mark_dirty(action_bar_layer_get_layer(s_action_bar_layer));
+    #endif
 }
 
 //! Drives label animations, called on the back of button clicks
@@ -336,16 +345,16 @@ static void action_window_reset_elements(bool select_icon) {
     text_layer_set_text(s_mid_label_layer, tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_TEXT));
     text_layer_set_text(s_down_label_layer, tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_TEXT));
 
-    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, default_icon);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, indicator_icons[ICON_DEFAULT]);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile_element_lookup(BUTTON_ID_UP, TILE_DATA_ICON_KEY)), true);
-    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, default_icon);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, indicator_icons[ICON_DEFAULT]);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_ICON_KEY)), true);
 
     // Disable animations for button if not enabled, neglecting BUTTON_ID_SELECT as it needs animations for longpress
     action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_UP, (tile_index_enabled(tile_index_lookup(BUTTON_ID_UP))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
     action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_DOWN, (tile_index_enabled(tile_index_lookup(BUTTON_ID_DOWN))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
     if (select_icon) {
-        action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, default_icon);
+        action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, indicator_icons[ICON_DEFAULT]);
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)), true);
     }
     GColor8 toggle_color = (!s_tap_toggle) ? s_tile->color :s_tile->highlight;

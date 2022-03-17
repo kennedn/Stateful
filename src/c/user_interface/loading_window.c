@@ -92,7 +92,6 @@ static void window_load(Window *window) {
   }
   setup_text_layer("Loading...", s_window_layer, s_window_bounds, false, true);
   s_timeout_timer = app_timer_register(LONG_LOAD_TIMEOUT, display_long_load_message, NULL);
-  return;
 }
 
 void window_unload(Window *window) {
