@@ -4,7 +4,7 @@
 #include "c/modules/data.h"
 #include "c/modules/apng.h"
 #include "c/stateful.h"
-GBitmap *indicator_icons[5];
+GBitmap *indicator_icons[4];
 
 VibePattern short_vibe = { 
     .durations = (uint32_t []) {50},
@@ -43,8 +43,10 @@ bool text_color_legible_over_bg(const GColor8 *bg_color, GColor8 *text_color) {
 
 
 static void init() {
+  // Detect crashes by setting a persistant key on app start and only clearing 
+  // once everything else has been deallocated in deinit
   uint8_t crash_count = (uint8_t) persist_read_int(PERSIST_CRASH_COUNT);
-  if (crash_count > 2) {
+  if (crash_count >= 2) {
     data_clear_persist();
   }
   debug(2, "Crash count: %d", crash_count);
@@ -56,7 +58,6 @@ static void init() {
   indicator_icons[ICON_CROSS] = gbitmap_create_with_resource(RESOURCE_ID_ICON_CROSS);
   indicator_icons[ICON_QUESTION] = gbitmap_create_with_resource(RESOURCE_ID_ICON_QUESTION);
   indicator_icons[ICON_OVERFLOW] = gbitmap_create_with_resource(RESOURCE_ID_ICON_OVERFLOW);
-  indicator_icons[ICON_DEFAULT] = gbitmap_create_with_resource(RESOURCE_ID_ICON_DEFAULT);
   apng_init();
   comm_init();
 }

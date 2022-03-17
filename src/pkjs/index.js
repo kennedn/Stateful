@@ -12,7 +12,6 @@ var LZString = require ('./vendor/LZString');
 var Clay = require('pebble-clay');
 var customClay = require('./data/clay_function');
 var clayConfig = require('./data/clay_config');
-var messageKeys = require('message_keys');
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var icon = require('./modules/icon');
 var image = require('./modules/image');
@@ -107,25 +106,12 @@ Pebble.addEventListener("appmessage", function(e) {
 Pebble.addEventListener('ready', function() {
   console.log("And we're back");
 
-  // image.load('https://kennedn.com/icons/tv_8bit.png');
-  // image.load('https://www.iconsdb.com/icons/preview/black/spotify-xxl.png', function(data) {
-  //   switch(data.state) {
-  //     case URLStatus.SUCCESS:
-  //       debug(1, "Image download successful");
-  //       break;
-  //     case URLStatus.ERROR:
-  //       debug(1, "Image Error with status: " + data.status)
-  //       break;
-  //     case URLStatus.DUPLICATE:
-  //       debug(1, "Image already exists with hash " + data.hash)
-  //       break;
-  //   }
-  // });
-  // image.load('https://www.iconsdb.com/icons/preview/black/spotify-xxl.pn', function(data) {
-  //   debug(1, localStorage.getItem('custom-icons'));
-  // });
-  // image.load('https://www.iconsdb.com/icons/preview/black/spotify-xxl.pn');
-  // image.load('https://i.imgur.com/Bwvvn3P.png');
+  image.load('http://thinboy.int/icons/deleted.png', 'Deleted', function(img) {
+    debug(1, img.message);
+    image.load('http://thinboy.int/icons/Github-PNG-Image.png', 'Github', function(img) {
+      debug(1, img.message);
+    });
+  });
   var settingsStorage = JSON.parse(localStorage.getItem('clay-settings'));
   if (!settingsStorage) {
     settingsStorage = {};

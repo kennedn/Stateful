@@ -188,11 +188,6 @@
           "file": "images/loading_mini_black.png"
         },
         {
-          "file": "fonts/Ubuntu-M.ttf",
-          "name": "FONT_UBUNTU_MEDIUM_18",
-          "type": "font"
-        },
-        {
           "file": "fonts/Ubuntu-B.ttf",
           "name": "FONT_UBUNTU_BOLD_18",
           "type": "font"

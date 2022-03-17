@@ -18,7 +18,13 @@ module.exports =
           "autocomplete": "off",
           "spellcheck": "false"
         }
-      }
+      },
+      {
+        "type": "button",
+        "id": "JSONSubmit",
+        "defaultValue": "Import",
+        "primary": true,
+      },
     ]
   },
   {
@@ -27,15 +33,18 @@ module.exports =
       {
         "type": "heading",
         "defaultValue": "Icon Manager",
-        "id": "IconHeading"
+        "id": "IconHeading",
+        "capabilities": ["NOT_PLATFORM_APLITE"]
       },
       {
-        "type": "select",
+        "type": "select2",
         "label": "Custom Icons",
         "id": "IconIndex",
         "defaultValue": "0",
         "options": [
+          {"src": "#", "label": "", "value": 0}
         ],
+        "capabilities": ["NOT_PLATFORM_APLITE"]
       },
       {
         "type": "input",
@@ -47,7 +56,8 @@ module.exports =
           "autocomplete": "off",
           "type": "url",
           "spellcheck": "false"
-        }
+        },
+        "capabilities": ["NOT_PLATFORM_APLITE"]
       },
       {
         "type": "input",
@@ -59,7 +69,8 @@ module.exports =
           "autocorrect": "off",
           "autocomplete": "off",
           "spellcheck": "false"
-        }
+        },
+        "capabilities": ["NOT_PLATFORM_APLITE"]
       },
     ]
   },
@@ -142,6 +153,7 @@ module.exports =
         "label": "Color",
         "layout": "COLOR",
         "sunlight": true,
+        "capabilities": ["COLOR"]
       },
       {
         "type": "color",
@@ -150,6 +162,7 @@ module.exports =
         "label": "Highlight",
         "layout": "COLOR",
         "sunlight": true,
+        "capabilities": ["COLOR"]
       },
       {
         "type": "select2",

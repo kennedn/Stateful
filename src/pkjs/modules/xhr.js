@@ -203,7 +203,6 @@ var self = module.exports = {
         if (typeof(maxRetries) == 'number'){
           maxRetries = [maxRetries, maxRetries];
         }
-
         var request = new XMLHttpRequest();
         request.onload = function() {
           if(this.status < 400) {

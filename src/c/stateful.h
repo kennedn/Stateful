@@ -22,7 +22,7 @@ extern GFont ubuntu18;
 extern VibePattern short_vibe; 
 extern VibePattern long_vibe; 
 extern VibePattern overflow_vibe; 
-extern GBitmap *indicator_icons[5];
+extern GBitmap *indicator_icons[4];
 
 #define RETRY_READY_TIMEOUT 500
 #define LONG_LOAD_TIMEOUT 6500

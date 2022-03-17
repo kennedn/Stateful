@@ -8,6 +8,7 @@
 - ~~Create black spinner icon and tie into `text_color_legible_over()`~~
 
 ## General
+- Use minified clay_function when releasing
 - Handle xhrArrayBuffer callback failures
 - Use `Object.byString` in `status.variable` parsing
 - Test clay_needs_config against changes made in comm_ready_callback
@@ -29,6 +30,7 @@
 - Add global settings
 - Add JSON Manager
 - Use focus event to copy JSON to clipboard?
+- TileSelection causes problems with ButtonIcon/ButtonName
 
 ## Nice to have / ideas
 - ~~Session management (via incrementing int) in comm.c to prevent old requests causing a race condition in `comm_bluetooth_event()`. Currently an assumption is made that when READY is received the subsequent TILE chunk transfers will be received without interruption, which under a limited set of circumstances is not the case and can cause app crashes.~~

@@ -345,16 +345,16 @@ static void action_window_reset_elements(bool select_icon) {
     text_layer_set_text(s_mid_label_layer, tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_TEXT));
     text_layer_set_text(s_down_label_layer, tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_TEXT));
 
-    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, indicator_icons[ICON_DEFAULT]);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, default_icon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_UP, data_icon_array_search(tile_element_lookup(BUTTON_ID_UP, TILE_DATA_ICON_KEY)), true);
-    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, indicator_icons[ICON_DEFAULT]);
+    action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, default_icon);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_DOWN, data_icon_array_search(tile_element_lookup(BUTTON_ID_DOWN, TILE_DATA_ICON_KEY)), true);
 
     // Disable animations for button if not enabled, neglecting BUTTON_ID_SELECT as it needs animations for longpress
     action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_UP, (tile_index_enabled(tile_index_lookup(BUTTON_ID_UP))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
     action_bar_layer_set_icon_press_animation(s_action_bar_layer, BUTTON_ID_DOWN, (tile_index_enabled(tile_index_lookup(BUTTON_ID_DOWN))) ? ActionBarLayerIconPressAnimationMoveLeft : ActionBarLayerIconPressAnimationNone);
     if (select_icon) {
-        action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, indicator_icons[ICON_DEFAULT]);
+        action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, default_icon);
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)), true);
     }
     GColor8 toggle_color = (!s_tap_toggle) ? s_tile->color :s_tile->highlight;

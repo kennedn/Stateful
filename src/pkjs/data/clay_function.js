@@ -115,10 +115,12 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     }
 
     self.sync = function() {
-      if (self.jsonObject) {
+      if (self.jsonObject && self.tileEntry !== null) {
         try {
           self.objectByString(self.tileEntry, JSON.parse(self.clay.get()));
           $(self.clay.$manipulatorTarget[0]).set('$background-color', 'rgba(0,170,0,0.2)');
+          setTimeout(function() {$(self.clay.$manipulatorTarget[0]).set('$background-color', '#333333');}, 2500);
+
           self.clay.$manipulatorTarget[0].setCustomValidity('')
           return true;
         } catch(e) {
@@ -189,18 +191,23 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     // self.setVisibility(false, false);
   }
 
+  var isAplite = (clayConfig.meta.activeWatchInfo.platform == "aplite");
+  var isBlackWhite = (clayConfig.meta.activeWatchInfo.platform == "aplite" || clayConfig.meta.activeWatchInfo.platform == "diorite");
   var submitButton = clayConfig.getItemById('ClaySubmit');
   var clayJSON = clayConfig.getItemById('ClayJSON');
   var globalSelector = clayConfig.getItemById('GlobalIndex');
   var tileSelector = clayConfig.getItemById('TileIndex');
   var buttonSelector = clayConfig.getItemById('ButtonIndex');
   var buttonTypeSelector = clayConfig.getItemById('ButtonType');
+  var customIconSelector = clayConfig.getItemById('IconIndex');
 
   var previoustile = "0";
 
   var payload = JSON.parse(LZString.decompressFromEncodedURIComponent(clayJSON.get()));
   var tiles = payload[0];
-  var icons = payload[1];
+  var defaultIcons = payload[1][0];
+  var customIcons = payload[1][1];
+  var icons = defaultIcons.concat(customIcons);
   clayJSON.hide();
 
   var iconItems = clayConfig.getAllItems().filter(function(item) {
@@ -219,15 +226,31 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     item.$manipulatorTarget.trigger('change');
   });
 
-  var JSONSection = new Section(['JSONHeading'], ['JSONInput'], ['.'], tiles);
+  customIconSelector.$manipulatorTarget.add(new Option("Add icon", 'add'));
+  customIconSelector.$manipulatorTarget.add(new Option("Remove icon (0)", 'remove'));
+  customIconSelector.$manipulatorTarget[0][0].remove()  // Remove dummy value
+  for (var i in customIcons) {
+    var icon = customIcons[i];
+    var option = new Option(icon.label, icon.value);
+    $(option).set("@src", icon.src);
+    customIconSelector.$manipulatorTarget.add(option);
+  }
+  customIconSelector.$manipulatorTarget.set('value', customIcons[0].value);
+  customIconSelector.$manipulatorTarget.trigger('change');
 
-  var iconSection = new Section(['IconHeading'], ['IconIndex', 'IconURL', 'IconName'],
+
+  var JSONSection = new Section(['JSONHeading'], ['JSONInput', 'JSONSubmit'], ['.', null], tiles);
+
+  var iconSection = (isAplite) ? null : new Section(['IconHeading'], ['IconIndex', 'IconURL', 'IconName'],
                                 [null, null, null], tiles);
 
   var globalSection = new Section(['GlobalHeading'], ['GlobalIndex', 'GlobalToggle', 'GlobalURL', 'GlobalHeaders'],
                                   ["default_idx", "open_default", "base_url",  "headers"], tiles);
   
-  var tileSection = new Section(['TileHeading'], ['TileIndex', 'TileName', 'TileColor', 'TileHighlight', 'TileIcon'],
+  var tileSection = (isBlackWhite) ? new Section(['TileHeading'], ['TileIndex', 'TileName', 'TileIcon'],
+                                [null, "tiles[0].payload.texts[6]", "tiles[0].payload.icon_keys[6]"]
+                                , tiles) : 
+                                new Section(['TileHeading'], ['TileIndex', 'TileName', 'TileColor', 'TileHighlight', 'TileIcon'],
                                 [null, "tiles[0].payload.texts[6]", "tiles[0].payload.color", 
                                 "tiles[0].payload.highlight",  "tiles[0].payload.icon_keys[6]"]
                                 , tiles);
@@ -247,19 +270,24 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
                                          "tiles[0].buttons.up.status.bad"], tiles);
 
   var textAreas = clayConfig.getItemsByType('textarea');
+  var onTextAreaChange = function() {
+    var t = $(this.$manipulatorTarget);
+    t.set("$height", "auto")
+    var scrollHeight = t.get('scrollHeight');
+    if (scrollHeight == 0) { return; }
+    var maxHeight = screen.height / 3;
+
+    $(this.$manipulatorTarget[0]).set('$background-color', '#333333');
+    t.set('$height',  Math.min(scrollHeight, maxHeight) + "px");
+    t.set('$overflow-y', "auto");
+  };
   textAreas.forEach(function(item){
-    item.on('input', function() {
-      var t = $(this.$manipulatorTarget);
-      t.set("$height", "auto")
-      t.set('$height', t.get('scrollHeight') + "px");
-    });
+    item.on('input', onTextAreaChange);
     item.trigger('input');
   });
 
   JSONSection.setVisibility(false,false);
-  iconSection.setVisibility(false,false);
-  globalSection.setVisibility(false,false);
-  tileSection.setVisibility(false,false);
+  if(!isAplite) {iconSection.setVisibility(false,false);}
 
   var onTileIndexChange = function() {
     if (this.get() == 'remove') {
@@ -293,8 +321,10 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
     this.$manipulatorTarget.get('options')[1].text = "Remove tile (" + this.get() + ")";
     tileSection.find('TileName').setTileEntry("tiles[" + this.get('value') + "].payload.texts[6]");
-    tileSection.find('TileColor').setTileEntry("tiles[" + this.get('value') + "].payload.color");
-    tileSection.find('TileHighlight').setTileEntry("tiles[" + this.get('value') + "].payload.highlight");
+    if (!isBlackWhite) {
+      tileSection.find('TileColor').setTileEntry("tiles[" + this.get('value') + "].payload.color");
+      tileSection.find('TileHighlight').setTileEntry("tiles[" + this.get('value') + "].payload.highlight");
+    }
     tileSection.find('TileIcon').setTileEntry("tiles[" + this.get('value') + "].payload.icon_keys[6]");
     buttonSelector.trigger('change');
   };
@@ -340,24 +370,28 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       case '0':
         buttonStatusSection.setVisibility(false, true);
         buttonActionSection.setVisibility(true, true);
+        buttonSection.setVisibility(true, false);
         buttonSection.find('ButtonName').setVisibility(true);
         buttonSection.find('ButtonIcon').setVisibility(true);
         break;
       case '1':
         buttonStatusSection.setVisibility(true, true);
         buttonActionSection.setVisibility(true, true);
+        buttonSection.setVisibility(true, false);
         buttonSection.find('ButtonName').setVisibility(true);
         buttonSection.find('ButtonIcon').setVisibility(true);
         break;
       case '2':
         buttonStatusSection.setVisibility(true, true);
         buttonActionSection.setVisibility(false, true);
+        buttonSection.setVisibility(true, false);
         buttonSection.find('ButtonName').setVisibility(true);
         buttonSection.find('ButtonIcon').setVisibility(true);
         break;
       case '3':
         buttonStatusSection.setVisibility(false, true);
         buttonActionSection.setVisibility(false, true);
+        buttonSection.setVisibility(true, false);
         buttonSection.find('ButtonName').setVisibility(false);
         buttonSection.find('ButtonIcon').setVisibility(false);
         break;
