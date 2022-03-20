@@ -9,6 +9,15 @@ module.exports = function(minified) {
   
 clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
+  function confirm(message) {
+    var iframe = document.createElement("iframe");
+    iframe.setAttribute("src", 'data:text/plain,');
+    document.documentElement.appendChild(iframe);
+    var ret = (window.frames[0].window.confirm(message));
+    iframe.parentNode.removeChild(iframe);
+    return ret;
+  }
+
   function validateForm() {
     return true;
     var inputs = document.getElementsByTagName('input');
@@ -20,6 +29,22 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       }
     }
     return true;
+  }
+
+  function safeSelectSet(clayItem, selectFunction, value, callback) {
+    setTimeout(function(){
+      clayItem.$manipulatorTarget.set('value', value);
+      clayItem.off(selectFunction);
+      clayItem.$manipulatorTarget.trigger('change');
+      clayItem.on('change', selectFunction);
+      if (callback) {callback();}
+    }, 0);
+  }
+
+  function optionWithSrc(label, value, src) {
+    var option = new Option(label, value);
+    $(option).set('@src', src);
+    return option;
   }
 
   function buttonToIndex(value) {
@@ -154,9 +179,9 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
 
     this.find = function(id) {
-      return this.items.filter(function(elm) {
+      return this.items.find(function(elm) {
         return (elm.id == id);
-      })[0];
+      });
     }
 
     this.getVisibility = function() {
@@ -201,13 +226,15 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   var buttonTypeSelector = clayConfig.getItemById('ButtonType');
   var customIconSelector = clayConfig.getItemById('IconIndex');
 
-  var previoustile = "0";
+  var previousTile = "0";
+  var previousIcon = "0";
 
   var payload = JSON.parse(LZString.decompressFromEncodedURIComponent(clayJSON.get()));
   var tiles = payload[0];
   var defaultIcons = payload[1][0];
   var customIcons = payload[1][1];
-  var icons = defaultIcons.concat(customIcons);
+  var icons = (isAplite) ? defaultIcons : defaultIcons.concat(customIcons);
+  var fallbackIcon = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
   clayJSON.hide();
 
   var iconItems = clayConfig.getAllItems().filter(function(item) {
@@ -218,31 +245,32 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     item.$manipulatorTarget[0][0].remove()  // Remove dummy value
     for (var i in icons) {
       var icon = icons[i];
-      var option = new Option(icon.label, icon.value);
-      $(option).set("@src", icon.src);
-      item.$manipulatorTarget.add(option);
+      item.$manipulatorTarget.add(optionWithSrc(icon.label, icon.value, icon.src));
     }
     item.$manipulatorTarget.set('value', icons[0].value);
     item.$manipulatorTarget.trigger('change');
   });
 
-  customIconSelector.$manipulatorTarget.add(new Option("Add icon", 'add'));
-  customIconSelector.$manipulatorTarget.add(new Option("Remove icon (0)", 'remove'));
-  customIconSelector.$manipulatorTarget[0][0].remove()  // Remove dummy value
-  for (var i in customIcons) {
-    var icon = customIcons[i];
-    var option = new Option(icon.label, icon.value);
-    $(option).set("@src", icon.src);
-    customIconSelector.$manipulatorTarget.add(option);
-  }
-  customIconSelector.$manipulatorTarget.set('value', customIcons[0].value);
-  customIconSelector.$manipulatorTarget.trigger('change');
+  if (!isAplite) {
+    setTimeout(function() {
+      customIconSelector.$manipulatorTarget.add(optionWithSrc("Add icon", "add", fallbackIcon));
+      customIconSelector.$manipulatorTarget.add(optionWithSrc("Remove icon (0)", 'remove', fallbackIcon));
+      customIconSelector.$manipulatorTarget[0][0].remove()  // Remove dummy value
+      for (var i in customIcons) {
+        var icon = customIcons[i];
+        customIconSelector.$manipulatorTarget.add(optionWithSrc(icon.label, icon.value, icon.src));
+      }
+      customIconSelector.$manipulatorTarget.set('value', customIcons[0].value);
+      customIconSelector.$manipulatorTarget.trigger('change');
+
+    },0);
+  } 
 
 
   var JSONSection = new Section(['JSONHeading'], ['JSONInput', 'JSONSubmit'], ['.', null], tiles);
 
-  var iconSection = (isAplite) ? null : new Section(['IconHeading'], ['IconIndex', 'IconURL', 'IconName'],
-                                [null, null, null], tiles);
+  var iconSection = (isAplite) ? null : new Section(['IconHeading'], ['IconIndex', 'IconURL', 'IconName', 'IconSubmit'],
+                                [null, null, null, null], tiles);
 
   var globalSection = new Section(['GlobalHeading'], ['GlobalIndex', 'GlobalToggle', 'GlobalURL', 'GlobalHeaders'],
                                   ["default_idx", "open_default", "base_url",  "headers"], tiles);
@@ -269,6 +297,13 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
                                          "tiles[0].buttons.up.status.data", "tiles[0].buttons.up.status.variable", "tiles[0].buttons.up.status.good", 
                                          "tiles[0].buttons.up.status.bad"], tiles);
 
+
+  JSONSection.setVisibility(false,false);
+  if(!isAplite) {
+    iconSection.setVisibility(false,false);
+    iconSection.find('IconSubmit').setVisibility(false);
+  }
+
   var textAreas = clayConfig.getItemsByType('textarea');
   var onTextAreaChange = function() {
     var t = $(this.$manipulatorTarget);
@@ -286,36 +321,56 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     item.trigger('input');
   });
 
-  JSONSection.setVisibility(false,false);
-  if(!isAplite) {iconSection.setVisibility(false,false);}
+  var onCustomIconIndexChange = function() {
+    if (this.get() == 'remove') {
+      var iconName = "'" + customIcons.find(function(element){return (element.value == previousIcon);}).label + "'";
+      if (confirm("Are you sure you want to remove icon " + iconName + " ?")) {
+        alert("Icon remove");
+      }
+      safeSelectSet(customIconSelector, onCustomIconIndexChange, previousIcon, function() {
+        customIconSelector.trigger('change');
+      });
+    } else if (this.get() == 'add') {
+      iconSection.find("IconSubmit").setVisibility(true);
+      var tempItem = iconSection.find("IconName");
+      tempItem.clay.$manipulatorTarget[0].removeAttribute('readonly');
+      tempItem.clay.set('');
+      tempItem = iconSection.find("IconURL");
+      tempItem.clay.$manipulatorTarget[0].removeAttribute('readonly');
+      tempItem.clay.set('');
+    } else {
+      previousIcon = this.get();
+      var customIcon = customIcons.find(function(element){return (element.value == previousIcon);});
+      this.$manipulatorTarget.get('options')[1].text = "Remove icon (" + customIcon.label + ")";
+      iconSection.find("IconSubmit").setVisibility(false);
+      var tempItem = iconSection.find("IconName");
+      tempItem.clay.$manipulatorTarget.set("@readonly", '');
+      tempItem.clay.set(customIcon.label);
+      tempItem = iconSection.find("IconURL");
+      tempItem.clay.$manipulatorTarget.set("@readonly", '');
+      tempItem.clay.set(customIcon.src);
+    }
+  }
 
   var onTileIndexChange = function() {
     if (this.get() == 'remove') {
-      alert("Remove Tile")
-      tileSelector.$manipulatorTarget.set('value', previoustile);
-      tileSelector.off(onTileIndexChange);
-      tileSelector.$manipulatorTarget.trigger('change');
-      tileSelector.on('change', onTileIndexChange);
-      previoustile = this.get();
+      if (confirm("Are you sure you want to remove " + tileSection.find("TileName").clay.get() + "?")) {
+        alert("Tile remove");
+      } 
+      safeSelectSet(tileSelector, onTileIndexChange, previousTile);
       return;
     }
 
     if (!validateForm()) {
-      tileSelector.$manipulatorTarget.set('value', previoustile);
-      tileSelector.off(onTileIndexChange);
-      tileSelector.$manipulatorTarget.trigger('change');
-      tileSelector.on('change', onTileIndexChange);
-      previoustile = this.get();
+      safeSelectSet(tileSelector, onTileIndexChange, previousTile);
       return;
     }
 
     if (this.get() == 'add') {
-      alert("Add Tile");
-      tileSelector.$manipulatorTarget.set('value', previoustile);
-      tileSelector.off(onTileIndexChange);
-      tileSelector.$manipulatorTarget.trigger('change');
-      tileSelector.on('change', onTileIndexChange);
-      previoustile = this.get();
+      safeSelectSet(tileSelector, onTileIndexChange, previousTile);
+      var t_json = {"action": "AddTile", "payload": tiles};
+      var ret_url = window.returnTo || "pebblejs://close#";
+      location.href = ret_url + LZString.compressToEncodedURIComponent(JSON.stringify(t_json));
       return;
     }
 
@@ -327,6 +382,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     }
     tileSection.find('TileIcon').setTileEntry("tiles[" + this.get('value') + "].payload.icon_keys[6]");
     buttonSelector.trigger('change');
+    previousTile = this.get();
   };
 
   tileSelector.$manipulatorTarget.add(new Option("Add tile", 'add'));
@@ -363,26 +419,27 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     textAreas.forEach(function(item){
       item.trigger('input');
     });
+    buttonTypeSelector.trigger('change');
   };
 
   var onButtonTypeIndexChange = function() {
     switch(this.get()) {
       case '0':
         buttonStatusSection.setVisibility(false, true);
-        buttonActionSection.setVisibility(true, true);
+        buttonActionSection.setVisibility(false, false);
         buttonSection.setVisibility(true, false);
         buttonSection.find('ButtonName').setVisibility(true);
         buttonSection.find('ButtonIcon').setVisibility(true);
         break;
       case '1':
-        buttonStatusSection.setVisibility(true, true);
-        buttonActionSection.setVisibility(true, true);
+        buttonStatusSection.setVisibility(false, false);
+        buttonActionSection.setVisibility(false, false);
         buttonSection.setVisibility(true, false);
         buttonSection.find('ButtonName').setVisibility(true);
         buttonSection.find('ButtonIcon').setVisibility(true);
         break;
       case '2':
-        buttonStatusSection.setVisibility(true, true);
+        buttonStatusSection.setVisibility(false, false);
         buttonActionSection.setVisibility(false, true);
         buttonSection.setVisibility(true, false);
         buttonSection.find('ButtonName').setVisibility(true);
@@ -398,9 +455,11 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     }
   }
 
+  customIconSelector.on('change', onCustomIconIndexChange);
   buttonTypeSelector.on('change', onButtonTypeIndexChange);
   buttonSelector.on('change', onButtonIndexChange);
   tileSelector.on('change', onTileIndexChange);
+  buttonTypeSelector.trigger('change');
 
 
   submitButton.on('click', function () {

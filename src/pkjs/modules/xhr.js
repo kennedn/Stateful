@@ -60,7 +60,7 @@ var self = module.exports = {
   },
 
   statusXHRRequest: function(button, url, headers, hash) {
-    self.xhrStatus(button.method, url, headers, button.data, hash, button.variable, button.good, button.bad, 25).then(function(status_data){
+    self.xhrStatus(button.status.method, url, headers, button.status.data, hash, button.status.variable, button.status.good, button.status.bad, 25).then(function(status_data){
       self.colorAppMessage(status_data.color, status_data.hash);
     }, function(hash) {
       self.colorAppMessage(ColorAction.ERROR, hash);
@@ -149,31 +149,26 @@ var self = module.exports = {
 
         request.onload = function() {
           if(this.status < 400) {
-          var returnData = {};
-          try {
-            returnData = JSON.parse(this.responseText);
-            var variable_split = variable.split(".")
-            for (var j in variable_split) {
-            returnData = returnData[variable_split[j]];
+            var returnData = {};
+            try {
+              returnData = JSON.parse(this.responseText);
+              var variable_split = variable.split(".")
+              for (var j in variable_split) {
+              returnData = returnData[variable_split[j]];
+              }
+              debug(2, "Response data: " + JSON.stringify(returnData));
+            } catch(e) {
+              reject(origin_hash);
             }
-            debug(2, "Response data: " + JSON.stringify(returnData));
-          } catch(e) {
-            reject(origin_hash);
-          }
-          debug(1, "Status: " + this.status);
-          debug(2, "result: " + returnData + " maxRetries: " + maxRetries[1]);
-
-          switch(returnData) {
-            case good:
+            debug(1, "Status: " + this.status);
+            debug(2, "result: " + returnData + " maxRetries: " + maxRetries[1]);
+            if (returnData == good) {
               resolve({color: ColorAction.GOOD, hash: origin_hash});
-              break;
-            case bad:
+            } else if (returnData == bad) {
               resolve({color: ColorAction.BAD, hash: origin_hash});
-              break;
-            default:
+            } else {
               repeatCall(origin_hash);
-          }
-
+            }
           } else {
             repeatCall(origin_hash);
           }

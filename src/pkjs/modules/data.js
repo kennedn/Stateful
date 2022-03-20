@@ -4,6 +4,7 @@ for (var key in globals) {
 }
 
 var Comms = require('./comm');
+var Icon = require('./icon')
 
 window.global = window;
 var Buffer = require('buffer/').Buffer;
@@ -50,7 +51,7 @@ var self = module.exports = {
     var uint8 = new Uint8Array(buffer);
     var ptr = 0;
 
-    var icon = Icons[key];
+    var icon = Icon.find(key);
 
     if (icon == null) {
       return;
@@ -61,23 +62,27 @@ var self = module.exports = {
     uint8[ptr++] = key.length + 1;
     ptr = self.packString(uint8, key, ptr);
     
-    if (typeof(icon) == 'string') {
+    if (typeof(icon) === 'object') {
       if(Pebble.getActiveWatchInfo().platform == "aplite") {
         uint8[ptr++] = 1;
         uint8[ptr++] = 0;
         uint8[ptr++] = 1;
       } else {
-        var buff = Buffer.from(icon, 'base64');
+        var buff = icon;
         uint8[ptr++] = buff.length & 0xff;
         uint8[ptr++] = buff.length >> 8;
         for (var i=0; i < buff.length; i++) {
           uint8[ptr++] = buff[i];
         }
       }
-    } else {
+    } else if(typeof(icon) === 'number') {
       uint8[ptr++] = 1;
       uint8[ptr++] = 0;
       uint8[ptr++] = icon;
+    } else {
+      uint8[ptr++] = 1;
+      uint8[ptr++] = 0;
+      uint8[ptr++] = 1;
     }
 
     var buffer_2 = buffer.slice(0, ptr);
@@ -143,9 +148,9 @@ var self = module.exports = {
     // Sort icon_keys so base64 encoded strings are last and resource ids are first, this stops 'gaps' appearing
     // in the icon_array when resource ids are restored from persistant storage
     icon_keys = icon_keys.sort(function(a, b) { 
-      if (typeof(Icons[a]) === 'string' && typeof(Icons[b]) === 'string') {
+      if (typeof(Icon.find(a)) === 'string' && typeof(Icon.find(b)) === 'string') {
         return 0;
-      } else if (typeof(Icons[a]) === 'string' && typeof(Icons[b]) !== 'string') {
+      } else if (typeof(Icon.find(a)) === 'string' && typeof(Icon.find(b)) !== 'string') {
         return 1;
       } else {
         return -1;

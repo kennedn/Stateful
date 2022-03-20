@@ -110,7 +110,10 @@ void data_tile_array_pack_tiles(uint8_t *data, int data_size){
         ptr += key_size;
         tile->mask &= ~((key_size <= 1) << i);
       }
-      if (tile_count < MAX_PERSIST_TILES) { persist_write_data(PERSIST_TILE_START + i, &data[tile_start], ptr - tile_start); }
+      if (tile_count < MAX_PERSIST_TILES) { 
+        persist_write_data(PERSIST_TILE_START + i, &data[tile_start], ptr - tile_start); 
+        debug(3, "Wrote %dB to persist key %d", ptr - tile_start, PERSIST_TILE_START + i);
+      }
       data_tile_array_add_tile(tile); 
       i++;
     }

@@ -8,7 +8,9 @@
 - ~~Create black spinner icon and tie into `text_color_legible_over()`~~
 
 ## General
+- Commit clay, make sure project compiles in clean repo
 - Use minified clay_function when releasing
+- Test max size of tile object with limits enforced in clay
 - Handle xhrArrayBuffer callback failures
 - Use `Object.byString` in `status.variable` parsing
 - Test clay_needs_config against changes made in comm_ready_callback

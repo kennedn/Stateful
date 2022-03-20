@@ -13,6 +13,13 @@ for (var key in globals) {
 }
 
 var image = {};
+image.pebblePalette = [[0,0,0], [0,0,0], [0,0,170], [0,0,255], [0,0,85], [0,170,0], [0,170,170], [0,170,255], [0,170,85], [0,255,0], [0,255,170], [0,255,255], 
+                      [0,255,85], [0,85,0], [0,85,170], [0,85,255], [0,85,85], [170,0,0], [170,0,170], [170,0,255], [170,0,85], [170,170,0], [170,170,170], 
+                      [170,170,255], [170,170,85], [170,255,0], [170,255,170], [170,255,255], [170,255,85], [170,85,0], [170,85,170], [170,85,255], [170,85,85], 
+                      [255,0,0], [255,0,170], [255,0,255], [255,0,85], [255,170,0], [255,170,170], [255,170,255], [255,170,85], [255,255,0], [255,255,170], 
+                      [255,255,255], [255,255,85], [255,85,0], [255,85,170], [255,85,255], [255,85,85], [85,0,0], [85,0,170], [85,0,255], [85,0,85], 
+                      [85,170,0], [85,170,170], [85,170,255], [85,170,85], [85,255,0], [85,255,170], [85,255,255], [85,255,85], [85,85,0], [85,85,170], 
+                      [85,85,255], [85,85,85]];
 
 var getPos = function(width, x, y) {
   return y * width * 4 + x * 4;
@@ -31,6 +38,25 @@ var getPixelColorUint8 = function(pixels, pos) {
   var a = Math.min(Math.max(parseInt(pixels[pos + 3] / 64 + 0.5), 0), 3);
   return (a << 6) | (r << 4) | (g << 2) | b;
 };
+
+
+//! Find the closest approximation of an RGB color in the pebble palette table
+var getClosestPaletteColor = function(pixels) {
+  var minDiff = Infinity;
+  var lastMatch;
+  for (var i in image.pebblePalette) {
+    if(i == 0) {continue;}
+    var protoDiff = 0;
+    for (var j in image.pebblePalette[i]) {
+      protoDiff += Math.abs(pixels[j] - image.pebblePalette[i][j]);
+    }
+    if (protoDiff < minDiff){
+      minDiff = protoDiff;
+      lastMatch = i;
+    }
+  }
+  return lastMatch;
+}
 
 //! Get an RGB vector from an RGB pixel array
 var getPixelColorRGB8 = function(pixels, pos) {
@@ -226,26 +252,25 @@ image.toGbitmap1 = function(pixels, width, height) {
 image.toPng8 = function(pixels, width, height) {
   var raster = image.toRaster(pixels, width, height, getPixelColorRGB8);
 
-  var palette = [];
+  // var palette = [];
   var transparency = [];
   var colorMap = {};
-  var numColors = 0;
+  // var numColors = 0;
   for (var y = 0, yy = height; y < yy; ++y) {
     var row = raster[y];
     for (var x = 0, xx = width; x < xx; ++x) {
       var color = row[x];
-      var hash = getPixelColorUint8(color, 0);
-      if (!(hash in colorMap)) {
-        colorMap[hash] = numColors;
-        transparency[numColors] = color[color.length - 1];
-        palette[numColors++] = color.slice(0,3);
+      if (color[color.length - 1] < 64) {
+        row[x] = 0;
+      } else {
+        row[x] = getClosestPaletteColor(color.slice(0,3));
       }
-      row[x] = colorMap[hash];
     }
   }
   var bitdepth = 8;
   var colorType = 3; // 8-bit palette
-  var bytes = PNGEncoder.encode(raster, bitdepth, colorType, palette, transparency);
+  var transparency = [0];
+  var bytes = PNGEncoder.encode(raster, bitdepth, colorType, image.pebblePalette, transparency);
 
   debug(3, "PNG8: data:image/png;base64," + Buffer.from(bytes.array).toString('base64'));
   return bytes.array;
@@ -266,14 +291,14 @@ image.toPng2 = function(pixels, width, height) {
       if (transparency < 64) {
         row[x] = 0;
       } else {
-        row[x] = Math.floor(((gray * 2) / 255) + 1)
+        row[x] = Math.floor((gray / 128) + 1)
       }
     }
   }
   var bitdepth = 2;
   var colorType = 3; // 8-bit palette
   // Create simple 4 bit palette (2^bitdepth) with channels: alpha, black, gray, white
-  var palette = [0, 0, 128, 255].map(function(v) { return Array(3).fill(v); });
+  var palette = [0, 0, 255].map(function(v) { return Array(3).fill(v); });
   var transparency = [0];
   var bytes = PNGEncoder.encode(raster, bitdepth, colorType, palette, transparency);
 

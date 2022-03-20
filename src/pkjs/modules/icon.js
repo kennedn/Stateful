@@ -6,6 +6,7 @@ for (var key in globals) {
 var default_icons = require('../data/default_icons');
 
 var self = module.exports = {
+  defaultKey: default_icons[0].value,
   getClay: function() {
     var customIconsDict = localStorage.getItem('custom-icons');
     try {
@@ -43,5 +44,33 @@ var self = module.exports = {
     }
 
     return [icons, customIcons];
+  },
+  find: function(key) {
+    var iconValue = default_icons.filter(function(element) {
+      return (element.value === key);
+    });
+    if (iconValue.length > 0){
+      return iconValue[0].resource;
+    }
+
+    var customIconsDict = localStorage.getItem('custom-icons');
+    try {
+      customIconsDict = JSON.parse(customIconsDict);
+    } catch(e) {
+      customIconsDict = {};
+    }
+
+    if(customIconsDict.hasOwnProperty(key)){
+      debug(3, JSON.stringify(customIconsDict[key].src));
+      if(Pebble.getActiveWatchInfo().platform == "aplite") {
+        return 1; //default icon
+      } else if (Pebble.getActiveWatchInfo().platform == "diorite") {
+        return customIconsDict[key].src.png2;
+      } else {
+        return customIconsDict[key].src.png8;
+      }
+    }
+
+    return 1; //default icon
   }
 };

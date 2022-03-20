@@ -3,7 +3,8 @@
 #include "c/modules/comm.h"
 #include "c/stateful.h"
 #include "c/user_interface/loading_window.h"
-#define CELL_HEIGHT ((const int16_t) 40)
+#define CELL_HEIGHT ((const int16_t) 48)
+#define CELL_WIDTH ((const int16_t) 40)
 
 static Window *s_menu_window;
 static MenuLayer *s_menu_layer;
@@ -24,9 +25,12 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_in
 }
 
 static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
-    return PBL_IF_ROUND_ELSE(menu_layer_is_index_selected(menu_layer, cell_index) ?
-                             MENU_CELL_ROUND_FOCUSED_SHORT_CELL_HEIGHT : MENU_CELL_ROUND_UNFOCUSED_TALL_CELL_HEIGHT,
-                             CELL_HEIGHT);
+  #ifdef PBL_ROUND
+  return menu_layer_is_index_selected(menu_layer, cell_index) ?
+                             MENU_CELL_ROUND_FOCUSED_SHORT_CELL_HEIGHT : MENU_CELL_ROUND_UNFOCUSED_TALL_CELL_HEIGHT;
+  #else
+  return CELL_HEIGHT;
+  #endif
 }
 
 //! Custom row draw callback, closely simulates menu_cell_basic_draw but allows for custom font
@@ -40,17 +44,17 @@ static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex 
     GBitmap *icon = data_icon_array_search(tile->icon_key[6]);
     GRect icon_bounds = gbitmap_get_bounds(icon);
     GRect bounds =  layer_get_bounds(cell_layer);
-    bounds.origin.x = PBL_IF_RECT_ELSE(bounds.origin.x, CELL_HEIGHT / 2);
-    bounds.size.w = CELL_HEIGHT;
+    bounds.origin.x = PBL_IF_RECT_ELSE(bounds.origin.x, CELL_WIDTH/ 2);
+    bounds.size.w = CELL_WIDTH;
     bounds.size.w *= 0.8f;
     grect_align(&icon_bounds, &bounds, GAlignCenter, true);
     graphics_context_set_compositing_mode(ctx, GCompOpSet);
     graphics_draw_bitmap_in_rect(ctx, data_icon_array_search(tile->icon_key[6]), icon_bounds);
     bounds =  layer_get_bounds(cell_layer);
-    bounds.origin.x = PBL_IF_RECT_ELSE(CELL_HEIGHT *.9, CELL_HEIGHT * 1.5);
-    bounds.size.w = bounds.size.w - CELL_HEIGHT; 
-    GSize text_size = GSize(0, 24);
-    GRect text_rect = GRect(bounds.origin.x, (bounds.size.h - text_size.h) /2, bounds.size.w, text_size.h);
+    bounds.origin.x = PBL_IF_RECT_ELSE(CELL_WIDTH *0.8, CELL_WIDTH * 1.5);
+    bounds.size.w = PBL_IF_RECT_ELSE(bounds.size.w - CELL_WIDTH * 0.9, bounds.size.w - CELL_WIDTH *1.7); 
+    GSize text_size = GSize(0, graphics_text_layout_get_content_size(tile->texts[6], ubuntu18, bounds, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft).h *1.24);
+    GRect text_rect = GRect(bounds.origin.x, (bounds.size.h - text_size.h) /2, bounds.size.w, bounds.size.h);
 
     graphics_draw_text(ctx, tile->texts[6], ubuntu18, text_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 

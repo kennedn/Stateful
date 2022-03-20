@@ -48,6 +48,20 @@ module.exports =
       },
       {
         "type": "input",
+        "id": "IconName",
+        "label": "<font style='color:#ff4700;'>* </font>Name",
+        "defaultValue": "",
+        "attributes": {
+          "autocapitalize": "on",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "spellcheck": false,
+          "required": true
+        },
+        "capabilities": ["NOT_PLATFORM_APLITE"]
+      },
+      {
+        "type": "input",
         "id": "IconURL",
         "label": "<font style='color:#ff4700;'>* </font>URL",
         "attributes": {
@@ -55,21 +69,16 @@ module.exports =
           "autocorrect": "off",
           "autocomplete": "off",
           "type": "url",
-          "spellcheck": "false"
+          "spellcheck": false,
+          "required": true
         },
         "capabilities": ["NOT_PLATFORM_APLITE"]
       },
       {
-        "type": "input",
-        "id": "IconName",
-        "label": "Name",
-        "defaultValue": "{}",
-        "attributes": {
-          "autocapitalize": "off",
-          "autocorrect": "off",
-          "autocomplete": "off",
-          "spellcheck": "false"
-        },
+        "type": "button",
+        "id": "IconSubmit",
+        "defaultValue": "Submit",
+        "primary": true,
         "capabilities": ["NOT_PLATFORM_APLITE"]
       },
     ]
@@ -143,7 +152,7 @@ module.exports =
         "label": "<font style='color:#ff4700;'>* </font>Name",
         "attributes": {
           "required": true,
-          "maxLength": 13,
+          "maxLength": 20,
         },
       },
       {

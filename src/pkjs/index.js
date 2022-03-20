@@ -13,7 +13,6 @@ var Clay = require('pebble-clay');
 var customClay = require('./data/clay_function');
 var clayConfig = require('./data/clay_config');
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
-var icon = require('./modules/icon');
 var image = require('./modules/image');
 
 
@@ -80,7 +79,7 @@ Pebble.addEventListener("appmessage", function(e) {
       // Shouldn't headers be concatinated?
       var headers = (tiles.headers != null) ? tiles.headers : button.headers;
 
-      switch(button.type) {
+      switch(parseInt(button.type)) {
         case CallType.STATEFUL:
           var status_url = (tiles.base_url != null) ? tiles.base_url + button.status.url : button.status.url;
           var status_headers = (tiles.headers != null) ? tiles.headers : button.status.headers;
@@ -90,7 +89,9 @@ Pebble.addEventListener("appmessage", function(e) {
           XHR.localXHRRequest(button, url, headers, hash);
           break;
         case CallType.STATUS_ONLY:
-          XHR.statusXHRRequest(button, url, headers, hash);
+          var status_url = (tiles.base_url != null) ? tiles.base_url + button.status.url : button.status.url;
+          var status_headers = (tiles.headers != null) ? tiles.headers : button.status.headers;
+          XHR.statusXHRRequest(button, status_url, status_headers, hash);
           break;
         default:
           debug(1, "Unknown type: " + button.type);
@@ -108,29 +109,16 @@ Pebble.addEventListener('ready', function() {
 
   image.load('http://thinboy.int/icons/deleted.png', 'Deleted', function(img) {
     debug(1, img.message);
-    image.load('http://thinboy.int/icons/Github-PNG-Image.png', 'Github', function(img) {
+    image.load('http://thinboy.int/icons/rgb.png', 'RGB', function(img) {
       debug(1, img.message);
     });
   });
-  var settingsStorage = JSON.parse(localStorage.getItem('clay-settings'));
-  if (!settingsStorage) {
-    settingsStorage = {};
-    settingsStorage['ClayJSON'] = require('./stateful');
-    localStorage.setItem('clay-settings', JSON.stringify(settingsStorage));
-    ClayHelper.clayToTiles(clay);
-  } else {
-    Pebble.sendAppMessage({"TransferType": TransferType.READY,}, messageSuccess, messageFailure);
-  }
+  Pebble.sendAppMessage({"TransferType": TransferType.READY,}, messageSuccess, messageFailure);
 });
 
 
 Pebble.addEventListener('showConfiguration', function(e) {
-  var claySettings = JSON.parse(localStorage.getItem('clay-settings'));
-  if (!claySettings) {claySettings = {}}
-  claySettings['ClayJSON'] = LZString.compressToEncodedURIComponent(JSON.stringify([require('./stateful'),icon.getClay()]));
-  console.log("Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
-  localStorage.setItem('clay-settings', JSON.stringify(claySettings));
-  Pebble.openURL(clay.generateUrl());
+  ClayHelper.openURL(clay);
 });
 
 
@@ -141,10 +129,12 @@ Pebble.addEventListener('webviewclosed', function(e) {
   // Get the keys and values from each config item
   var response = JSON.parse(LZString.decompressFromEncodedURIComponent(e.response));
   // var clayJSON = JSON.parse(dict[messageKeys.ClayJSON]);
+  var tiles = response.payload;
 
   switch(response.action) {
     case "AddTile":
-      Pebble.openURL(clay.generateUrl());
+      localStorage.setItem('tiles', JSON.stringify(tiles));
+      ClayHelper.openURL(clay, true);
       break;
     // case "LoadIcon":
     //   //Attempt a clayConfig data URI insert with provided payload (url)
@@ -158,22 +148,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
     //     });
     //   break;
     case "Submit":
-      // Decode and parse config data as JSON
-      var settingsStorage = {};
-      var tiles = response.payload;
-      settingsStorage['ClayJSON'] = tiles;
-      debug(1, JSON.stringify(tiles, null, 2));
-      // // flatten the settings for localStorage
-      // var settingsStorage = {};
-      // settings.forEach(function(e) {
-      //   if (typeof e === 'object' && e.id) {
-      //     settingsStorage[e.id] = e.value;
-      //   } else {
-      //     settingsStorage[e.id] = e;
-      //   }
-      // });
-      localStorage.setItem('clay-settings', JSON.stringify(settingsStorage));
-      ClayHelper.clayToTiles(clay);
+      ClayHelper.clayToTiles(tiles);
       break;
   }
 });
