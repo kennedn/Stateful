@@ -14,6 +14,7 @@ var customClay = require('./data/clay_function');
 var clayConfig = require('./data/clay_config');
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var image = require('./modules/image');
+var icon = require('./modules/icon');
 
 
 // Called when incoming message from the Pebble is received
@@ -133,20 +134,24 @@ Pebble.addEventListener('webviewclosed', function(e) {
 
   switch(response.action) {
     case "AddTile":
-      localStorage.setItem('tiles', JSON.stringify(tiles));
-      ClayHelper.openURL(clay, true);
+      ClayHelper.addTile(tiles);
+      ClayHelper.openURL(clay, "Tile added", ClayAction.TILE_ADD);
       break;
-    // case "LoadIcon":
-    //   //Attempt a clayConfig data URI insert with provided payload (url)
-    //   //Re-open config page when promise returns.
-    //   insertDataURL(clayJSON.payload).then(function () {
-    //       console.log("Image parse Success, Re-opening pebbleURL");
-    //       Pebble.openURL(clay.generateUrl());
-    //     },function () {
-    //       console.log("Image parse Failure, Re-opening pebbleURL");
-    //       Pebble.openURL(clay.generateUrl());
-    //     });
-    //   break;
+    case "RemoveTile":
+      ClayHelper.removeTile(tiles, response.param);
+      ClayHelper.openURL(clay, "Tile removed", ClayAction.TILE_REMOVE);
+      break;
+    case "AddIcon":
+      image.load(response.param.url, response.param.label, function(img){
+        debug(2, "IMG message: " + img.message);
+        ClayHelper.openURL(clay, img.message, (img.status == 200) ? ClayAction.ICON_ADD : ClayAction.ICON_REMOVE);
+      });
+      break;
+    case "RemoveIcon":
+      icon.remove(response.param, function(){
+        ClayHelper.openURL(clay, "Icon removed", ClayAction.ICON_REMOVE);
+      });
+      break;
     case "Submit":
       ClayHelper.clayToTiles(tiles);
       break;

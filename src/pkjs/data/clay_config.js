@@ -1,10 +1,29 @@
 module.exports = 
  [
   {
+    "type": "heading",
+    "defaultValue": "Stateful",
+    "id": "JSONHeading"
+  },
+  {
+    "type": "text",
+    "defaultValue": "Text is used to provide descriptions of sections or to explain complex parts of your page. Feel free to add any extra HTML you require to the defaultValue",
+    "id": "MainText"
+  },
+  {
+    "type": "text",
+    "id": "MessageText"
+  },
+  {
+    "type": "text",
+    "defaultValue": "0",
+    "id": "ClayAction"
+  },
+  {
     "type": "section",
     "items": [
       {
-        "type": "heading",
+        "type": "heading2",
         "defaultValue": "JSON Manager",
         "id": "JSONHeading"
       },
@@ -31,7 +50,7 @@ module.exports =
     "type": "section",
     "items": [
       {
-        "type": "heading",
+        "type": "heading2",
         "defaultValue": "Icon Manager",
         "id": "IconHeading",
         "capabilities": ["NOT_PLATFORM_APLITE"]
@@ -87,7 +106,7 @@ module.exports =
     "type": "section",
     "items": [
       {
-        "type": "heading",
+        "type": "heading2",
         "defaultValue": "Global",
         "id": "GlobalHeading"
       },
@@ -134,7 +153,7 @@ module.exports =
     "type": "section",
     "items": [
       {
-        "type": "heading",
+        "type": "heading2",
         "defaultValue": "Tile",
         "id": "TileHeading"
       },
@@ -188,7 +207,7 @@ module.exports =
     "type": "section",
     "items": [
       {
-        "type": "heading",
+        "type": "heading2",
         "defaultValue": "Button",
         "id": "ButtonHeading"
       },
@@ -242,7 +261,7 @@ module.exports =
     "type": "section",
     "items": [
       {
-        "type": "heading",
+        "type": "heading2",
         "defaultValue": "Button <font style='color:#ff4700;'>[ACTION]</font>",
         "id": "ButtonActionHeading"
       },
@@ -300,7 +319,7 @@ module.exports =
     "type": "section",
     "items": [
       {
-        "type": "heading",
+        "type": "heading2",
         "defaultValue": "Button <font style='color:#ff4700;'>[STATUS]</font>",
         "id": "ButtonStatusHeading"
       },

@@ -11,28 +11,30 @@
 - Commit clay, make sure project compiles in clean repo
 - Use minified clay_function when releasing
 - Test max size of tile object with limits enforced in clay
-- Handle xhrArrayBuffer callback failures
 - Use `Object.byString` in `status.variable` parsing
-- Test clay_needs_config against changes made in comm_ready_callback
+- Implement front end tile limits - aplite (10?), basalt (64)
+  
+- ~~Test clay_needs_config against changes made in comm_ready_callback~~
+- ~~Handle xhrArrayBuffer callback failures~~
 - ~~Attempt to retrieve icons from storage in `data_tile_array_pack_tiles()` for faster loads~~
 - ~~Detect startup connectivity issues in `comm_ready_callback()`~~
-- Implement custom icon storage and pulldown to clay
-- Implement tile limits - aplite (10?), basalt (64)
+- ~~Implement custom icon storage and pulldown to clay~~
 - ~~png decode failure on aplite due to memory segmentation on initial download~~ 
 `won't fix - Added catch that will set default icon on allocation failure. persistent_storage still works when png allocation fails so subsequent app launches will display images. The reason for this issue is due to the limited memory on aplite.`
 - ~~Does setting default icon on failure go into app storage?~~
+- ~~Non PNG sent to image.js?~~
 ## Clay Config
-- Handle Submit payload
-- Handle Icon payload (url)
-- Refresh payload?
-- Handle Add / Delete tile payload
-
-
-- Add Icon manager
-- Add global settings
-- Add JSON Manager
-- Use focus event to copy JSON to clipboard?
-- TileSelection causes problems with ButtonIcon/ButtonName
+- Implement field validation
+- 
+- ~~Handle Submit payload~~
+- ~~Handle Icon payload (url)~~
+- ~~Refresh payload?~~
+- ~~Handle Add / Delete tile payload~~
+- ~~Add Icon manager~~
+- ~~Add global settings~~
+- ~~Add JSON Manager~~
+- ~~Use focus event to copy JSON to clipboard?~~ `no`
+- ~~TileSelection causes problems with ButtonIcon/ButtonName~~
 
 ## Nice to have / ideas
 - ~~Session management (via incrementing int) in comm.c to prevent old requests causing a race condition in `comm_bluetooth_event()`. Currently an assumption is made that when READY is received the subsequent TILE chunk transfers will be received without interruption, which under a limited set of circumstances is not the case and can cause app crashes.~~

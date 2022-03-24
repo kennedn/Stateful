@@ -9,6 +9,12 @@ module.exports = function(minified) {
   
 clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
+  function submitWithData(data) {
+    if (!validateForm()) {return;}
+    var ret_url = window.returnTo || "pebblejs://close#";
+    location.href = ret_url + LZString.compressToEncodedURIComponent(JSON.stringify(data));
+  }
+
   function confirm(message) {
     var iframe = document.createElement("iframe");
     iframe.setAttribute("src", 'data:text/plain,');
@@ -86,14 +92,14 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     }
 
     self.objectByString = function(str, val) {
-      var object = tiles;
+      var object = self.tiles;
       if (typeof(str) !== 'string') {return str;}
       str = str.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
       str = str.replace(/^\./, '');           // strip a leading dot
       if  (str === '') {
         if (typeof(val) !== 'undefined') {
-          object = val;
-          console.log("tiles." + str + ": " + JSON.stringify(val));
+          self.tiles = val;
+          console.log("tiles: " + JSON.stringify(val));
         }
       } else {
         var a = str.split('.');
@@ -212,30 +218,43 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
     this.headingItem.on('click', function(event) {
       self.setVisibility(!self.visible, false);
+      if(self.visible) {
+        self.items.forEach(function(item){
+          if(item.clay.config.type == 'textarea') {
+            item.clay.trigger('input');
+          }
+        });
+      }
     });
-    // self.setVisibility(false, false);
   }
 
   var isAplite = (clayConfig.meta.activeWatchInfo.platform == "aplite");
   var isBlackWhite = (clayConfig.meta.activeWatchInfo.platform == "aplite" || clayConfig.meta.activeWatchInfo.platform == "diorite");
   var submitButton = clayConfig.getItemById('ClaySubmit');
+  var jsonButton = clayConfig.getItemById('JSONSubmit');
+  var iconButton = clayConfig.getItemById('IconSubmit');
   var clayJSON = clayConfig.getItemById('ClayJSON');
+  var clayAction = clayConfig.getItemById('ClayAction');
+  var messageText = clayConfig.getItemById('MessageText');
   var globalSelector = clayConfig.getItemById('GlobalIndex');
   var tileSelector = clayConfig.getItemById('TileIndex');
   var buttonSelector = clayConfig.getItemById('ButtonIndex');
   var buttonTypeSelector = clayConfig.getItemById('ButtonType');
   var customIconSelector = clayConfig.getItemById('IconIndex');
 
-  var previousTile = "0";
-  var previousIcon = "0";
 
   var payload = JSON.parse(LZString.decompressFromEncodedURIComponent(clayJSON.get()));
   var tiles = payload[0];
+  var importTiles = JSON.parse(JSON.stringify(payload[0]));
   var defaultIcons = payload[1][0];
   var customIcons = payload[1][1];
   var icons = (isAplite) ? defaultIcons : defaultIcons.concat(customIcons);
   var fallbackIcon = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  var previousTile = "0";
+  var previousIcon = (customIcons.length > 0) ? customIcons[0].value : "add";
   clayJSON.hide();
+  clayAction.hide();
+  if (messageText.get() === "") {messageText.hide();}
 
   var iconItems = clayConfig.getAllItems().filter(function(item) {
       return (item.id.endsWith('Icon') && !item.id.endsWith('Heading'));
@@ -254,20 +273,19 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   if (!isAplite) {
     setTimeout(function() {
       customIconSelector.$manipulatorTarget.add(optionWithSrc("Add icon", "add", fallbackIcon));
-      customIconSelector.$manipulatorTarget.add(optionWithSrc("Remove icon (0)", 'remove', fallbackIcon));
+      customIconSelector.$manipulatorTarget.add(optionWithSrc("Remove icon", 'remove', fallbackIcon));
       customIconSelector.$manipulatorTarget[0][0].remove()  // Remove dummy value
       for (var i in customIcons) {
         var icon = customIcons[i];
         customIconSelector.$manipulatorTarget.add(optionWithSrc(icon.label, icon.value, icon.src));
       }
-      customIconSelector.$manipulatorTarget.set('value', customIcons[0].value);
-      customIconSelector.$manipulatorTarget.trigger('change');
-
+      customIconSelector.$manipulatorTarget.set('value', (customIcons.length > 0) ? (clayAction.get() == "2") ? customIcons[customIcons.length - 1].value : customIcons[0].value : 'add');
+      customIconSelector.trigger('change');
     },0);
   } 
 
 
-  var JSONSection = new Section(['JSONHeading'], ['JSONInput', 'JSONSubmit'], ['.', null], tiles);
+  var JSONSection = new Section(['JSONHeading'], ['JSONInput', 'JSONSubmit'], ['.', null], importTiles);
 
   var iconSection = (isAplite) ? null : new Section(['IconHeading'], ['IconIndex', 'IconURL', 'IconName', 'IconSubmit'],
                                 [null, null, null, null], tiles);
@@ -297,12 +315,25 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
                                          "tiles[0].buttons.up.status.data", "tiles[0].buttons.up.status.variable", "tiles[0].buttons.up.status.good", 
                                          "tiles[0].buttons.up.status.bad"], tiles);
 
-
-  JSONSection.setVisibility(false,false);
-  if(!isAplite) {
-    iconSection.setVisibility(false,false);
-    iconSection.find('IconSubmit').setVisibility(false);
+  if (clayAction.get() != 1) {
+    JSONSection.setVisibility(false,false);
+  } else {
+    JSONSection.find("JSONInput").clay.$manipulatorTarget[0].focus();
   }
+
+  if(!isAplite) {
+    iconSection.find('IconSubmit').setVisibility((customIcons.length == 0));
+    if (clayAction.get() != 2 && clayAction.get() != 3) {
+      iconSection.setVisibility(false,false);
+    } else {
+      iconSection.find("IconName").clay.$manipulatorTarget[0].focus();
+    }
+  }
+
+  if (clayAction.get() == 4 || clayAction.get() == 5) {
+    globalSection.setVisibility(false, false);
+    tileSection.find("TileName").clay.$manipulatorTarget[0].focus();
+  } 
 
   var textAreas = clayConfig.getItemsByType('textarea');
   var onTextAreaChange = function() {
@@ -323,21 +354,27 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
   var onCustomIconIndexChange = function() {
     if (this.get() == 'remove') {
-      var iconName = "'" + customIcons.find(function(element){return (element.value == previousIcon);}).label + "'";
-      if (confirm("Are you sure you want to remove icon " + iconName + " ?")) {
-        alert("Icon remove");
-      }
       safeSelectSet(customIconSelector, onCustomIconIndexChange, previousIcon, function() {
         customIconSelector.trigger('change');
       });
+      if (customIcons.length == 0) {return;}
+      var iconName = "'" + customIcons.find(function(element){return (element.value == previousIcon);}).label + "'";
+      if (confirm("Are you sure you want to remove icon " + iconName + " ?")) {
+        submitWithData({"action": "RemoveIcon", "param": previousIcon});
+      }
     } else if (this.get() == 'add') {
-      iconSection.find("IconSubmit").setVisibility(true);
+      if (!iconSection.visible) {
+        iconSection.find("IconSubmit").visible = true;
+      } else {
+        iconSection.find("IconSubmit").setVisibility(true);
+      }
       var tempItem = iconSection.find("IconName");
       tempItem.clay.$manipulatorTarget[0].removeAttribute('readonly');
       tempItem.clay.set('');
       tempItem = iconSection.find("IconURL");
       tempItem.clay.$manipulatorTarget[0].removeAttribute('readonly');
       tempItem.clay.set('');
+      if (customIcons.length == 0) {previousIcon = this.get();}
     } else {
       previousIcon = this.get();
       var customIcon = customIcons.find(function(element){return (element.value == previousIcon);});
@@ -353,11 +390,12 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   }
 
   var onTileIndexChange = function() {
+    
     if (this.get() == 'remove') {
-      if (confirm("Are you sure you want to remove " + tileSection.find("TileName").clay.get() + "?")) {
-        alert("Tile remove");
-      } 
       safeSelectSet(tileSelector, onTileIndexChange, previousTile);
+      if (confirm("Are you sure you want to remove '" + this.$manipulatorTarget.get('options')[this.$manipulatorTarget.get('selectedIndex')].text + "' ?")) {
+        submitWithData({"action": "RemoveTile", "param": previousTile, "payload": tiles});
+      } 
       return;
     }
 
@@ -368,14 +406,12 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
     if (this.get() == 'add') {
       safeSelectSet(tileSelector, onTileIndexChange, previousTile);
-      var t_json = {"action": "AddTile", "payload": tiles};
-      var ret_url = window.returnTo || "pebblejs://close#";
-      location.href = ret_url + LZString.compressToEncodedURIComponent(JSON.stringify(t_json));
+      submitWithData({"action": "AddTile", "payload": tiles});
       return;
     }
 
-    this.$manipulatorTarget.get('options')[1].text = "Remove tile (" + this.get() + ")";
     tileSection.find('TileName').setTileEntry("tiles[" + this.get('value') + "].payload.texts[6]");
+    this.$manipulatorTarget.get('options')[1].text = "Remove tile (" + this.$manipulatorTarget.get('options')[this.$manipulatorTarget.get('selectedIndex')].text + ")";
     if (!isBlackWhite) {
       tileSection.find('TileColor').setTileEntry("tiles[" + this.get('value') + "].payload.color");
       tileSection.find('TileHighlight').setTileEntry("tiles[" + this.get('value') + "].payload.highlight");
@@ -389,10 +425,11 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   tileSelector.$manipulatorTarget.add(new Option("Remove tile (0)", 'remove'));
   for (var i in tiles.tiles) {
     var tile = tiles.tiles[i];
-    tileSelector.$manipulatorTarget.add(new Option(i, i));
-    globalSelector.$manipulatorTarget.add(new Option(i, i));
+    var label = (tile.payload.texts[6] !== "") ? tile.payload.texts[6] : "Unnamed Tile";
+    tileSelector.$manipulatorTarget.add(new Option(label, i));
+    globalSelector.$manipulatorTarget.add(new Option(label, i));
   }
-  tileSelector.$manipulatorTarget.set('value', 0);
+  tileSelector.$manipulatorTarget.set('value', (clayAction.get() == 4) ? tiles.tiles.length - 1 : 0);
   tileSelector.$manipulatorTarget.trigger('change');
   globalSelector.$manipulatorTarget.set('value', 0);
   globalSelector.$manipulatorTarget.trigger('change');
@@ -455,18 +492,27 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     }
   }
 
-  customIconSelector.on('change', onCustomIconIndexChange);
+  if (!isAplite) {customIconSelector.on('change', onCustomIconIndexChange);}
   buttonTypeSelector.on('change', onButtonTypeIndexChange);
   buttonSelector.on('change', onButtonIndexChange);
   tileSelector.on('change', onTileIndexChange);
+  tileSelector.trigger('change');
   buttonTypeSelector.trigger('change');
 
 
   submitButton.on('click', function () {
-    if (!validateForm()) {return;}
-    var t_json = {"action": "Submit", "payload": tiles};
-    var ret_url = window.returnTo || "pebblejs://close#";
-    location.href = ret_url + LZString.compressToEncodedURIComponent(JSON.stringify(t_json));
-    });
+    submitWithData({"action": "Submit", "payload": tiles});
   });
+
+  jsonButton.on('click', function () {
+    submitWithData({"action": "Submit", "payload": importTiles});
+  });
+
+  iconButton.on('click', function () {
+    var iconURL = iconSection.find("IconURL").clay.get();
+    var iconLabel = iconSection.find("IconName").clay.get();
+    submitWithData({"action": "AddIcon", "param": {"url": iconURL, "label": iconLabel}});
+  });
+
+});
 };

@@ -72,5 +72,18 @@ var self = module.exports = {
     }
 
     return 1; //default icon
+  },
+  remove: function(key, callback) {
+    var customIconsDict = localStorage.getItem('custom-icons');
+    try {
+      customIconsDict = JSON.parse(customIconsDict);
+    } catch(e) {
+      customIconsDict = {};
+    }
+    if(customIconsDict.hasOwnProperty(key)){
+      delete customIconsDict[key];
+      localStorage.setItem('custom-icons', JSON.stringify(customIconsDict));
+    }
+    callback();
   }
 };

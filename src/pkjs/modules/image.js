@@ -306,13 +306,6 @@ image.toPng2 = function(pixels, width, height) {
   return bytes.array;
 };
 
-// var imageObject = {
-//   png8,
-//   png2,
-//   url,
-//   success
-// }
-
 image.load = function(url, label, callback) {
   var img = {};
   img.src = {};
@@ -335,10 +328,17 @@ image.load = function(url, label, callback) {
     customIcons = {};
   }
 
-  XHR.xhrArrayBuffer(url, 1).then(function(xhr) {
-    var png = new PNG(new Uint8Array(xhr.response))
-    if (png.colorType == 3 && png.bits < 8) {
+  XHR.xhrArrayBuffer(url, 2).then(function(xhr) {
+    try {
+      var png = new PNG(new Uint8Array(xhr.response))
+    } catch(e) {
       img.status = 1;
+      img.message = "URL did not contain a valid PNG image";
+      callback(img);
+      return;
+    }
+    if (png.colorType == 3 && png.bits < 8) {
+      img.status = 2;
       img.message = "Palette PNG must be 8 bits";
       callback(img);
       return;
@@ -354,7 +354,7 @@ image.load = function(url, label, callback) {
 
 
     img.status = xhr.status;
-    img.message = "Successfully added icon";
+    img.message = "Icon added";
     img.src.png8 = image.toPng8(pixels, png.width, png.height);
     img.src.png2 = image.toPng2(pixels, png.width, png.height);
     customIcons[urlHash] = img;

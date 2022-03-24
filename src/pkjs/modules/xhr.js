@@ -106,11 +106,12 @@ var self = module.exports = {
         debug(2, "Method: " + method);
         debug(2, "Data: " + JSON.stringify(data));
 
-        request.onerror = function(e) { 
+        request.onerror = request.ontimeout = function(e) { 
           reject(origin_hash);
         };
 
         request.open(method, url);
+        request.timeout = 5000;
         for (var key in headers) {
           if(headers.hasOwnProperty(key)) {
           debug(2, "Setting header: " + key + ": " + headers[key]);
@@ -142,7 +143,7 @@ var self = module.exports = {
           }
         };
 
-        request.ontimeout = request.onerror = function(e) { 
+        request.onerror = request.ontimeout = function(e) { 
           debug(1, "Timed out");
           repeatCall(origin_hash);
         };
@@ -179,7 +180,7 @@ var self = module.exports = {
         debug(2, "Data: " + JSON.stringify(data));
 
         request.open(method, url);
-        request.timeout = 4000;
+        request.timeout = 5000;
         for (var key in headers) {
           if(headers.hasOwnProperty(key)) {
           debug(2, "Setting header: " + key + ": " + headers[key]);
@@ -200,28 +201,29 @@ var self = module.exports = {
         }
         var request = new XMLHttpRequest();
         request.onload = function() {
-          if(this.status < 400) {
+          if(this.status == 200) {
             debug(1, "Status: " + this.status);
             resolve(this);
           } else {
-            if (maxRetries[1] > 0) {
-              setTimeout(function() { 
-                xhrRetry(url, [maxRetries[0], maxRetries[1] - 1]); 
-              }, 307 * (maxRetries[0] - maxRetries[1]));
-            } else {
-              debug(1, "Max retries reached");
-              reject(this);
-            }
+            reject(this);
           }
         };
 
         debug(1, "URL: " + url);
 
-        request.onerror = function(e) { 
-          reject(this);
+        request.onerror = request.ontimeout = function(e) { 
+          if (maxRetries[1] > 0) {
+            setTimeout(function() { 
+              xhrRetry(url, [maxRetries[0], maxRetries[1] - 1]); 
+            }, 307 * (maxRetries[0] - maxRetries[1]));
+          } else {
+            debug(1, "Max retries reached");
+            reject(this);
+          }
         };
 
         request.open('GET', url);
+        request.timeout = 5000;
         request.responseType = 'arraybuffer';
         request.send(); 
       }

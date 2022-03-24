@@ -7,16 +7,20 @@ var LZString = require ('../vendor/LZString');
 var icon = require('../modules/icon');
 
 var self = module.exports = {
-  //! Builds a tiles object from the flat packed clay-settings object
-  //! Using structured ID's to figure out object levels
   clayToTiles: function(tiles) {
     // Enforce default values for buttons that changed type on last submit
     for (var i in tiles.tiles) {
       var tile = tiles.tiles[i];
+      tile.payload.icon_keys.forEach(function(elm, idx) {
+        if (tile.payload.texts[idx] === "") {
+          tile.payload.icon_keys[idx] = "";
+        }
+      });
       for (var j in tile.buttons) {
         var button = tile.buttons[j];
         switch(parseInt(button.type)) {
           case CallType.LOCAL:
+	          button.status = {};
             button.status.method = "PUT";
             button.status.url = "";
             button.status.headers = {};
@@ -43,7 +47,8 @@ var self = module.exports = {
             break;
           case CallType.DISABLED:
           default:
-            button.type = CallType.DISABLED;
+            button = {};
+            button.status = {};
             button.status.method = "PUT";
             button.status.url = "";
             button.status.headers = {};
@@ -51,6 +56,7 @@ var self = module.exports = {
             button.status.variable = "";
             button.status.good = "";
             button.status.bad = "";
+            button.type = CallType.DISABLED;
             button.method = "PUT";
             button.url = "";
             button.headers = {};
@@ -60,13 +66,24 @@ var self = module.exports = {
         }
       }
     }
-    debug(2, JSON.stringify(tiles, null, 2));
+    debug(2, "Tiles: " + JSON.stringify(tiles, null, 2));
     localStorage.setItem('tiles', JSON.stringify(tiles));
     Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
       Pebble.sendAppMessage({"TransferType": TransferType.READY}, messageSuccess, messageFailure);
     }, messageFailure);
   },
-  openURL: function(clay, addNew) {
+  removeTile: function(tiles, index) {
+    tiles.tiles.splice(index, 1);
+    if (tiles.default_idx > tiles.tiles.length - 1) {
+      tiles.default_idx = 0;
+    } 
+    localStorage.setItem('tiles', JSON.stringify(tiles));
+  },
+  addTile: function(tiles) {
+    tiles.tiles.push(JSON.parse(JSON.stringify(require('../data/tile_object'))));
+    localStorage.setItem('tiles', JSON.stringify(tiles));
+  },
+  openURL: function(clay, message, clayAction) {
     var tiles = localStorage.getItem('tiles');
     try {
       tiles = JSON.parse(tiles);
@@ -75,23 +92,31 @@ var self = module.exports = {
     }
     var claySettings = {};
     if (tiles == null || Object.keys(tiles).length == 0  || tiles.tiles == null || tiles.tiles.length == 0) {
-      tiles = require('../data/base_object')
-      tiles.tiles.push(require('../data/tile_object'));
-      tiles.tiles[tiles.tiles.length - 1].payload.icon_keys = Array(7).fill(icon.defaultKey);
-      debug(2, "Icon Keys:" + JSON.stringify(tiles.tiles[tiles.tiles.length - 1].payload.icon_keys));
-    } else if (addNew){
-      tiles.tiles.push(require('../data/tile_object'));
-      tiles.tiles[tiles.tiles.length - 1].payload.icon_keys = Array(7).fill(icon.defaultKey);
+      tiles = JSON.parse(JSON.stringify(require('../data/base_object')));
+      self.addTile(tiles);
     }
-    for (var i in tiles.tiles){
+    for (var i in tiles.tiles) {
       var tile = tiles.tiles[i];
+      tile.payload.icon_keys.forEach(function(elm, idx) {
+        if (tile.payload.texts[idx] === "") {
+          tile.payload.icon_keys[idx] = icon.defaultKey;
+        }
+      });
     }
-    debug(2, "Tiles: " + JSON.stringify(tiles, null, 2));
-    localStorage.setItem('tiles', JSON.stringify(tiles));
     claySettings['ClayJSON'] = LZString.compressToEncodedURIComponent(JSON.stringify([tiles, icon.getClay()]));
+    if (typeof(message) !== 'undefined') {
+      claySettings['MessageText'] = "<font style='color:#ff4700;'><b>" + message + "</b></font>";
+    }
+    if (typeof(clayAction) !== 'undefined') {
+      claySettings['ClayAction'] = clayAction;
+    } else {
+      claySettings['ClayAction'] = 0;
+    }
     console.log("Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
     localStorage.setItem('clay-settings', JSON.stringify(claySettings));
-    Pebble.openURL(clay.generateUrl());
+    var clayURL = clay.generateUrl();
+    console.log("URL size: " + (clayURL.length / 1024).toFixed(2) + "kB");
+    Pebble.openURL(clayURL);
     localStorage.removeItem('clay-settings');
   }
 };
