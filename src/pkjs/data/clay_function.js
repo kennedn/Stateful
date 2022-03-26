@@ -211,11 +211,17 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     this.validate = function() {
       for (var i in self.items) {
         var item = self.items[i];
-        if (!self.visible || !item.visible) {continue;}
+        if (!item.visible) {continue;}
         var type = item.clay.config.type;
         if (type != 'input' && type != 'textarea') {continue;}
         try {
-          if (!item.clay.$manipulatorTarget[0].reportValidity()) {return false;}
+          if (!item.clay.$manipulatorTarget[0].checkValidity()) {
+            if (self.headingItem.$element.get("\$\$show")) {
+              self.setVisibility(true, false);
+              item.clay.$manipulatorTarget[0].reportValidity();
+              return false;
+            }
+          }
         } catch(e) {
           continue;
         }
@@ -414,13 +420,14 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       return;
     }
 
+    
     if (!validateSections([tileSection, buttonSection, buttonActionSection, buttonStatusSection])) {
       safeSelectSet(tileSelector, onTileIndexChange, previousTile);
       return;
     }
 
-    tileSection.find('TileName').setTileEntry("tiles[" + this.get('value') + "].payload.texts[6]");
     this.$manipulatorTarget.get('options')[1].text = "Remove tile (" + this.$manipulatorTarget.get('options')[this.$manipulatorTarget.get('selectedIndex')].text + ")";
+    tileSection.find('TileName').setTileEntry("tiles[" + this.get('value') + "].payload.texts[6]");
     if (!isBlackWhite) {
       tileSection.find('TileColor').setTileEntry("tiles[" + this.get('value') + "].payload.color");
       tileSection.find('TileHighlight').setTileEntry("tiles[" + this.get('value') + "].payload.highlight");
@@ -431,7 +438,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   };
 
   tileSelector.$manipulatorTarget.add(new Option("Add tile", 'add'));
-  tileSelector.$manipulatorTarget.add(new Option("Remove tile (0)", 'remove'));
+  tileSelector.$manipulatorTarget.add(new Option("", 'remove'));
   for (var i in tiles.tiles) {
     var tile = tiles.tiles[i];
     var label = (tile.payload.texts[6] !== "") ? tile.payload.texts[6] : "Unnamed Tile";
@@ -440,19 +447,16 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   }
   tileSelector.$manipulatorTarget.set('value', (clayAction.get() == 4) ? tiles.tiles.length - 1 : 0);
   tileSelector.$manipulatorTarget.trigger('change');
+  tileSelector.$manipulatorTarget.get('options')[1].text = "Remove tile (" + tileSelector.$manipulatorTarget.get('options')[tileSelector.$manipulatorTarget.get('selectedIndex')].text + ")";
   globalSelector.$manipulatorTarget.set('value', 0);
   globalSelector.$manipulatorTarget.trigger('change');
 
 
   var onButtonIndexChange = function() {
-    if (buttonActionSection.headingItem.$element.get("\$\$show")) {buttonActionSection.setVisibility(true,false);}
-    if (buttonStatusSection.headingItem.$element.get("\$\$show")) {buttonStatusSection.setVisibility(true,false);}
     if (!validateSections([buttonSection, buttonActionSection, buttonStatusSection])) {
       safeSelectSet(buttonSelector, onButtonIndexChange, previousButton);
       return;
     }
-    if (buttonActionSection.headingItem.$element.get("\$\$show")) {buttonActionSection.setVisibility(false,false);}
-    if (buttonStatusSection.headingItem.$element.get("\$\$show")) {buttonStatusSection.setVisibility(false,false);}
     
     buttonSection.find('ButtonType').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".type");
     buttonSection.find('ButtonName').setTileEntry("tiles[" + tileSelector.get('value') + "].payload.texts[" + buttonToIndex(this.get())+"]");

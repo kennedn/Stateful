@@ -25,6 +25,7 @@
 - ~~Does setting default icon on failure go into app storage?~~
 - ~~Non PNG sent to image.js?~~
 ## Clay Config
+- ~~Validation needs to expand sections to properly check them :(~~
 - ~~Implement field validation~~
 - ~~Handle Submit payload~~
 - ~~Handle Icon payload (url)~~
