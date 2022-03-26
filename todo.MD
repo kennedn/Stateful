@@ -10,10 +10,10 @@
 ## General
 - Commit clay, make sure project compiles in clean repo
 - Use minified clay_function when releasing
-- Test max size of tile object with limits enforced in clay
-- Use `Object.byString` in `status.variable` parsing
-- Implement front end tile limits - aplite (10?), basalt (64)
-- Enforce max string length in data.js for texts and icon_keys
+- ~~Test max size of tile object with limits enforced in clay~~
+- ~~Use `Object.byString` in `status.variable` parsing~~
+- ~~Implement front end tile limits - aplite (10?), basalt (64)~~
+- ~~Enforce max string length in data.js for texts and icon_keys~~
 
 - ~~Test clay_needs_config against changes made in comm_ready_callback~~
 - ~~Handle xhrArrayBuffer callback failures~~
@@ -25,8 +25,7 @@
 - ~~Does setting default icon on failure go into app storage?~~
 - ~~Non PNG sent to image.js?~~
 ## Clay Config
-- Implement field validation
-- 
+- ~~Implement field validation~~
 - ~~Handle Submit payload~~
 - ~~Handle Icon payload (url)~~
 - ~~Refresh payload?~~

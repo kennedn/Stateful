@@ -243,7 +243,7 @@ module.exports =
         "label": "<font style='color:#ff4700;'>* </font>Name",
         "attributes": {
           "required": true,
-          "maxLength": 18,
+          "maxLength": 20,
         },
       },
       {
@@ -269,7 +269,7 @@ module.exports =
         "type": "select",
         "id": "ButtonMethod",
         "defaultValue": "PUT",
-        "label": "<font style='color:#ff4700;'>*</font> Method",
+        "label": "Method",
         "options": [
           { "label": "GET", "value": "GET"},
           { "label": "POST", "value": "POST"},
@@ -327,7 +327,7 @@ module.exports =
         "type": "select",
         "id": "ButtonStatusMethod",
         "defaultValue": "PUT",
-        "label": "<font style='color:#ff4700;'>*</font> Method",
+        "label": "Method",
         "options": [
           { "label": "GET", "value": "GET"},
           { "label": "POST", "value": "POST"},

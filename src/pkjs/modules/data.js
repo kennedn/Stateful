@@ -47,6 +47,8 @@ var self = module.exports = {
   },
 
   packIcon: function(key, index, session) {
+    if (TRANSFER_LOCK) {return;}
+    key = key.slice(0, MAX_HASH_LENGTH);
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);
     var ptr = 0;
@@ -95,6 +97,7 @@ var self = module.exports = {
   },
 
   packTiles: function(session) {
+    if (TRANSFER_LOCK) {return;}
     // create a big temporary buffer as we don't know the size we will end up with yet
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);
@@ -112,7 +115,7 @@ var self = module.exports = {
       Pebble.sendAppMessage({"TransferType": TransferType.NO_CLAY}, messageSuccess, messageFailure);
       return;
     }
-
+    tiles.tiles = tiles.tiles.slice(0, getPlatformLimits().maxTiles);
     // pack tile variables into the buffer object, incrementing our pointer each time
     uint8[ptr++] = tiles.tiles.length;
     uint8[ptr++] = Math.max(0, Math.min(tiles.tiles.length - 1, tiles.default_idx));
@@ -131,13 +134,13 @@ var self = module.exports = {
       uint8[ptr++] = self.toGColor(payload.highlight);
 
       for (var idx in payload.texts) {
-        t = payload.texts[idx];
+        t = payload.texts[idx].slice(0, MAX_STR_LENGTH);
         uint8[ptr++] = t.length + 1;
         ptr = self.packString(uint8, t, ptr);
       }
 
       for (var idx in payload.icon_keys) {
-        k = payload.icon_keys[idx];
+        k = payload.icon_keys[idx].slice(0, MAX_HASH_LENGTH);;
         uint8[ptr++] = k.length + 1;
         ptr = self.packString(uint8, k, ptr);
       }
@@ -156,10 +159,10 @@ var self = module.exports = {
         return -1;
       }
     });
-    var unique_keys_slice = icon_keys.slice(0, getPlatformLimits().iconBufferSize)
+    var unique_keys_slice = icon_keys.slice(0, getPlatformLimits().iconArraySize)
     debug(2, "Quick Icons: " + JSON.stringify(unique_keys_slice));
     for (var keyIdx in unique_keys_slice) {
-      key = unique_keys_slice[keyIdx]
+      key = unique_keys_slice[keyIdx].slice(0, MAX_HASH_LENGTH);
       uint8[ptr++] = key.length + 1;
       ptr = self.packString(uint8, key, ptr);
     }

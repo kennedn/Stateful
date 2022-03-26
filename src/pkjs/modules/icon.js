@@ -84,6 +84,6 @@ var self = module.exports = {
       delete customIconsDict[key];
       localStorage.setItem('custom-icons', JSON.stringify(customIconsDict));
     }
-    callback();
+    return callback();
   }
 };

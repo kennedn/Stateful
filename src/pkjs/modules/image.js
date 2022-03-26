@@ -311,7 +311,7 @@ image.load = function(url, label, callback) {
   img.src = {};
   img.src.url = url
   img.label = label
-  var urlHash = sha1(url).substring(0,8)
+  var urlHash = sha1(url).substring(0, MAX_HASH_LENGTH)
   var customIcons = localStorage.getItem('custom-icons');
   try {
     customIcons = JSON.parse(customIcons);
@@ -322,8 +322,7 @@ image.load = function(url, label, callback) {
   if (customIcons && customIcons.hasOwnProperty(urlHash)) { 
     img.status = 0;
     img.message = "Icon already exists"
-    callback(img);
-    return;
+    return callback(img);
   } else if (!customIcons) {
     customIcons = {};
   }
@@ -334,14 +333,12 @@ image.load = function(url, label, callback) {
     } catch(e) {
       img.status = 1;
       img.message = "URL did not contain a valid PNG image";
-      callback(img);
-      return;
+      return callback(img);
     }
     if (png.colorType == 3 && png.bits < 8) {
       img.status = 2;
       img.message = "Palette PNG must be 8 bits";
-      callback(img);
-      return;
+      return callback(img);
     }
     var pixels =  png.decode();
     var target_width = ICON_SIZE_PX;
@@ -359,12 +356,12 @@ image.load = function(url, label, callback) {
     img.src.png2 = image.toPng2(pixels, png.width, png.height);
     customIcons[urlHash] = img;
     localStorage.setItem('custom-icons', JSON.stringify(customIcons));
-    callback(img);
+    return callback(img);
   }, function(xhr) {
     // debug(1, "PNG Retrieval failed with code " + xhr.status);
     img.status = xhr.status;
     img.message = "PNG retrieval failed with HTTP code " + xhr.status;
-    callback(img);
+    return callback(img);
   });
 };
 

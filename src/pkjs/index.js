@@ -76,14 +76,15 @@ Pebble.addEventListener("appmessage", function(e) {
       }
 
       var hash = (dict.RequestIndex << 20) | (dict.RequestButton << 10) | dict.RequestClicks;
-      var url = (tiles.base_url != null) ? tiles.base_url + button.url : button.url;
-      // Shouldn't headers be concatinated?
-      var headers = (tiles.headers != null) ? tiles.headers : button.headers;
+      var url = (tiles.base_url != null && !button.url.startsWith("http")) ? tiles.base_url + button.url : button.url;
+      var headers = JSON.parse(JSON.stringify(tiles.headers));
+      Object.keys(button.headers).forEach(function(key) {headers[key] = button.headers[key];});
 
       switch(parseInt(button.type)) {
         case CallType.STATEFUL:
-          var status_url = (tiles.base_url != null) ? tiles.base_url + button.status.url : button.status.url;
-          var status_headers = (tiles.headers != null) ? tiles.headers : button.status.headers;
+          var status_url = (tiles.base_url != null && !button.status.url.startsWith("http")) ? tiles.base_url + button.status.url : button.status.url;
+          var status_headers = JSON.parse(JSON.stringify(tiles.headers));
+          Object.keys(button.status.headers).forEach(function(key) {status_headers[key] = button.status.headers[key];});
           XHR.statefulXHRRequest(button, url, headers, status_url, status_headers, hash);
           break;
         case CallType.LOCAL:
@@ -91,7 +92,8 @@ Pebble.addEventListener("appmessage", function(e) {
           break;
         case CallType.STATUS_ONLY:
           var status_url = (tiles.base_url != null) ? tiles.base_url + button.status.url : button.status.url;
-          var status_headers = (tiles.headers != null) ? tiles.headers : button.status.headers;
+          var status_headers = JSON.parse(JSON.stringify(tiles.headers));
+          Object.keys(button.status.headers).forEach(function(key) {status_headers[key] = button.status.headers[key];});
           XHR.statusXHRRequest(button, status_url, status_headers, hash);
           break;
         default:
@@ -119,11 +121,13 @@ Pebble.addEventListener('ready', function() {
 
 
 Pebble.addEventListener('showConfiguration', function(e) {
+  TRANSFER_LOCK = true;
   ClayHelper.openURL(clay);
 });
 
 
 Pebble.addEventListener('webviewclosed', function(e) {
+  TRANSFER_LOCK = false;
   if (e && !e.response) {
     return;
   }
@@ -134,8 +138,8 @@ Pebble.addEventListener('webviewclosed', function(e) {
 
   switch(response.action) {
     case "AddTile":
-      ClayHelper.addTile(tiles);
-      ClayHelper.openURL(clay, "Tile added", ClayAction.TILE_ADD);
+      var message = ClayHelper.addTile(tiles);
+      ClayHelper.openURL(clay, message, ClayAction.TILE_ADD);
       break;
     case "RemoveTile":
       ClayHelper.removeTile(tiles, response.param);

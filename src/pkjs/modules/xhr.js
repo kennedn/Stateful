@@ -5,6 +5,20 @@ for (var key in globals) {
 }
 
 var self = module.exports = {
+  objectByString: function(object, str) {
+    str = str.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
+    str = str.replace(/^\./, '');           // strip a leading dot
+    var a = str.split('.');
+    for (var i = 0, n = a.length; i < n; ++i) {
+        var k = a[i];
+        if (k in object) {
+            object = object[k];
+        } else {
+            return null;
+        }
+    }
+    return object;
+  },
   colorAppMessage: function(color, hash) {
     Pebble.sendAppMessage({"TransferType": TransferType.COLOR, "Color": color, "Hash": hash}, messageSuccess, messageFailure);
   },
@@ -84,11 +98,11 @@ var self = module.exports = {
               debug(2, "Response data: " + JSON.stringify(returnData));
             } catch(e) {
               debug(1, "JSON parse failure");
-              reject(origin_hash);
+              return reject(origin_hash);
             }
 
             debug(1, "Status: " + this.status);
-            resolve({ data: returnData, hash: origin_hash});
+            return resolve({ data: returnData, hash: origin_hash});
 
           } else {
             if (maxRetries[1] > 0) {
@@ -97,7 +111,7 @@ var self = module.exports = {
               }, 307 * (maxRetries[0] - maxRetries[1]));
             } else {
               debug(1, "Max retries reached");
-              reject(origin_hash);
+              return reject(origin_hash);
             }
           }
         };
@@ -107,7 +121,7 @@ var self = module.exports = {
         debug(2, "Data: " + JSON.stringify(data));
 
         request.onerror = request.ontimeout = function(e) { 
-          reject(origin_hash);
+          return reject(origin_hash);
         };
 
         request.open(method, url);
@@ -139,7 +153,7 @@ var self = module.exports = {
               xhrRetry(method, url, headers, data, hash, variable, good, bad, [maxRetries[0], maxRetries[1] - 1])
             }, 100 * (maxRetries[0] - maxRetries[1]));
           } else {
-            reject(origin_hash)
+            return reject(origin_hash)
           }
         };
 
@@ -152,21 +166,20 @@ var self = module.exports = {
           if(this.status < 400) {
             var returnData = {};
             try {
-              returnData = JSON.parse(this.responseText);
-              var variable_split = variable.split(".")
-              for (var j in variable_split) {
-              returnData = returnData[variable_split[j]];
-              }
+              returnData = self.objectByString(JSON.parse(this.responseText), variable);
               debug(2, "Response data: " + JSON.stringify(returnData));
+              if (returnData === null) {
+                return reject(origin_hash);
+              }
             } catch(e) {
-              reject(origin_hash);
+              return reject(origin_hash);
             }
             debug(1, "Status: " + this.status);
             debug(2, "result: " + returnData + " maxRetries: " + maxRetries[1]);
             if (returnData == good) {
-              resolve({color: ColorAction.GOOD, hash: origin_hash});
+              return resolve({color: ColorAction.GOOD, hash: origin_hash});
             } else if (returnData == bad) {
-              resolve({color: ColorAction.BAD, hash: origin_hash});
+              return resolve({color: ColorAction.BAD, hash: origin_hash});
             } else {
               repeatCall(origin_hash);
             }
@@ -203,9 +216,9 @@ var self = module.exports = {
         request.onload = function() {
           if(this.status == 200) {
             debug(1, "Status: " + this.status);
-            resolve(this);
+            return resolve(this);
           } else {
-            reject(this);
+            return reject(this);
           }
         };
 
@@ -218,7 +231,7 @@ var self = module.exports = {
             }, 307 * (maxRetries[0] - maxRetries[1]));
           } else {
             debug(1, "Max retries reached");
-            reject(this);
+            return reject(this);
           }
         };
 

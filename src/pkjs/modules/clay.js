@@ -8,7 +8,16 @@ var icon = require('../modules/icon');
 
 var self = module.exports = {
   clayToTiles: function(tiles) {
+    if (tiles == null || Object.keys(tiles).length == 0  || tiles.tiles == null || tiles.tiles.length == 0) {
+      debug(2, "clayToTiles: " + JSON.stringify(tiles, null, 2));
+      localStorage.setItem('tiles', "{}");
+      Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
+        Pebble.sendAppMessage({"TransferType": TransferType.READY}, messageSuccess, messageFailure);
+      }, messageFailure);
+      return;
+    }
     // Enforce default values for buttons that changed type on last submit
+    tiles.tiles = tiles.tiles.slice(0, 64) // Max allowed tiles
     for (var i in tiles.tiles) {
       var tile = tiles.tiles[i];
       tile.payload.icon_keys.forEach(function(elm, idx) {
@@ -66,7 +75,6 @@ var self = module.exports = {
         }
       }
     }
-    debug(2, "Tiles: " + JSON.stringify(tiles, null, 2));
     localStorage.setItem('tiles', JSON.stringify(tiles));
     Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
       Pebble.sendAppMessage({"TransferType": TransferType.READY}, messageSuccess, messageFailure);
@@ -80,8 +88,10 @@ var self = module.exports = {
     localStorage.setItem('tiles', JSON.stringify(tiles));
   },
   addTile: function(tiles) {
+    if (tiles.tiles.length >= getPlatformLimits().maxTiles) {return "Tile not added: Max tiles reached";}
     tiles.tiles.push(JSON.parse(JSON.stringify(require('../data/tile_object'))));
     localStorage.setItem('tiles', JSON.stringify(tiles));
+    return "Tile added";
   },
   openURL: function(clay, message, clayAction) {
     var tiles = localStorage.getItem('tiles');
@@ -104,14 +114,11 @@ var self = module.exports = {
       });
     }
     claySettings['ClayJSON'] = LZString.compressToEncodedURIComponent(JSON.stringify([tiles, icon.getClay()]));
+    claySettings['ClayAction'] = (typeof(clayAction) !== 'undefined') ? clayAction : 0;
     if (typeof(message) !== 'undefined') {
       claySettings['MessageText'] = "<font style='color:#ff4700;'><b>" + message + "</b></font>";
     }
-    if (typeof(clayAction) !== 'undefined') {
-      claySettings['ClayAction'] = clayAction;
-    } else {
-      claySettings['ClayAction'] = 0;
-    }
+
     console.log("Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
     localStorage.setItem('clay-settings', JSON.stringify(claySettings));
     var clayURL = clay.generateUrl();

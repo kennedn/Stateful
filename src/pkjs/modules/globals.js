@@ -1,11 +1,15 @@
 var self = module.exports = {
+  DEBUG: 2,
   ICON_SIZE_PX: 18,
-  DEBUG: 3,
+  MAX_HASH_LENGTH: 8,
+  MAX_STR_LENGTH: 20,
+  TRANSFER_LOCK: false,
   getPlatformLimits: function() {
     var aplite = (Pebble.getActiveWatchInfo().platform == 'aplite');
     return {
       'maxChunkSize': aplite ? 256 : 8200,
-      'iconBufferSize': aplite ? 10: 16
+      'iconArraySize': aplite ? 10: 16,
+      'maxTiles': aplite ? 16 : 64
     };
   },
   debug: function(level, msg) {

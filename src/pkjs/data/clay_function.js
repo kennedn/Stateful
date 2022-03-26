@@ -10,7 +10,6 @@ module.exports = function(minified) {
 clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
   function submitWithData(data) {
-    if (!validateForm()) {return;}
     var ret_url = window.returnTo || "pebblejs://close#";
     location.href = ret_url + LZString.compressToEncodedURIComponent(JSON.stringify(data));
   }
@@ -24,17 +23,10 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     return ret;
   }
 
-  function validateForm() {
-    return true;
-    var inputs = document.getElementsByTagName('input');
-    for (var i in inputs) {
-      try {
-        if (!inputs[i].reportValidity()) {return false;}
-      } catch(e) {
-        continue;
-      }
-    }
-    return true;
+  function validateSections(sections) {
+    return (sections.filter(function(section) {
+      return section.validate();
+    }).length == sections.length); 
   }
 
   function safeSelectSet(clayItem, selectFunction, value, callback) {
@@ -43,7 +35,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       clayItem.off(selectFunction);
       clayItem.$manipulatorTarget.trigger('change');
       clayItem.on('change', selectFunction);
-      if (callback) {callback();}
+      if (callback) {return callback();}
     }, 0);
   }
 
@@ -216,6 +208,21 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       this.visible = visible;
     };
 
+    this.validate = function() {
+      for (var i in self.items) {
+        var item = self.items[i];
+        if (!self.visible || !item.visible) {continue;}
+        var type = item.clay.config.type;
+        if (type != 'input' && type != 'textarea') {continue;}
+        try {
+          if (!item.clay.$manipulatorTarget[0].reportValidity()) {return false;}
+        } catch(e) {
+          continue;
+        }
+      }
+      return true;
+    };
+
     this.headingItem.on('click', function(event) {
       self.setVisibility(!self.visible, false);
       if(self.visible) {
@@ -251,6 +258,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   var icons = (isAplite) ? defaultIcons : defaultIcons.concat(customIcons);
   var fallbackIcon = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
   var previousTile = "0";
+  var previousButton = "up";
   var previousIcon = (customIcons.length > 0) ? customIcons[0].value : "add";
   clayJSON.hide();
   clayAction.hide();
@@ -399,14 +407,15 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       return;
     }
 
-    if (!validateForm()) {
+    if (this.get() == 'add') {
       safeSelectSet(tileSelector, onTileIndexChange, previousTile);
+      if (!validateSections([globalSection, tileSection, buttonSection, buttonActionSection, buttonStatusSection])) {return;}
+      submitWithData({"action": "AddTile", "payload": tiles});
       return;
     }
 
-    if (this.get() == 'add') {
+    if (!validateSections([tileSection, buttonSection, buttonActionSection, buttonStatusSection])) {
       safeSelectSet(tileSelector, onTileIndexChange, previousTile);
-      submitWithData({"action": "AddTile", "payload": tiles});
       return;
     }
 
@@ -436,6 +445,15 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
 
   var onButtonIndexChange = function() {
+    if (buttonActionSection.headingItem.$element.get("\$\$show")) {buttonActionSection.setVisibility(true,false);}
+    if (buttonStatusSection.headingItem.$element.get("\$\$show")) {buttonStatusSection.setVisibility(true,false);}
+    if (!validateSections([buttonSection, buttonActionSection, buttonStatusSection])) {
+      safeSelectSet(buttonSelector, onButtonIndexChange, previousButton);
+      return;
+    }
+    if (buttonActionSection.headingItem.$element.get("\$\$show")) {buttonActionSection.setVisibility(false,false);}
+    if (buttonStatusSection.headingItem.$element.get("\$\$show")) {buttonStatusSection.setVisibility(false,false);}
+    
     buttonSection.find('ButtonType').setTileEntry("tiles[" + tileSelector.get('value') + "].buttons." + this.get() + ".type");
     buttonSection.find('ButtonName').setTileEntry("tiles[" + tileSelector.get('value') + "].payload.texts[" + buttonToIndex(this.get())+"]");
     buttonSection.find('ButtonIcon').setTileEntry("tiles[" + tileSelector.get('value') + "].payload.icon_keys[" + buttonToIndex(this.get())+"]");
@@ -457,6 +475,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       item.trigger('input');
     });
     buttonTypeSelector.trigger('change');
+    previousButton = this.get();
   };
 
   var onButtonTypeIndexChange = function() {
@@ -501,14 +520,17 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
 
 
   submitButton.on('click', function () {
+    if (!validateSections([globalSection, tileSection, buttonSection, buttonActionSection, buttonStatusSection])) {return;}
     submitWithData({"action": "Submit", "payload": tiles});
   });
 
   jsonButton.on('click', function () {
-    submitWithData({"action": "Submit", "payload": importTiles});
+    if (!validateSections([JSONSection])) {return;}
+    submitWithData({"action": "Submit", "payload": JSONSection.find("JSONInput").tiles});
   });
 
   iconButton.on('click', function () {
+    if (!validateSections([iconSection])) {return;}
     var iconURL = iconSection.find("IconURL").clay.get();
     var iconLabel = iconSection.find("IconName").clay.get();
     submitWithData({"action": "AddIcon", "param": {"url": iconURL, "label": iconLabel}});
