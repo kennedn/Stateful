@@ -1,9 +1,9 @@
+.lock-waf*
+package-lock.json
+*.webp
+.*
+headers.json
+src/pkjs/stateful.js
 build/
-backup/
 node_modules/
 tests/
-.lock-waf*
-headers.json
-.*
-src/pkjs/stateful.js
-*.webp

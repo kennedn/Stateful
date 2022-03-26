@@ -13,7 +13,8 @@
 - Test max size of tile object with limits enforced in clay
 - Use `Object.byString` in `status.variable` parsing
 - Implement front end tile limits - aplite (10?), basalt (64)
-  
+- Enforce max string length in data.js for texts and icon_keys
+
 - ~~Test clay_needs_config against changes made in comm_ready_callback~~
 - ~~Handle xhrArrayBuffer callback failures~~
 - ~~Attempt to retrieve icons from storage in `data_tile_array_pack_tiles()` for faster loads~~
