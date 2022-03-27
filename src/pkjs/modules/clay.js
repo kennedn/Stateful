@@ -37,22 +37,22 @@ var self = module.exports = {
             button.status.variable = "";
             button.status.good = "";
             button.status.bad = "";
-            if (typeof(button.headers) !== 'object'){button.headers = {};}
-            if (typeof(button.data) !== 'object'){button.data = {};}
+            if (typeof(button.headers) !== 'object' || button.headers === null){button.headers = {};}
+            if (typeof(button.data) !== 'object' || button.data === null){button.data = {};}
             break;
           case CallType.STATUS_ONLY:
             button.method = "PUT";
             button.url = "";
             button.headers = {};
             button.data = {};
-            if (typeof(button.status.headers) !== 'object'){button.headers = {};}
-            if (typeof(button.status.data) !== 'object'){button.data = {};}
+            if (typeof(button.status.headers) !== 'object' || button.status.headers === null){button.status.headers = {};}
+            if (typeof(button.status.data) !== 'object' || button.status.data === null){button.status.data = {};}
             break;
           case CallType.STATEFUL:
-            if (typeof(button.headers) !== 'object'){button.headers = {};}
-            if (typeof(button.data) !== 'object'){button.data = {};}
-            if (typeof(button.status.headers) !== 'object'){button.headers = {};}
-            if (typeof(button.status.data) !== 'object'){button.data = {};}
+            if (typeof(button.headers) !== 'object' || button.headers === null){button.headers = {};}
+            if (typeof(button.data) !== 'object' || button.data === null){button.data = {};}
+            if (typeof(button.status.headers) !== 'object' || button.status.headers === null){button.status.headers = {};}
+            if (typeof(button.status.data) !== 'object' || button.status.data === null){button.status.data = {};}
             break;
           case CallType.DISABLED:
           default:
@@ -107,8 +107,11 @@ var self = module.exports = {
     }
     for (var i in tiles.tiles) {
       var tile = tiles.tiles[i];
-      tile.payload.icon_keys.forEach(function(elm, idx) {
-        if (tile.payload.texts[idx] === "") {
+      tile.payload.icon_keys.forEach(function(icon_key, idx) {
+        if (icon_key === "") {
+          tile.payload.icon_keys[idx] = icon.defaultKey;
+        }
+        if (icon_key != icon.defaultKey && icon.find(icon_key) === 1) {
           tile.payload.icon_keys[idx] = icon.defaultKey;
         }
       });
