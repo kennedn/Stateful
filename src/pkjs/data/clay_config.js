@@ -7,7 +7,7 @@ module.exports =
   },
   {
     "type": "text",
-    "defaultValue": "",
+    "defaultValue": "<a href='https://github.com/kennedn/Stateful/wiki'><img src='https://shields.io/badge/github-Consult%20the%20Wiki-white?logo=github&style=for-the-badge' alt='Consult the Wiki'></img></a>",
     "id": "MainText"
   },
   {

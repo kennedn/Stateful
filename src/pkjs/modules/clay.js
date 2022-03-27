@@ -114,15 +114,18 @@ var self = module.exports = {
       });
     }
     claySettings['ClayJSON'] = LZString.compressToEncodedURIComponent(JSON.stringify([tiles, icon.getClay()]));
-    claySettings['ClayAction'] = (typeof(clayAction) !== 'undefined') ? clayAction : 0;
-    if (typeof(message) !== 'undefined') {
+    claySettings['ClayAction'] = (typeof(clayAction) !== 'undefined' && clayAction !== null) ? clayAction : 0;
+    localStorage.setItem('clay-param-action', claySettings['ClayAction']);
+    if (typeof(message) !== 'undefined' && message !== null) {
       claySettings['MessageText'] = "<font style='color:#ff4700;'><b>" + message + "</b></font>";
+      localStorage.setItem('clay-param-message', claySettings['MessageText']);
     }
 
     console.log("Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
     localStorage.setItem('clay-settings', JSON.stringify(claySettings));
     var clayURL = clay.generateUrl();
     console.log("URL size: " + (clayURL.length / 1024).toFixed(2) + "kB");
+
     Pebble.openURL(clayURL);
     localStorage.removeItem('clay-settings');
   }

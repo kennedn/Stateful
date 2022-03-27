@@ -12,12 +12,17 @@ module.exports = function(minified) {
       var validityFunc = function () {
         var self = this;
           if (this.checkValidity()) {
+              $(self).set('$background-color', 'rgba(0,170,0,0.2)');
+              $(self).on('input', function() {self.placeholder = ""; $(self).set('$background-color', '#333333');});
+              setTimeout(function() {$(self).set('$background-color', '#333333');}, 2500);
               return true;
           } else {
               self.click()
               self.focus();
               self.placeholder = "Please fill in this field...";
-              $(self).on('input', function() {self.placeholder = "";});
+              $(self).on('input', function() {self.placeholder = ""; $(self).set('$background-color', '#333333');});
+              $(self).set('$background-color', 'rgba(255,0,85,0.2)');
+              setTimeout(function() {$(self).set('$background-color', '#333333');}, 2500);
               return false;
           }
       };
@@ -169,13 +174,10 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       if (self.jsonObject && self.tileEntry !== null) {
         try {
           self.objectByString(self.tileEntry, JSON.parse(self.clay.get()));
-          $(self.clay.$manipulatorTarget[0]).set('$background-color', 'rgba(0,170,0,0.2)');
-          setTimeout(function() {$(self.clay.$manipulatorTarget[0]).set('$background-color', '#333333');}, 2500);
-
           self.clay.$manipulatorTarget[0].setCustomValidity('')
+          self.clay.$manipulatorTarget[0].reportValidity();
           return true;
         } catch(e) {
-          $(self.clay.$manipulatorTarget[0]).set('$background-color', 'rgba(255,0,85,0.2)');
           self.clay.$manipulatorTarget[0].setCustomValidity('JSON parse error')
           self.clay.$manipulatorTarget[0].reportValidity();
           return false;
@@ -247,6 +249,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
             self.setVisibility(true, false);
             item.clay.$manipulatorTarget[0].reportValidity();
             setTimeout(function() {item.clay.$manipulatorTarget[0].reportValidity();}, 0);
+            
             return false;
           }
         }
@@ -279,13 +282,11 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   var buttonSelector = clayConfig.getItemById('ButtonIndex');
   var buttonTypeSelector = clayConfig.getItemById('ButtonType');
   var customIconSelector = clayConfig.getItemById('IconIndex');
-  var mainText = clayConfig.getItemById('MainText');
 
   var payload = JSON.parse(LZString.decompressFromEncodedURIComponent(clayJSON.get()));
   var tiles = payload[0];
   var importTiles = JSON.parse(JSON.stringify(payload[0]));
-  var wikiIcon = payload[1][0][0];
-  var defaultIcons = payload[1][0].slice(1);
+  var defaultIcons = payload[1][0];
   var customIcons = payload[1][1];
   var icons = (isAplite) ? defaultIcons : defaultIcons.concat(customIcons);
   var fallbackIcon = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
@@ -295,7 +296,6 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   clayJSON.hide();
   clayAction.hide();
   if (messageText.get() === "") {messageText.hide();}
-  setTimeout(function() {mainText.set("<a href='https://github.com/kennedn/Stateful/wiki'><img src='" + wikiIcon.src + "' alt='Consult the Wiki'></img></a>");},0);
 
   var iconItems = clayConfig.getAllItems().filter(function(item) {
       return (item.id.endsWith('Icon') && !item.id.endsWith('Heading'));

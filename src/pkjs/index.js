@@ -115,11 +115,15 @@ Pebble.addEventListener('ready', function() {
 
 Pebble.addEventListener('showConfiguration', function(e) {
   TRANSFER_LOCK = true;
-  ClayHelper.openURL(clay);
+  var message = localStorage.getItem('clay-param-message');
+  var action = localStorage.getItem('clay-param-action');
+  ClayHelper.openURL(clay, message, action);
 });
 
 
 Pebble.addEventListener('webviewclosed', function(e) {
+  localStorage.removeItem('clay-param-message');
+  localStorage.removeItem('clay-param-action');
   TRANSFER_LOCK = false;
   if (e && !e.response) {
     return;
