@@ -108,10 +108,7 @@ var self = module.exports = {
     for (var i in tiles.tiles) {
       var tile = tiles.tiles[i];
       tile.payload.icon_keys.forEach(function(icon_key, idx) {
-        if (icon_key === "") {
-          tile.payload.icon_keys[idx] = icon.defaultKey;
-        }
-        if (icon_key != icon.defaultKey && icon.find(icon_key) === 1) {
+        if (icon_key !== icon.defaultKey && icon.find(icon_key) === 1) {
           tile.payload.icon_keys[idx] = icon.defaultKey;
         }
       });

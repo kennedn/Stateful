@@ -1,6 +1,15 @@
 module.exports = [
   {
   "src": {
+    "url": "https://shields.io/badge/github-Consult%20the%20Wiki-white?logo=github&style=for-the-badge",
+    "webp": "https://shields.io/badge/github-Consult%20the%20Wiki-white?logo=github&style=for-the-badge",
+  },
+  "resource": -1,
+  "label": "Wiki",
+  "value": "wiki"
+  },
+  {
+  "src": {
     "url": "https://github.com/kennedn/Stateful/raw/working/resources/icons/default.png",
     "webp": "data:image/webp;base64,UklGRoIAAABXRUJQVlA4WAoAAAAQAAAAEQAAEQAAQUxQSBcAAAABDzD/ERGCINtmBlO+/YcQ0f8JoJ1HCQBWUDggRAAAADADAJ0BKhIAEgA+nUCYSaWkIqE36ACwE4lpAACI5keDacAA/vtlb/5D9x2H5w56LybczrgYn/wCr8QL/QmieRjwAAAA"
   },

@@ -7,7 +7,7 @@ module.exports =
   },
   {
     "type": "text",
-    "defaultValue": "Text is used to provide descriptions of sections or to explain complex parts of your page. Feel free to add any extra HTML you require to the defaultValue",
+    "defaultValue": "",
     "id": "MainText"
   },
   {
@@ -429,5 +429,10 @@ module.exports =
         }
       }
     ]
-  }
+  },
+  {
+    "type": "text",
+    "defaultValue": "Made by <a href='https://kennedn.com'>kennedn</a></br>&nbsp;",
+    "id": "MadeByText"
+  },
 ]

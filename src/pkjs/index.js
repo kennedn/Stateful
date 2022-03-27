@@ -109,13 +109,6 @@ Pebble.addEventListener("appmessage", function(e) {
 
 Pebble.addEventListener('ready', function() {
   console.log("And we're back");
-
-  image.load('http://thinboy.int/icons/deleted.png', 'Deleted', function(img) {
-    debug(1, img.message);
-    image.load('http://thinboy.int/icons/rgb.png', 'RGB', function(img) {
-      debug(1, img.message);
-    });
-  });
   Pebble.sendAppMessage({"TransferType": TransferType.READY,}, messageSuccess, messageFailure);
 });
 

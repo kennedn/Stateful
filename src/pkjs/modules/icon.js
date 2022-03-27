@@ -46,6 +46,9 @@ var self = module.exports = {
     return [icons, customIcons];
   },
   find: function(key) {
+    if (key === "") {
+      return 1;
+    }
     var iconValue = default_icons.filter(function(element) {
       return (element.value === key);
     });
@@ -60,7 +63,7 @@ var self = module.exports = {
       customIconsDict = {};
     }
 
-    if(customIconsDict.hasOwnProperty(key)){
+    if(customIconsDict && customIconsDict.hasOwnProperty(key)){
       debug(3, JSON.stringify(customIconsDict[key].src));
       if(Pebble.getActiveWatchInfo().platform == "aplite") {
         return 1; //default icon

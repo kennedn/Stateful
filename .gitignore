@@ -3,7 +3,7 @@ package-lock.json
 *.webp
 .*
 headers.json
-src/pkjs/stateful.js
+src/pkjs/stateful*.js
 build/
 node_modules/
 tests/
