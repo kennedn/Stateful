@@ -7,8 +7,11 @@
   ],
   "private": true,
   "dependencies": {
-    "buffer": "4.9.2",
-    "pebble-clay": "kennedn/clay#TextArea"
+    "bluebird": "^3.7.2",
+    "buffer": "^6.0.3",
+    "pebble-clay": "git+https://github.com/kennedn/clay.git",
+    "sha1": "^1.1.1",
+    "xmlhttprequest": "^1.8.0"
   },
   "pebble": {
     "displayName": "Stateful",
@@ -27,17 +30,18 @@
     "messageKeys": [
       "RequestIndex",
       "RequestButton",
+      "RequestClicks",
       "Color",
+      "Hash",
+      "Session",
       "IconKey",
       "IconIndex",
-      "XHRData",
       "TransferComplete",
       "TransferIndex",
       "TransferLength",
       "TransferChunk",
       "TransferChunkLength",
-      "TransferType",
-      "ClayJSON"
+      "TransferType"
     ],
     "resources": {
       "media": [
@@ -63,8 +67,103 @@
         },
         {
           "type": "png",
-          "name": "ICON_TEST",
-          "file": "icons/test.png"
+          "name": "ICON_CALL",
+          "file": "icons/call.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_PLUS",
+          "file": "icons/plus.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_MINUS",
+          "file": "icons/minus.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_STAR",
+          "file": "icons/star.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_POWER",
+          "file": "icons/power.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_INPUT",
+          "file": "icons/input.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_MUTE",
+          "file": "icons/mute.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_ASPECT",
+          "file": "icons/aspect.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_PLANT",
+          "file": "icons/plant.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_MAIL",
+          "file": "icons/mail.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_BOLT",
+          "file": "icons/bolt.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_NOTIFICATION",
+          "file": "icons/notification.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_FLAME",
+          "file": "icons/flame.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_UNLOCK",
+          "file": "icons/unlock.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_LOCK",
+          "file": "icons/lock.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_DROPLET",
+          "file": "icons/droplet.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_TICK",
+          "file": "icons/tick.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_CROSS",
+          "file": "icons/cross.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_QUESTION",
+          "file": "icons/question.png"
+        },
+        {
+          "type": "png",
+          "name": "ICON_OVERFLOW",
+          "file": "icons/overflow.png"
         },
         {
           "type": "raw",
@@ -72,9 +171,19 @@
           "file": "images/loading.png"
         },
         {
-          "file": "fonts/Ubuntu-M.ttf",
-          "name": "FONT_UBUNTU_MEDIUM_18",
-          "type": "font"
+          "type": "raw",
+          "name": "LOADING_ANIMATION_BLACK",
+          "file": "images/loading_black.png"
+        },
+        {
+          "type": "raw",
+          "name": "LOADING_MINI",
+          "file": "images/loading_mini.png"
+        },
+        {
+          "type": "raw",
+          "name": "LOADING_MINI_BLACK",
+          "file": "images/loading_mini_black.png"
         },
         {
           "file": "fonts/Ubuntu-B.ttf",

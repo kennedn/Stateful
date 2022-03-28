@@ -6,7 +6,10 @@
         "toggle_window.h": "c",
         "data.h": "c",
         "action_window.h": "c",
-        "loading_window.h": "c"
+        "loading_window.h": "c",
+        "random": "c",
+        "menu_window.h": "c",
+        "pebble.h": "c"
     },
     "C_Cpp.dimInactiveRegions": false
 }

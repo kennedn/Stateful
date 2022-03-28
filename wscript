@@ -20,7 +20,7 @@ def configure(ctx):
     change after calling ctx.load('pebble_sdk') and make sure to set the correct environment first.
     Universal configuration: add your change prior to calling ctx.load('pebble_sdk').
     """
-    ctx.env.append_unique("CFLAGS", "-Wno-error=unused-but-set-variable")
+    #ctx.env.append_unique("CFLAGS", "-Wno-error=unused-but-set-variable")
     ctx.load('pebble_sdk')
 
 

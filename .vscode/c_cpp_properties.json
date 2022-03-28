@@ -38,7 +38,7 @@
                 "${workspaceRoot}/build/basalt",
                 "/usr/local/include",
                 "/home/kennedn/.pebble-sdk/SDKs/current/sdk-core/pebble/basalt/include",
-                "/usr/include",
+                "/usr/include"
             ],
             "defines": [],
             "browse": {
