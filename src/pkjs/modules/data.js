@@ -151,9 +151,9 @@ var self = module.exports = {
     // Sort icon_keys so base64 encoded strings are last and resource ids are first, this stops 'gaps' appearing
     // in the icon_array when resource ids are restored from persistant storage
     icon_keys = icon_keys.sort(function(a, b) { 
-      if (typeof(Icon.find(a)) === 'string' && typeof(Icon.find(b)) === 'string') {
+      if (typeof(Icon.find(a)) === 'object' && typeof(Icon.find(b)) === 'object') {
         return 0;
-      } else if (typeof(Icon.find(a)) === 'string' && typeof(Icon.find(b)) !== 'string') {
+      } else if (typeof(Icon.find(a)) === 'object' && typeof(Icon.find(b)) !== 'object') {
         return 1;
       } else {
         return -1;

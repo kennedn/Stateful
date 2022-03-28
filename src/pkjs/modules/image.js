@@ -355,6 +355,7 @@ image.load = function(url, label, callback) {
     img.src.png8 = image.toPng8(pixels, png.width, png.height);
     img.src.png2 = image.toPng2(pixels, png.width, png.height);
     customIcons[urlHash] = img;
+    debug(2, "Icon added with hash " + urlHash);
     localStorage.setItem('custom-icons', JSON.stringify(customIcons));
     return callback(img);
   }, function(xhr) {
