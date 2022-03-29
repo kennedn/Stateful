@@ -121,10 +121,10 @@ var self = module.exports = {
       localStorage.setItem('clay-param-message', claySettings['MessageText']);
     }
 
-    console.log("Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
+    debug(2, "Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
     localStorage.setItem('clay-settings', JSON.stringify(claySettings));
     var clayURL = clay.generateUrl();
-    console.log("URL size: " + (clayURL.length / 1024).toFixed(2) + "kB");
+    debug(2, "URL size: " + (clayURL.length / 1024).toFixed(2) + "kB");
 
     Pebble.openURL(clayURL);
     localStorage.removeItem('clay-settings');
