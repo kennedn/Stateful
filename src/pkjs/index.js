@@ -10,7 +10,7 @@ var LZString = require ('./vendor/LZString');
 
 
 var Clay = require('pebble-clay');
-var customClay = require('./data/clay_function.min');
+var customClay = require('./data/clay_function');
 var clayConfig = require('./data/clay_config');
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
 var image = require('./modules/image');

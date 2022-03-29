@@ -26,8 +26,8 @@ module.exports = function(minified) {
               return false;
           }
       };
-      HTMLInputElement.prototype.reportValidity = validityFunc;
-      HTMLTextAreaElement.prototype.reportValidity = validityFunc;
+    HTMLInputElement.prototype.reportValidity = validityFunc;
+    HTMLTextAreaElement.prototype.reportValidity = validityFunc;
   }
 
   
@@ -176,10 +176,16 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
           self.objectByString(self.tileEntry, JSON.parse(self.clay.get()));
           self.clay.$manipulatorTarget[0].setCustomValidity('')
           self.clay.$manipulatorTarget[0].reportValidity();
+          $(self.clay.$manipulatorTarget[0]).set('$background-color', 'rgba(0,170,0,0.2)');
+          $(self.clay.$manipulatorTarget[0]).on('input', function() {$(self).set('$background-color', '#333333');});
+          setTimeout(function() {$(self.clay.$manipulatorTarget[0]).set('$background-color', '#333333');}, 2500);
           return true;
         } catch(e) {
           self.clay.$manipulatorTarget[0].setCustomValidity('JSON parse error')
           self.clay.$manipulatorTarget[0].reportValidity();
+          $(self.clay.$manipulatorTarget[0]).set('$background-color', 'rgba(255,0,85,0.2)');
+          $(self.clay.$manipulatorTarget[0]).on('input', function() {$(self).set('$background-color', '#333333');});
+          setTimeout(function() {$(self.clay.$manipulatorTarget[0]).set('$background-color', '#333333');}, 2500);
           return false;
         }
       } else {
@@ -565,13 +571,14 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     submitWithData({"action": "Submit", "payload": JSONSection.find("JSONInput").tiles});
   });
 
-  iconButton.on('click', function () {
-    if (validationEnabled && !validateSections([iconSection])) {return;}
-    var iconURL = iconSection.find("IconURL").clay.get();
-    var iconLabel = iconSection.find("IconName").clay.get();
-    submitWithData({"action": "AddIcon", "param": {"url": iconURL, "label": iconLabel}});
-  });
-
+  if (!isAplite) {
+    iconButton.on('click', function () {
+      if (validationEnabled && !validateSections([iconSection])) {return;}
+      var iconURL = iconSection.find("IconURL").clay.get();
+      var iconLabel = iconSection.find("IconName").clay.get();
+      submitWithData({"action": "AddIcon", "param": {"url": iconURL, "label": iconLabel}});
+    });
+  }
   validationEnabled = true;
 });
 };
