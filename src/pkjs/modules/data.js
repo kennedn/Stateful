@@ -97,7 +97,6 @@ var self = module.exports = {
   },
 
   packTiles: function(session) {
-    if (TRANSFER_LOCK) {return;}
     // create a big temporary buffer as we don't know the size we will end up with yet
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);
@@ -111,7 +110,7 @@ var self = module.exports = {
     } catch(e) {
       tiles = null;
     }
-    if (tiles == null || Object.keys(tiles).length == 0  || tiles.tiles == null ||  tiles.tiles.length == 0) {
+    if (TRANSFER_LOCK || tiles == null || Object.keys(tiles).length == 0  || tiles.tiles == null ||  tiles.tiles.length == 0) {
       Pebble.sendAppMessage({"TransferType": TransferType.NO_CLAY}, messageSuccess, messageFailure);
       return;
     }
