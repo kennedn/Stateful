@@ -25,7 +25,7 @@ Pebble.addEventListener("appmessage", function(e) {
   switch(dict.TransferType) {
     case TransferType.ICON:
       if (!dict.hasOwnProperty("IconKey") || !dict.hasOwnProperty("IconIndex") || !dict.hasOwnProperty("Session")) {
-        debug(1, "Icon request didn't contain expected data");
+        debug(2, "Icon request didn't contain expected data");
         return;
       }
       Data.packIcon(dict.IconKey, dict.IconIndex, dict.Session);
@@ -33,25 +33,25 @@ Pebble.addEventListener("appmessage", function(e) {
 
     case TransferType.TILE:
       if (!dict.hasOwnProperty("Session")) {
-        debug(1, "Tile request didn't contain expected data");
+        debug(2, "Tile request didn't contain expected data");
         return;
       }
       Data.packTiles(dict.Session);
       break;
 
     case TransferType.READY:
-      debug(1, "Sending Ready message");
+      debug(2, "Sending Ready message");
       Pebble.sendAppMessage({"TransferType": TransferType.READY}, messageSuccess, messageFailure);
     break;
 
     case TransferType.REFRESH:
-      debug(1, "Refresh message received");
+      debug(2, "Refresh message received");
       localStorage.clear();
     break;
 
     case TransferType.XHR:
       if (!(dict.hasOwnProperty("RequestIndex"))) {
-        debug(1, "didn't receive expected data");
+        debug(2, "didn't receive expected data");
         return;
       }
 
@@ -65,7 +65,7 @@ Pebble.addEventListener("appmessage", function(e) {
 
       var tile = tiles.tiles[dict.RequestIndex];
       if (tile == null) { 
-        debug(1, "Could not locate tile with id " + id);
+        debug(2, "Could not locate tile with id " + id);
         return;
       }
 
@@ -97,7 +97,7 @@ Pebble.addEventListener("appmessage", function(e) {
           XHR.statusXHRRequest(button, status_url, status_headers, hash);
           break;
         default:
-          debug(1, "Unknown type: " + button.type);
+          debug(2, "Unknown type: " + button.type);
           break;
       }
       // Commits any changes to index trackers to localStorage

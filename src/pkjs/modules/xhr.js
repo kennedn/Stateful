@@ -38,7 +38,7 @@ var self = module.exports = {
       debug(1, "Button has single endpoint");
       data = button.data;
     }
-    debug(1, "highlight idx: " + highlight_idx);
+    debug(2, "highlight idx: " + highlight_idx);
     self.xhrRequest(button.method, url, headers, data, hash, 2).then(function(xhr_data) {
       self.colorAppMessage(highlight_idx, xhr_data.hash);
     }, function(hash) {
@@ -92,6 +92,7 @@ var self = module.exports = {
         var request = new XMLHttpRequest();
         request.onload = function() {
           if(this.status < 400) {
+            debug(1, "Status: " + this.status);
             var returnData = {};
             try {
               returnData = JSON.parse(this.responseText);
@@ -101,7 +102,6 @@ var self = module.exports = {
               return reject(origin_hash);
             }
 
-            debug(1, "Status: " + this.status);
             return resolve({ data: returnData, hash: origin_hash});
 
           } else {
@@ -116,9 +116,9 @@ var self = module.exports = {
           }
         };
 
-        debug(2, "URL: " + url);
-        debug(2, "Method: " + method);
-        debug(2, "Data: " + JSON.stringify(data));
+        debug(1, "URL: " + url);
+        debug(1, "Method: " + method);
+        debug(1, "Data: " + JSON.stringify(data));
 
         request.onerror = request.ontimeout = function(e) { 
           return reject(origin_hash);
@@ -128,7 +128,7 @@ var self = module.exports = {
         request.timeout = 5000;
         for (var key in headers) {
           if(headers.hasOwnProperty(key)) {
-          debug(2, "Setting header: " + key + ": " + headers[key]);
+          debug(1, "Setting header: " + key + ": " + headers[key]);
           request.setRequestHeader(key, headers[key]);
           }
         }
@@ -164,23 +164,24 @@ var self = module.exports = {
 
         request.onload = function() {
           if(this.status < 400) {
+            debug(1, "Status: " + this.status);
             var returnData = {};
             try {
               returnData = self.objectByString(JSON.parse(this.responseText), variable);
-              debug(2, "Response data: " + JSON.stringify(returnData));
+              debug(1, "Response Variable: " + JSON.stringify(returnData));
               if (returnData === null) {
                 return reject(origin_hash);
               }
             } catch(e) {
               return reject(origin_hash);
             }
-            debug(1, "Status: " + this.status);
             debug(2, "result: " + returnData + " maxRetries: " + maxRetries[1]);
             if (returnData == good) {
               return resolve({color: ColorAction.GOOD, hash: origin_hash});
             } else if (returnData == bad) {
               return resolve({color: ColorAction.BAD, hash: origin_hash});
             } else {
+              debug(1, "Variable mismatch, expected \"" + good + "\" or \"" + bad + "\"");
               repeatCall(origin_hash);
             }
           } else {
@@ -188,15 +189,15 @@ var self = module.exports = {
           }
         };
 
-        debug(2, "URL: " + url);
-        debug(2, "Method: " + method);
-        debug(2, "Data: " + JSON.stringify(data));
+        debug(1, "URL: " + url);
+        debug(1, "Method: " + method);
+        debug(1, "Data: " + JSON.stringify(data));
 
         request.open(method, url);
         request.timeout = 5000;
         for (var key in headers) {
           if(headers.hasOwnProperty(key)) {
-          debug(2, "Setting header: " + key + ": " + headers[key]);
+          debug(1, "Setting header: " + key + ": " + headers[key]);
           request.setRequestHeader(key, headers[key]);
           }
         }

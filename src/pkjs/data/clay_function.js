@@ -282,12 +282,14 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   var buttonSelector = clayConfig.getItemById('ButtonIndex');
   var buttonTypeSelector = clayConfig.getItemById('ButtonType');
   var customIconSelector = clayConfig.getItemById('IconIndex');
+  var debugInput = clayConfig.getItemById('DebugInput');
 
   var payload = JSON.parse(LZString.decompressFromEncodedURIComponent(clayJSON.get()));
   var tiles = payload[0];
   var importTiles = JSON.parse(JSON.stringify(payload[0]));
   var defaultIcons = payload[1][0];
   var customIcons = payload[1][1];
+  var debugLog = (payload[2]) ? payload[2] : [];
   var icons = (isAplite) ? defaultIcons : defaultIcons.concat(customIcons);
   var fallbackIcon = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
   var previousTile = "0";
@@ -296,6 +298,8 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   clayJSON.hide();
   clayAction.hide();
   if (messageText.get() === "") {messageText.hide();}
+  debugInput.set(debugLog.join('\n'));
+  
 
   var iconItems = clayConfig.getAllItems().filter(function(item) {
       return (item.id.endsWith('Icon') && !item.id.endsWith('Heading'));
@@ -325,6 +329,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     },0);
   } 
 
+  var debugSection = new Section(['DebugHeading'], ['DebugInput'], [null], tiles);
 
   var JSONSection = new Section(['JSONHeading'], ['JSONInput', 'JSONSubmit'], ['.', null], importTiles);
 
@@ -356,6 +361,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
                                          "tiles[0].buttons.up.status.data", "tiles[0].buttons.up.status.variable", "tiles[0].buttons.up.status.good", 
                                          "tiles[0].buttons.up.status.bad"], tiles);
 
+  debugSection.setVisibility(false,false);
   if (clayAction.get() != 1) {
     JSONSection.setVisibility(false,false);
   } else {

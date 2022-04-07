@@ -297,7 +297,7 @@ image.toPng2 = function(pixels, width, height) {
   }
   var bitdepth = 2;
   var colorType = 3; // 8-bit palette
-  // Create simple 4 bit palette (2^bitdepth) with channels: alpha, black, gray, white
+  // Create simple 2 bit palette with channels: alpha, black, white
   var palette = [0, 0, 255].map(function(v) { return Array(3).fill(v); });
   var transparency = [0];
   var bytes = PNGEncoder.encode(raster, bitdepth, colorType, palette, transparency);
@@ -359,7 +359,6 @@ image.load = function(url, label, callback) {
     localStorage.setItem('custom-icons', JSON.stringify(customIcons));
     return callback(img);
   }, function(xhr) {
-    // debug(1, "PNG Retrieval failed with code " + xhr.status);
     img.status = xhr.status;
     img.message = "PNG retrieval failed with HTTP code " + xhr.status;
     return callback(img);

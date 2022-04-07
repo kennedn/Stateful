@@ -3,6 +3,7 @@
 #include "c/modules/comm.h"
 #include "c/stateful.h"
 #include "c/user_interface/loading_window.h"
+#include "c/modules/dictation.h"
 #define CELL_HEIGHT ((const int16_t) 48)
 #define CELL_WIDTH ((const int16_t) 40)
 
@@ -129,9 +130,11 @@ static void click_config_handler(void *ctx) {
   window_single_repeating_click_subscribe(BUTTON_ID_UP, 200, up_callback);
   window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 200, down_callback);
   window_single_click_subscribe(BUTTON_ID_SELECT, select_callback);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 350, dictation_start, NULL);
 }
 
 static void menu_window_load(Window *window) {
+  dictation_init();
   Layer *window_layer = window_get_root_layer(s_menu_window);
   GRect bounds = layer_get_bounds(window_layer);
 
@@ -163,6 +166,7 @@ static void menu_window_load(Window *window) {
 }
 
 static void menu_window_unload(Window *window) {
+  dictation_deinit();
   if (s_menu_window) {
     menu_layer_destroy(s_menu_layer);
     s_menu_layer = NULL;

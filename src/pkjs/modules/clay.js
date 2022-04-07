@@ -79,6 +79,7 @@ var self = module.exports = {
     Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
       Pebble.sendAppMessage({"TransferType": TransferType.READY}, messageSuccess, messageFailure);
     }, messageFailure);
+    localStorage.removeItem('debug-log');
   },
   removeTile: function(tiles, index) {
     tiles.tiles.splice(index, 1);
@@ -100,6 +101,11 @@ var self = module.exports = {
     } catch(e) {
       tiles = null;
     }
+    try {
+      var debugLog = JSON.parse(localStorage.getItem('debug-log'));
+    } catch(e) {
+      debugLog = [];
+    }
     var claySettings = {};
     if (tiles == null || Object.keys(tiles).length == 0  || tiles.tiles == null || tiles.tiles.length == 0) {
       tiles = JSON.parse(JSON.stringify(require('../data/base_object')));
@@ -113,7 +119,7 @@ var self = module.exports = {
         }
       });
     }
-    claySettings['ClayJSON'] = LZString.compressToEncodedURIComponent(JSON.stringify([tiles, icon.getClay()]));
+    claySettings['ClayJSON'] = LZString.compressToEncodedURIComponent(JSON.stringify([tiles, icon.getClay(), debugLog]));
     claySettings['ClayAction'] = (typeof(clayAction) !== 'undefined' && clayAction !== null) ? clayAction : 0;
     localStorage.setItem('clay-param-action', claySettings['ClayAction']);
     if (typeof(message) !== 'undefined' && message !== null) {
@@ -121,7 +127,8 @@ var self = module.exports = {
       localStorage.setItem('clay-param-message', claySettings['MessageText']);
     }
 
-    console.log("Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
+
+    debug(2, "Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
     localStorage.setItem('clay-settings', JSON.stringify(claySettings));
     var clayURL = clay.generateUrl();
     console.log("URL size: " + (clayURL.length / 1024).toFixed(2) + "kB");

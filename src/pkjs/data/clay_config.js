@@ -24,6 +24,28 @@ module.exports =
     "items": [
       {
         "type": "heading2",
+        "defaultValue": "Debug Logging",
+        "id": "DebugHeading"
+      },
+      {
+        "type": "textarea",
+        "id": "DebugInput",
+        "label": "Logs since last submit",
+        "attributes": {
+          "autocapitalize": "off",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "spellcheck": "false",
+          "readonly": "true"
+        }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading2",
         "defaultValue": "JSON Manager",
         "id": "JSONHeading"
       },

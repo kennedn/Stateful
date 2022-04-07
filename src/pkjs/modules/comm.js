@@ -32,7 +32,7 @@ var self = module.exports = {
       // Success, begin sending chunks
       self.sendChunk(array, index, arrayLength, type, session);
     }, function(e) {
-      debug(1, 'Failed to send data length to Pebble, reattempting');
+      debug(2, 'Failed to send data length to Pebble, reattempting');
       setTimeout(1000, function() {self.transmitData(array, type);});
     });
   },
@@ -69,12 +69,12 @@ var self = module.exports = {
         'TransferType': type,
         'Session': session
       }, null, function() {
-        debug(1, 'Failed to send complete message, reattempting');
+        debug(2, 'Failed to send complete message, reattempting');
         setTimeout(1000, function() {self.sendChunk(array, index, arrayLength, type, session);});
         });
       }
     }, function(obj, error) {
-      debug(1, 'Failed to send chunk, reattempting');
+      debug(2, 'Failed to send chunk, reattempting');
       setTimeout(1000, function() {self.sendChunk(array, index, arrayLength, type, session);});
     });
   }

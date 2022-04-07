@@ -49,6 +49,7 @@ var self = module.exports = {
   packIcon: function(key, index, session) {
     if (TRANSFER_LOCK) {return;}
     key = key.slice(0, MAX_HASH_LENGTH);
+    // create a big temporary buffer (~1MB) as we don't know the size we will end up with yet
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);
     var ptr = 0;
@@ -71,6 +72,7 @@ var self = module.exports = {
         uint8[ptr++] = 1;
       } else {
         var buff = icon;
+        // Icon size can be greater than 1 byte (max 255), so spread the value over 2 bytes (max 65,535)
         uint8[ptr++] = buff.length & 0xff;
         uint8[ptr++] = buff.length >> 8;
         for (var i=0; i < buff.length; i++) {
@@ -87,18 +89,18 @@ var self = module.exports = {
       uint8[ptr++] = 1;
     }
 
+    // We now know the size of our buffer thanks to ptr, slice our temp to create a correctly sized final buffer.
     var buffer_2 = buffer.slice(0, ptr);
     var uint8_2 = new Uint8Array(buffer_2);
 
     debug(3, Array.apply([], uint8_2).join(","));
-    debug(1, "Completed icon packing (" + (ptr / 1024).toFixed(2) + "kB): " + key);
+    debug(2, "Completed icon packing (" + (ptr / 1024).toFixed(2) + "kB): " + key);
 
     Comms.processData(buffer_2, TransferType.ICON, session);
   },
 
   packTiles: function(session) {
-    if (TRANSFER_LOCK) {return;}
-    // create a big temporary buffer as we don't know the size we will end up with yet
+    // create a big temporary buffer (~1MB) as we don't know the size we will end up with yet
     var buffer = new ArrayBuffer(1000000);
     var uint8 = new Uint8Array(buffer);
 
@@ -175,7 +177,7 @@ var self = module.exports = {
       debug(3, key + ": " + payload[key]);
       debug(3, Array.apply([], uint8_2).join(","));
     }
-    debug(1, "Completed tile packing (" + (ptr / 1024).toFixed(2) + "kB)");
+    debug(2, "Completed tile packing (" + (ptr / 1024).toFixed(2) + "kB)");
     Comms.processData(buffer_2, TransferType.TILE, session);
   }
 };
