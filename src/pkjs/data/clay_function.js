@@ -440,7 +440,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     
     if (this.get() == 'remove') {
       safeSelectSet(tileSelector, onTileIndexChange, previousTile);
-      if (confirm("Are you sure you want to remove '" + this.$manipulatorTarget.get('options')[this.$manipulatorTarget.get('selectedIndex')].text + "' ?")) {
+      if (confirm("Are you sure you want to remove tile'" + Array.apply(null, this.$manipulatorTarget.get('options')).find(function(elm) {return elm.value == previousTile;}).text + "' ?")) {
         submitWithData({"action": "RemoveTile", "param": previousTile, "payload": tiles});
       } 
       return;

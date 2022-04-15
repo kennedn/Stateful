@@ -1,5 +1,5 @@
 var self = module.exports = {
-  DEBUG: 0,
+  DEBUG: 3,
   PERSIST_DEBUG: 1,
   ICON_SIZE_PX: 18,
   MAX_HASH_LENGTH: 8,

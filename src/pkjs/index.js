@@ -154,7 +154,9 @@ Pebble.addEventListener('webviewclosed', function(e) {
       });
       break;
     case "Submit":
-      ClayHelper.clayToTiles(tiles);
+      ClayHelper.clayToTiles(tiles, function() {
+        ClayHelper.openURL(clay, "Failed to parse JSON", ClayAction.JSON_SUBMIT);
+      });
       break;
   }
 });
