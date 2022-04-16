@@ -28,6 +28,11 @@ module.exports =
         "id": "DebugHeading"
       },
       {
+        "type": "toggle",
+        "label": "Enable Debug Logging",
+        "id": "DebugToggle",
+      },
+      {
         "type": "textarea",
         "id": "DebugInput",
         "label": "Logs since last submit",

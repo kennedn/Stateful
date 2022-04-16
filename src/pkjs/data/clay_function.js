@@ -299,6 +299,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   clayAction.hide();
   if (messageText.get() === "") {messageText.hide();}
   debugInput.set(debugLog.join('\n'));
+  tiles.debug_logging = (typeof(tiles.debug_logging) !== 'undefined') ? tiles.debug_logging : false;
   
 
   var iconItems = clayConfig.getAllItems().filter(function(item) {
@@ -329,7 +330,8 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     },0);
   } 
 
-  var debugSection = new Section(['DebugHeading'], ['DebugInput'], [null], tiles);
+  var debugSection = new Section(['DebugHeading'], ['DebugToggle', 'DebugInput'], ["debug_logging", null], tiles);
+
 
   var JSONSection = new Section(['JSONHeading'], ['JSONInput', 'JSONSubmit'], ['.', null], importTiles);
 
@@ -361,7 +363,15 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
                                          "tiles[0].buttons.up.status.data", "tiles[0].buttons.up.status.variable", "tiles[0].buttons.up.status.good", 
                                          "tiles[0].buttons.up.status.bad"], tiles);
 
-  debugSection.setVisibility(false,false);
+  debugSection.setVisibility(tiles.debug_logging, false);
+  var debugInput = debugSection.find("DebugInput");
+  debugInput.setVisibility(tiles.debug_logging);
+  var debugToggle = debugSection.find("DebugToggle");
+  debugToggle.clay.on('change', function(){
+    debugInput.setVisibility(this.get());
+    debugInput.clay.trigger('input');
+  });
+
   if (clayAction.get() != 1) {
     JSONSection.setVisibility(false,false);
   } else {

@@ -1,6 +1,6 @@
 var self = module.exports = {
-  DEBUG: 3,
-  PERSIST_DEBUG: 1,
+  DEBUG: 0,
+  PERSIST_DEBUG: 0,
   ICON_SIZE_PX: 18,
   MAX_HASH_LENGTH: 8,
   MAX_STR_LENGTH: 20,

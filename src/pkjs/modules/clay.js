@@ -13,10 +13,12 @@ var self = module.exports = {
       if (callback) {callback();}
   },
   clayToTiles: function(tiles, failureCallback) {
-    localStorage.removeItem('debug-log');
     if (tiles == null || Object.keys(tiles).length == 0  || tiles.tiles == null || tiles.tiles.length == 0) {
       return self.resetTiles(failureCallback);
     }
+    globals.PERSIST_DEBUG = (typeof(tiles.debug_logging) !== 'undefined' && tiles.debug_logging) ? 1 : 0;
+    console.log("PERSIST_DEBUG: " + PERSIST_DEBUG);
+    localStorage.removeItem('debug-log');
     try{
       // Enforce default values for buttons that changed type on last submit
       tiles.tiles = tiles.tiles.slice(0, 64) // Max allowed tiles

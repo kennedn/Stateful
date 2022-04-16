@@ -31,11 +31,9 @@ var self = module.exports = {
         button.index = 0;
       }
       data = button.data[button.index];
-      debug(1, "Button has multiple endpoints, using idx: " + button.index);
       if (button.data.length == 2) { highlight_idx = button.index; }
       button.index = (button.index + 1) % button.data.length;
     } else {
-      debug(1, "Button has single endpoint");
       data = button.data;
     }
     debug(2, "highlight idx: " + highlight_idx);
@@ -54,11 +52,9 @@ var self = module.exports = {
         button.index = 0;
       }
       data = button.data[button.index];
-      debug(1, "Button has multiple endpoints, using idx: " + button.index);
       button.index = (button.index + 1) % button.data.length;
       
     } else {
-      debug(1, "Button has single endpoint");
       data = button.data;
     }
     self.xhrRequest(button.method, url, headers, data, hash, 4).then(function(data) {
@@ -92,13 +88,13 @@ var self = module.exports = {
         var request = new XMLHttpRequest();
         request.onload = function() {
           if(this.status < 400) {
-            debug(1, "Status: " + this.status);
+            debug(1, "---- Status: " + this.status);
             var returnData = {};
             try {
               returnData = JSON.parse(this.responseText);
               debug(2, "Response data: " + JSON.stringify(returnData));
             } catch(e) {
-              debug(1, "JSON parse failure");
+              debug(1, "---- Status: JSON parse failure");
               return reject(origin_hash);
             }
 
@@ -110,15 +106,16 @@ var self = module.exports = {
                 xhrRetry(method, url, headers, data, origin_hash, [maxRetries[0], maxRetries[1] - 1]); 
               }, 307 * (maxRetries[0] - maxRetries[1]));
             } else {
-              debug(1, "Max retries reached");
+              debug(1, "---- Status: Max retries reached");
               return reject(origin_hash);
             }
           }
         };
 
         debug(1, "URL: " + url);
-        debug(1, "Method: " + method);
-        debug(1, "Data: " + JSON.stringify(data));
+        debug(1, "-- Type: " + "Local");
+        debug(1, "-- Method: " + method);
+        debug(1, "-- Data: " + JSON.stringify(data));
 
         request.onerror = request.ontimeout = function(e) { 
           return reject(origin_hash);
@@ -128,7 +125,7 @@ var self = module.exports = {
         request.timeout = 5000;
         for (var key in headers) {
           if(headers.hasOwnProperty(key)) {
-          debug(1, "Setting header: " + key + ": " + headers[key]);
+          debug(1, "-- Header: " + key + ": " + headers[key]);
           request.setRequestHeader(key, headers[key]);
           }
         }
@@ -158,30 +155,33 @@ var self = module.exports = {
         };
 
         request.onerror = request.ontimeout = function(e) { 
-          debug(1, "Timed out");
+          debug(1, "---- Status: Timed out or Error");
           repeatCall(origin_hash);
         };
 
         request.onload = function() {
           if(this.status < 400) {
-            debug(1, "Status: " + this.status);
+            debug(1, "---- Status: " + this.status);
             var returnData = {};
             try {
               returnData = self.objectByString(JSON.parse(this.responseText), variable);
-              debug(1, "Response Variable: " + JSON.stringify(returnData));
               if (returnData === null) {
+                debug(1, "---- Status: JSON response is empty");
                 return reject(origin_hash);
               }
             } catch(e) {
+              debug(1, "---- Status: JSON parse failure");
               return reject(origin_hash);
             }
             debug(2, "result: " + returnData + " maxRetries: " + maxRetries[1]);
             if (returnData == good) {
+              debug(1, "---- Variable match: " + returnData);
               return resolve({color: ColorAction.GOOD, hash: origin_hash});
             } else if (returnData == bad) {
+              debug(1, "---- Variable match: " + returnData);
               return resolve({color: ColorAction.BAD, hash: origin_hash});
             } else {
-              debug(1, "Variable mismatch, expected \"" + good + "\" or \"" + bad + "\"");
+              debug(1, "---- Variable mismatch, expected \"" + good + "\" or \"" + bad + "\"");
               repeatCall(origin_hash);
             }
           } else {
@@ -190,14 +190,15 @@ var self = module.exports = {
         };
 
         debug(1, "URL: " + url);
-        debug(1, "Method: " + method);
-        debug(1, "Data: " + JSON.stringify(data));
+        debug(1, "-- Type: " + "Status");
+        debug(1, "-- Method: " + method);
+        debug(1, "-- Data: " + JSON.stringify(data));
 
         request.open(method, url);
         request.timeout = 5000;
         for (var key in headers) {
           if(headers.hasOwnProperty(key)) {
-          debug(1, "Setting header: " + key + ": " + headers[key]);
+          debug(1, "-- Header: " + key + ": " + headers[key]);
           request.setRequestHeader(key, headers[key]);
           }
         }
@@ -216,7 +217,7 @@ var self = module.exports = {
         var request = new XMLHttpRequest();
         request.onload = function() {
           if(this.status == 200) {
-            debug(1, "Status: " + this.status);
+            debug(1, "---- Status: " + this.status);
             return resolve(this);
           } else {
             return reject(this);
@@ -231,7 +232,7 @@ var self = module.exports = {
               xhrRetry(url, [maxRetries[0], maxRetries[1] - 1]); 
             }, 307 * (maxRetries[0] - maxRetries[1]));
           } else {
-            debug(1, "Max retries reached");
+            debug(1, "---- Status: Max retries reached");
             return reject(this);
           }
         };
