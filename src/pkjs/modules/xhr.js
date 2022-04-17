@@ -112,8 +112,8 @@ var self = module.exports = {
           }
         };
 
-        debug(1, "URL: " + url);
-        debug(1, "-- Type: " + "Local");
+        debug(1, "XHR Type: Local");
+        debug(1, "-- URL: " + url);
         debug(1, "-- Method: " + method);
         debug(1, "-- Data: " + JSON.stringify(data));
 
@@ -189,8 +189,8 @@ var self = module.exports = {
           }
         };
 
-        debug(1, "URL: " + url);
-        debug(1, "-- Type: " + "Status");
+        debug(1, "XHR Type: Status");
+        debug(1, "-- URL: " + url);
         debug(1, "-- Method: " + method);
         debug(1, "-- Data: " + JSON.stringify(data));
 

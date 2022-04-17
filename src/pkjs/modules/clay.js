@@ -17,7 +17,6 @@ var self = module.exports = {
       return self.resetTiles(failureCallback);
     }
     globals.PERSIST_DEBUG = (typeof(tiles.debug_logging) !== 'undefined' && tiles.debug_logging) ? 1 : 0;
-    console.log("PERSIST_DEBUG: " + PERSIST_DEBUG);
     localStorage.removeItem('debug-log');
     try{
       // Enforce default values for buttons that changed type on last submit
@@ -137,7 +136,7 @@ var self = module.exports = {
     debug(2, "Payload size: " + (claySettings['ClayJSON'].length / 1024).toFixed(2) + "kB");
     localStorage.setItem('clay-settings', JSON.stringify(claySettings));
     var clayURL = clay.generateUrl();
-    console.log("URL size: " + (clayURL.length / 1024).toFixed(2) + "kB");
+    debug(2, "URL size: " + (clayURL.length / 1024).toFixed(2) + "kB");
 
     Pebble.openURL(clayURL);
     localStorage.removeItem('clay-settings');
