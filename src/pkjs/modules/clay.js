@@ -18,7 +18,6 @@ var self = module.exports = {
     }
     globals.PERSIST_DEBUG = (typeof(tiles.debug_logging) !== 'undefined' && tiles.debug_logging) ? 1 : 0;
     localStorage.removeItem('debug-log');
-    try{
       // Enforce default values for buttons that changed type on last submit
       tiles.tiles = tiles.tiles.slice(0, 64) // Max allowed tiles
       for (var i in tiles.tiles) {
@@ -76,15 +75,14 @@ var self = module.exports = {
               tile.payload.texts[ButtonIndex[j]] = "";
               tile.payload.icon_keys[ButtonIndex[j]] = "";
           }
+          tiles.tiles[i].buttons[j] = button;
         }
+        tiles.tiles[i] = tile;
       }
       localStorage.setItem('tiles', JSON.stringify(tiles));
       Pebble.sendAppMessage({"TransferType": TransferType.REFRESH },function() {
         Pebble.sendAppMessage({"TransferType": TransferType.READY}, messageSuccess, messageFailure);
       }, messageFailure);
-    } catch(e) {
-      return self.resetTiles(failureCallback);
-    }
   },
   removeTile: function(tiles, index) {
     tiles.tiles.splice(index, 1);
