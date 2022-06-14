@@ -151,6 +151,11 @@ module.exports =
         "id": "GlobalToggle",
       },
       {
+        "type": "toggle",
+        "label": "Per Tile Globals",
+        "id": "GlobalTileToggle",
+      },
+      {
         "type": "input",
         "id": "GlobalURL",
         "label": "Base URL",
@@ -200,6 +205,30 @@ module.exports =
           "required": true,
           "maxLength": 20,
         },
+      },
+      {
+        "type": "input",
+        "id": "TileURL",
+        "label": "Base URL",
+        "attributes": {
+          "autocapitalize": "off",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "type": "url",
+          "spellcheck": "false"
+        }
+      },
+      {
+        "type": "textarea",
+        "id": "TileHeaders",
+        "label": "Common Headers",
+        "defaultValue": "{}",
+        "attributes": {
+          "autocapitalize": "off",
+          "autocorrect": "off",
+          "autocomplete": "off",
+          "spellcheck": "false"
+        }
       },
       {
         "type": "color",

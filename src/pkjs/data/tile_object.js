@@ -5,6 +5,8 @@ module.exports = {
     "texts": ["", "", "", "", "", "", ""],
     "icon_keys": ["", "", "", "", "", "", ""],
   },
+  "base_url": "",
+  "headers": {},
   "buttons": {
     "up": {
       "type": 3,

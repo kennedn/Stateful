@@ -9,7 +9,7 @@
   "dependencies": {
     "bluebird": "^3.7.2",
     "buffer": "^6.0.3",
-    "pebble-clay": "git+https://github.com/kennedn/clay.git",
+    "pebble-clay": "file://../clay",
     "sha1": "^1.1.1",
     "xmlhttprequest": "^1.8.0"
   },

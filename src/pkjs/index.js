@@ -76,24 +76,29 @@ Pebble.addEventListener("appmessage", function(e) {
       }
 
       var hash = (dict.RequestIndex << 20) | (dict.RequestButton << 10) | dict.RequestClicks;
-      var url = (tiles.base_url != null && !button.url.startsWith("http")) ? tiles.base_url + button.url : button.url;
-      var headers = JSON.parse(JSON.stringify(tiles.headers));
-      Object.keys(button.headers).forEach(function(key) {headers[key] = button.headers[key];});
+
+
+      var base_url = (tiles.tile_globals) ? tile.base_url : tiles.base_url;
+      var headers = (tiles.tile_globals) ? tile.headers : tiles.headers;
+      var button_url = (base_url != null && !button.url.startsWith("http")) ? base_url + button.url : button.url;
+      var button_headers = JSON.parse(JSON.stringify(headers));
+      Object.keys(button.headers).forEach(function(key) {button_headers[key] = button.headers[key];});
+      var status_url;
+      var status_headers;
+      if (button.type == CallType.STATEFUL || button.type == CallType.STATUS_ONLY) {
+        status_url = (base_url != null && !button.status.url.startsWith("http")) ? base_url + button.status.url : button.status.url;
+        status_headers = JSON.parse(JSON.stringify(headers));
+        Object.keys(button.status.headers).forEach(function(key) {status_headers[key] = button.status.headers[key];});
+      }
 
       switch(parseInt(button.type)) {
         case CallType.STATEFUL:
-          var status_url = (tiles.base_url != null && !button.status.url.startsWith("http")) ? tiles.base_url + button.status.url : button.status.url;
-          var status_headers = JSON.parse(JSON.stringify(tiles.headers));
-          Object.keys(button.status.headers).forEach(function(key) {status_headers[key] = button.status.headers[key];});
-          XHR.statefulXHRRequest(button, url, headers, status_url, status_headers, hash);
+          XHR.statefulXHRRequest(button, button_url, button_headers, status_url, status_headers, hash);
           break;
         case CallType.LOCAL:
-          XHR.localXHRRequest(button, url, headers, hash);
+          XHR.localXHRRequest(button, button_url, button_headers, hash);
           break;
         case CallType.STATUS_ONLY:
-          var status_url = (tiles.base_url != null) ? tiles.base_url + button.status.url : button.status.url;
-          var status_headers = JSON.parse(JSON.stringify(tiles.headers));
-          Object.keys(button.status.headers).forEach(function(key) {status_headers[key] = button.status.headers[key];});
           XHR.statusXHRRequest(button, status_url, status_headers, hash);
           break;
         default:

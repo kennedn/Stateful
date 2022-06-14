@@ -22,6 +22,8 @@ var self = module.exports = {
       tiles.tiles = tiles.tiles.slice(0, 64) // Max allowed tiles
       for (var i in tiles.tiles) {
         var tile = tiles.tiles[i];
+        if (typeof(tile.base_url) == 'undefined') {tile.base_url = "";}
+        if (typeof(tile.headers) == 'undefined') {tile.headers = {};}
         tile.payload.icon_keys.forEach(function(elm, idx) {
           if (tile.payload.texts[idx] === "") {
             tile.payload.icon_keys[idx] = "";

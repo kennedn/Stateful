@@ -298,7 +298,12 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   if (messageText.get() === "") {messageText.hide();}
   debugInput.set(debugLog.join('\n'));
   tiles.debug_logging = (typeof(tiles.debug_logging) !== 'undefined') ? tiles.debug_logging : false;
-  
+  tiles.tile_globals = (typeof(tiles.tile_globals) !== 'undefined') ? tiles.tile_globals : false;
+  for (var i in tiles.tiles) {
+    var tile = tiles.tiles[i];
+    if (typeof(tile.base_url) == 'undefined') {tile.base_url = "";}
+    if (typeof(tile.headers) == 'undefined') {tile.headers = {};}
+  }
 
   var iconItems = clayConfig.getAllItems().filter(function(item) {
       return (item.id.endsWith('Icon') && !item.id.endsWith('Heading'));
@@ -336,14 +341,14 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   var iconSection = (isAplite) ? null : new Section(['IconHeading'], ['IconIndex', 'IconURL', 'IconName', 'IconSubmit'],
                                 [null, null, null, null], tiles);
 
-  var globalSection = new Section(['GlobalHeading'], ['GlobalIndex', 'GlobalToggle', 'GlobalURL', 'GlobalHeaders'],
-                                  ["default_idx", "open_default", "base_url",  "headers"], tiles);
+  var globalSection = new Section(['GlobalHeading'], ['GlobalIndex', 'GlobalToggle','GlobalTileToggle', 'GlobalURL', 'GlobalHeaders'],
+                                  ["default_idx", "open_default", "tile_globals", "base_url",  "headers"], tiles);
   
-  var tileSection = (isBlackWhite) ? new Section(['TileHeading'], ['TileIndex', 'TileName', 'TileIcon'],
-                                [null, "tiles[0].payload.texts[6]", "tiles[0].payload.icon_keys[6]"]
+  var tileSection = (isBlackWhite) ? new Section(['TileHeading'], ['TileIndex', 'TileName', 'TileURL', 'TileHeaders', 'TileIcon'],
+                                [null, "tiles[0].payload.texts[6]", "tiles[0].base_url", "tiles[0].headers", "tiles[0].payload.icon_keys[6]"]
                                 , tiles) : 
-                                new Section(['TileHeading'], ['TileIndex', 'TileName', 'TileColor', 'TileHighlight', 'TileIcon'],
-                                [null, "tiles[0].payload.texts[6]", "tiles[0].payload.color", 
+                                new Section(['TileHeading'], ['TileIndex', 'TileName', 'TileURL', 'TileHeaders', 'TileColor', 'TileHighlight', 'TileIcon'],
+                                [null, "tiles[0].payload.texts[6]", "tiles[0].base_url", "tiles[0].headers", "tiles[0].payload.color", 
                                 "tiles[0].payload.highlight",  "tiles[0].payload.icon_keys[6]"]
                                 , tiles);
 
@@ -368,6 +373,26 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   debugToggle.clay.on('change', function(){
     debugInput.clay.trigger('input');
   });
+  var globalTileToggle = globalSection.find("GlobalTileToggle");
+  var globalHeaders = globalSection.find("GlobalHeaders");
+  var tileHeaders = tileSection.find("TileHeaders");
+  var onGlobalTileToggleChange = function() {
+    globalSection.find("GlobalURL").setVisibility(!tiles.tile_globals)
+    globalHeaders.setVisibility(!tiles.tile_globals)
+    globalHeaders.clay.trigger('input');
+
+    if (!tileSection.visible) {
+      tileSection.find("TileURL").visible = tiles.tile_globals;
+      tileHeaders.visible = tiles.tile_globals;
+    } else {
+    tileSection.find("TileURL").setVisibility(tiles.tile_globals)
+    tileHeaders.setVisibility(tiles.tile_globals)
+    }
+    tileHeaders.clay.trigger('input');
+  };
+  globalTileToggle.clay.on('change', onGlobalTileToggleChange);
+  onGlobalTileToggleChange();
+
 
   if (clayAction.get() != 1) {
     JSONSection.setVisibility(false,false);
@@ -476,6 +501,8 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
       tileSection.find('TileColor').setTileEntry("tiles[" + this.get('value') + "].payload.color");
       tileSection.find('TileHighlight').setTileEntry("tiles[" + this.get('value') + "].payload.highlight");
     }
+    tileSection.find('TileURL').setTileEntry("tiles[" + this.get('value') + "].base_url");
+    tileSection.find('TileHeaders').setTileEntry("tiles[" + this.get('value') + "].headers");
     tileSection.find('TileIcon').setTileEntry("tiles[" + this.get('value') + "].payload.icon_keys[6]");
     buttonSelector.trigger('change');
     previousTile = this.get();
@@ -578,12 +605,14 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
     submitWithData({"action": "Submit", "payload": JSONSection.find("JSONInput").tiles});
   });
 
-  iconButton.on('click', function () {
-    if (validationEnabled && !validateSections([iconSection])) {return;}
-    var iconURL = iconSection.find("IconURL").clay.get();
-    var iconLabel = iconSection.find("IconName").clay.get();
-    submitWithData({"action": "AddIcon", "param": {"url": iconURL, "label": iconLabel}});
-  });
+  if (!isAplite) {
+    iconButton.on('click', function () {
+      if (validationEnabled && !validateSections([iconSection])) {return;}
+      var iconURL = iconSection.find("IconURL").clay.get();
+      var iconLabel = iconSection.find("IconName").clay.get();
+      submitWithData({"action": "AddIcon", "param": {"url": iconURL, "label": iconLabel}});
+    });
+  }
 
   validationEnabled = true;
 });
