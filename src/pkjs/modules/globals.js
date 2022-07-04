@@ -1,5 +1,6 @@
 var self = module.exports = {
-  DEBUG: 0,
+  DEBUG: 2,
+  PERSIST_DEBUG: 0,
   ICON_SIZE_PX: 18,
   MAX_HASH_LENGTH: 8,
   MAX_STR_LENGTH: 20,
@@ -15,6 +16,20 @@ var self = module.exports = {
   debug: function(level, msg) {
     if (level <= self.DEBUG) {
       console.log(msg);
+    }
+    var logArray;
+    if (level <= self.PERSIST_DEBUG) {
+      try {
+        logArray = JSON.parse(localStorage.getItem('debug-log'));
+      } catch(e) {
+        logArray = [];
+      }
+      if (!logArray) {
+        logArray = [];
+      }
+      var logEntry = "[" + new Date().toLocaleTimeString() + "] " + msg;
+      logArray.push((logEntry.length > 100) ? logEntry.slice(0, 100) + "..." : logEntry);
+      localStorage.setItem('debug-log', JSON.stringify(logArray.slice(-50)));
     }
   },
   messageSuccess: function() {

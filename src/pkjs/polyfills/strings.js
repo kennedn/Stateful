@@ -35,7 +35,7 @@ if (!String.prototype.repeat) {
     }
     str += str.substring(0, maxCount - str.length);
     return str;
-  }
+  };
 }
 
 

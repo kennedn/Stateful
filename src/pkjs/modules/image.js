@@ -56,7 +56,7 @@ var getClosestPaletteColor = function(pixels) {
     }
   }
   return lastMatch;
-}
+};
 
 //! Get an RGB vector from an RGB pixel array
 var getPixelColorRGB8 = function(pixels, pos) {
@@ -291,13 +291,13 @@ image.toPng2 = function(pixels, width, height) {
       if (transparency < 64) {
         row[x] = 0;
       } else {
-        row[x] = Math.floor((gray / 128) + 1)
+        row[x] = Math.floor((gray / 128) + 1);
       }
     }
   }
   var bitdepth = 2;
   var colorType = 3; // 8-bit palette
-  // Create simple 4 bit palette (2^bitdepth) with channels: alpha, black, gray, white
+  // Create simple 2 bit palette with channels: alpha, black, white
   var palette = [0, 0, 255].map(function(v) { return Array(3).fill(v); });
   var transparency = [0];
   var bytes = PNGEncoder.encode(raster, bitdepth, colorType, palette, transparency);
@@ -309,9 +309,9 @@ image.toPng2 = function(pixels, width, height) {
 image.load = function(url, label, callback) {
   var img = {};
   img.src = {};
-  img.src.url = url
-  img.label = label
-  var urlHash = sha1(url).substring(0, MAX_HASH_LENGTH)
+  img.src.url = url;
+  img.label = label;
+  var urlHash = sha1(url).substring(0, MAX_HASH_LENGTH);
   var customIcons = localStorage.getItem('custom-icons');
   try {
     customIcons = JSON.parse(customIcons);
@@ -321,15 +321,16 @@ image.load = function(url, label, callback) {
 
   if (customIcons && customIcons.hasOwnProperty(urlHash)) { 
     img.status = 0;
-    img.message = "Icon already exists"
+    img.message = "Icon already exists";
     return callback(img);
   } else if (!customIcons) {
     customIcons = {};
   }
 
   XHR.xhrArrayBuffer(url, 2).then(function(xhr) {
+    var png;
     try {
-      var png = new PNG(new Uint8Array(xhr.response))
+      png = new PNG(new Uint8Array(xhr.response));
     } catch(e) {
       img.status = 1;
       img.message = "URL did not contain a valid PNG image";
@@ -359,7 +360,6 @@ image.load = function(url, label, callback) {
     localStorage.setItem('custom-icons', JSON.stringify(customIcons));
     return callback(img);
   }, function(xhr) {
-    // debug(1, "PNG Retrieval failed with code " + xhr.status);
     img.status = xhr.status;
     img.message = "PNG retrieval failed with HTTP code " + xhr.status;
     return callback(img);

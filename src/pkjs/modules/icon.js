@@ -16,7 +16,7 @@ var self = module.exports = {
     }
     var icons = [];
     var customIcons = [];
-    var iDevice = /(.+)(iPhone|iPad|iPod)(.+)OS[\s|\_](\d+)[\_|\.]?(\d+)[\_|\.]?(\d+).*/.exec(navigator.userAgent)
+    var iDevice = /(.+)(iPhone|iPad|iPod)(.+)OS[\s|\_](\d+)[\_|\.]?(\d+)[\_|\.]?(\d+).*/.exec(navigator.userAgent);
     if (iDevice && iDevice[4] < 14) {
       for (var i in default_icons) {
         icons.push({
