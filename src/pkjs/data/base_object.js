@@ -6,4 +6,4 @@ module.exports = {
   "base_url": "",
   "headers": {},
   "tiles": []
-}
+};

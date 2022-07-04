@@ -17,11 +17,12 @@ var self = module.exports = {
     if (level <= self.DEBUG) {
       console.log(msg);
     }
+    var logArray;
     if (level <= self.PERSIST_DEBUG) {
       try {
-        var logArray = JSON.parse(localStorage.getItem('debug-log'));
+        logArray = JSON.parse(localStorage.getItem('debug-log'));
       } catch(e) {
-        var logArray = [];
+        logArray = [];
       }
       if (!logArray) {
         logArray = [];

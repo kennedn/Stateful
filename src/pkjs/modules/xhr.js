@@ -45,7 +45,7 @@ var self = module.exports = {
   },
 
   statefulXHRRequest: function(button, url, headers, status_url, status_headers, hash) {
-    var status = button.status
+    var status = button.status;
     var data = {};
     if (Array.isArray(button.data)) {
       if (button.index == null) { 
@@ -102,6 +102,7 @@ var self = module.exports = {
 
           } else {
             if (maxRetries[1] > 0) {
+              debug(1, "---- Status: " + this.status);
               setTimeout(function() { 
                 xhrRetry(method, url, headers, data, origin_hash, [maxRetries[0], maxRetries[1] - 1]); 
               }, 307 * (maxRetries[0] - maxRetries[1]));
@@ -130,7 +131,7 @@ var self = module.exports = {
           }
         }
         request.send(JSON.stringify(data)); 
-      }
+      };
       xhrRetry(method, url, headers, data, origin_hash, maxRetries);
     });
   },
@@ -147,10 +148,10 @@ var self = module.exports = {
         var repeatCall = function(hash) {
           if (maxRetries[1] > 0) {
             setTimeout(function() {
-              xhrRetry(method, url, headers, data, hash, variable, good, bad, [maxRetries[0], maxRetries[1] - 1])
+              xhrRetry(method, url, headers, data, hash, variable, good, bad, [maxRetries[0], maxRetries[1] - 1]);
             }, 100 * (maxRetries[0] - maxRetries[1]));
           } else {
-            return reject(origin_hash)
+            return reject(origin_hash);
           }
         };
 
@@ -185,6 +186,7 @@ var self = module.exports = {
               repeatCall(origin_hash);
             }
           } else {
+            debug(1, "---- Status: " + this.status);
             repeatCall(origin_hash);
           }
         };
@@ -203,7 +205,7 @@ var self = module.exports = {
           }
         }
         request.send(JSON.stringify(data));  
-      }
+      };
       xhrRetry(method, url, headers, data, origin_hash, variable, good, bad, maxRetries);
     });
   },
@@ -220,6 +222,7 @@ var self = module.exports = {
             debug(1, "---- Status: " + this.status);
             return resolve(this);
           } else {
+            debug(1, "---- Status: " + this.status);
             return reject(this);
           }
         };
@@ -241,7 +244,7 @@ var self = module.exports = {
         request.timeout = 5000;
         request.responseType = 'arraybuffer';
         request.send(); 
-      }
+      };
       xhrRetry(url, maxRetries);
     });
   },

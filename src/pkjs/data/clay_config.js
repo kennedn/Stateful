@@ -491,4 +491,4 @@ module.exports =
     "defaultValue": "Made by <a href='https://kennedn.com'>kennedn</a></br>&nbsp;",
     "id": "MadeByText"
   },
-]
+];

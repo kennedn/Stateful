@@ -58,7 +58,7 @@ Pebble.addEventListener("appmessage", function(e) {
       var tiles = localStorage.getItem('tiles');
       try {
         tiles = JSON.parse(tiles);
-      } catch(e) {
+      } catch(error) {
         Pebble.sendAppMessage({"TransferType": TransferType.REFRESH }, messageSuccess, messageFailure);
         return;
       }

@@ -19,7 +19,7 @@ var self = module.exports = {
     globals.PERSIST_DEBUG = (typeof(tiles.debug_logging) !== 'undefined' && tiles.debug_logging) ? 1 : 0;
     localStorage.removeItem('debug-log');
       // Enforce default values for buttons that changed type on last submit
-      tiles.tiles = tiles.tiles.slice(0, 64) // Max allowed tiles
+      tiles.tiles = tiles.tiles.slice(0, 64); // Max allowed tiles
       for (var i in tiles.tiles) {
         var tile = tiles.tiles[i];
         if (typeof(tile.base_url) == 'undefined') {tile.base_url = "";}
@@ -106,8 +106,9 @@ var self = module.exports = {
     } catch(e) {
       tiles = null;
     }
+    var debugLog;
     try {
-      var debugLog = JSON.parse(localStorage.getItem('debug-log'));
+      debugLog = JSON.parse(localStorage.getItem('debug-log'));
     } catch(e) {
       debugLog = [];
     }
