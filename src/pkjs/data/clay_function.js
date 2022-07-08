@@ -576,7 +576,7 @@ clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
   tileSelector.$manipulatorTarget.set('value', (clayAction.get() == 4) ? tiles.tiles.length - 1 : 0);
   tileSelector.$manipulatorTarget.trigger('change');
   tileSelector.$manipulatorTarget.get('options')[1].text = "Remove tile (" + tileSelector.$manipulatorTarget.get('options')[tileSelector.$manipulatorTarget.get('selectedIndex')].text + ")";
-  globalSelector.$manipulatorTarget.set('value', 0);
+  globalSelector.$manipulatorTarget.set('value', tiles.default_idx);
   globalSelector.$manipulatorTarget.trigger('change');
 
 
