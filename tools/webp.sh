@@ -16,6 +16,7 @@ i=1
 [ -n "$DEBUG" ] && echo "NAME,PNG,WEBP,REDUCTION" > "$debug_file"
 total_png_size=0
 total_webp_size=0
+echo "module.exports = ["
 while read -r img; do
   name=$(jq -r '.name' <<<"$img" | sed 's/ICON_\(.\)\(.*\)/\L\1\L\2/')
   capital_name=$(jq -r '.name' <<<"$img" | sed 's/ICON_\(.\)\(.*\)/\1\L\2/')
@@ -32,7 +33,7 @@ while read -r img; do
   md5=$(printf "$i" | md5sum | head -c 8)
   if [ -n "$CLAY" ] || [ -n "$CLAY_PNG" ]; then
 #    echo -e "{\n\t\"src\": {\"$b64\",\"label\": \"$name\",\"value\": \"$md5\"},"
-    echo -e "{\n  \"src\": {\n    \"url\": \"${BASE_URL}${name}.png\",\n    \"webp\": \"${b64}\"\n  },\n  \"resource\": ${i},\n  \"label\": \"${capital_name}\",\n  \"value\": \"${md5}\"\n},"
+    echo -e "  {\n    \"src\": {\n      \"url\": \"${BASE_URL}${name}.png\",\n      \"webp\": \"${b64}\"\n    },\n    \"resource\": ${i},\n    \"label\": \"${capital_name}\",\n    \"value\": \"${md5}\"\n  },"
   elif [ -n "$DEBUG" ]; then
     png_size="${#b64_png}"
     webp_size="${#b64}"
@@ -44,6 +45,7 @@ while read -r img; do
   fi
   ((i++))
 done <<< "$(jq -c '.pebble.resources[][] | select((.type == "png") and (.file | startswith("icons")) and (.name != "ICON_OVERFLOW") and (.name != "ICON_QUESTION") and (.name != "ICON_TICK") and (.name != "ICON_CROSS"))' package.json)"
+echo "];"
 if [ -n "$DEBUG" ]; then
     column -t -s ',' "$debug_file"
     echo -e "\nTotal PNG size: $((total_png_size/1024)) kB, Total WEBP size: $((total_webp_size/1024)) kB, Total Reduction: $((total_png_size/total_webp_size*100))%"

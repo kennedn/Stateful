@@ -69,16 +69,34 @@ static void setup_text_layer(char *text, Layer* window_layer, GRect bounds, bool
     layer_add_child(window_layer, text_layer_root);
 }
 
+//! Callback for all button clicks, allows user to re-attempt phone communication
+//! @param recognizer The click recognizer that detected a "click" pattern
+//! @param context Pointer to application specified data 
+static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
+  comm_init();
+}
+
+
+static void click_config_provider(void *ctx) {
+  window_single_click_subscribe(BUTTON_ID_UP, normal_click_callback);
+  window_single_click_subscribe(BUTTON_ID_SELECT, normal_click_callback);
+  window_single_click_subscribe(BUTTON_ID_DOWN, normal_click_callback);
+}
+
+
 //! Callback function that unhides text layer
 //! @param data Any user provided data
-static void display_long_load_message(void *data) {
+static void long_load(void *data) {
   s_timeout_timer = NULL;
   setup_text_layer("Phone not responding", s_window_layer, s_window_bounds, true, false); 
   layer_set_hidden(text_layer_get_layer(s_text_layer), false);
+  window_set_click_config_provider(s_window, click_config_provider);
 }
 
 //! Builds and displays a loading animation and/or a text based message
 static void window_load(Window *window) {
+  window_set_click_config_provider(s_window, NULL);
+
   s_window_layer = window_get_root_layer(window);
   s_window_bounds = layer_get_bounds(s_window_layer);
   s_text_layer = NULL;
@@ -91,7 +109,7 @@ static void window_load(Window *window) {
     return;
   }
   setup_text_layer("Loading...", s_window_layer, s_window_bounds, false, true);
-  s_timeout_timer = app_timer_register(LONG_LOAD_TIMEOUT, display_long_load_message, NULL);
+  s_timeout_timer = app_timer_register(LONG_LOAD_TIMEOUT, long_load, NULL);
 }
 
 void window_unload(Window *window) {

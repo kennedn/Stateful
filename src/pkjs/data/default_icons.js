@@ -178,5 +178,14 @@ module.exports = [
     "resource": 20,
     "label": "Droplet",
     "value": "98f13708"
+  },
+  {
+    "src": {
+      "url": "https://github.com/kennedn/Stateful/raw/master/resources/icons/unmute.png",
+      "webp": "data:image/webp;base64,UklGRiQBAABXRUJQVlA4WAoAAAAQAAAAEQAAEQAAQUxQSDcAAAABDzD/ERGCUSRJimp2ZK2sNUDGyMiBhH0etI2I/gcBGnlZvzkSisjRNj2ubXIUUeK46ctyA4cAAFZQOCDGAAAAkAUAnQEqEgASAD61UqNNJySjIigIAOAWiWkABD6/GJmXfpxwjv6wBZemzuET5V+LSCXNFAAA/c2yagsL7bL2HnJsrPevz/mDxTeZ59TjPF9MWvku2Vphwn/85GxpKNWbTxkdH+5ZaZb1ncZ0xqpT84ehLftArh9Qzva6/bufgSBJ8dhWF78+g6/9KltUDGnGv/ye/b+fYjjh8eChd/z7Jt22n/6A96DtYh9JX/zToLTNjmwcCVdydIX8OPhI5d/036IuAAAA"
+    },
+    "resource": 21,
+    "label": "Unmute",
+    "value": "3c59dc04"
   }
 ];

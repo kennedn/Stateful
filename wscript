@@ -20,7 +20,10 @@ def configure(ctx):
     change after calling ctx.load('pebble_sdk') and make sure to set the correct environment first.
     Universal configuration: add your change prior to calling ctx.load('pebble_sdk').
     """
-    #ctx.env.append_unique("CFLAGS", "-Wno-error=unused-but-set-variable")
+    ctx.env.append_unique("CFLAGS", "-Wno-error=builtin-declaration-mismatch")
+    ctx.env.append_unique("CFLAGS", "-Wno-builtin-declaration-mismatch")
+    ctx.env.append_unique("CFLAGS", "-Wno-implicit-fallthrough")
+    #ctx.env.append_unique("CFLAGS", "-Wno-unused-function")
     ctx.load('pebble_sdk')
 
 
@@ -33,6 +36,8 @@ def build(ctx):
     cached_env = ctx.env
     for platform in ctx.env.TARGET_PLATFORMS:
         ctx.env = ctx.all_envs[platform]
+        # pebble-events apparently triggers this
+        ctx.env.CFLAGS.append('-Wno-expansion-to-defined')
         ctx.set_group(ctx.env.PLATFORM_NAME)
         app_elf = '{}/pebble-app.elf'.format(ctx.env.BUILD_DIR)
         ctx.pbl_build(source=ctx.path.ant_glob('src/c/**/*.c'), target=app_elf, bin_type='app')

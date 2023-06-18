@@ -160,14 +160,14 @@ void xhr_timer_callback(void *data) {
 //! tile_array has been created. This ensures that tile data gets sent when the
 //! initial READY response was missed.
 //! @param data NULL pointer
-void comm_ready_callback(void *data) {
+static void comm_ready_callback(void *data) {
   if (s_clay_needs_config) {
     s_ready_timer = NULL;
     return;
   }
 
   if (!s_is_ready) {
-    if (s_outbox_attempts == 3) {
+    if (s_outbox_attempts == (int) LONG_LOAD_TIMEOUT / RETRY_READY_TIMEOUT / 2) {
       data_free(true);
       window_stack_pop_all(true);
       loading_window_push(NULL);
