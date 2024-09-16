@@ -187,5 +187,14 @@ module.exports = [
     "resource": 21,
     "label": "Unmute",
     "value": "3c59dc04"
+  },
+  {
+    "src": {
+      "url": "https://github.com/kennedn/Stateful/raw/master/resources/icons/camera.png",
+      "webp": "data:image/webp;base64,UklGRhABAABXRUJQVlA4WAoAAAAQAAAAEQAAEQAAQUxQSDwAAAABP6AQAAIkhQQiyJ/uNCIi8D+0wCiSpEjz40sSCEEKFvBv4941ENH/CYinBVLXwMiqn9dVm4wsCqQuXgJWUDggrgAAAFAEAJ0BKhIAEgA+tVKjTSckoyIoCADgFolpAAQ+LxiZngZnprvrlS6EcAAA/qsC+K0HlkZCYr62o+6V5zjx367AbewKlfA5ZjkE/tHSH2Uw/PJjK8Am7+NlUy/XCB3btFELkYWVsVIauziGliqNv3WRHf+zR/vKvB7LaTczkPCg/KKdnhfflW455yP1rfyuhB5fGnc312wKUwfD+ouyhz+Pwb55vrMjLPzo+kAAAA=="
+    },
+    "resource": 22,
+    "label": "Camera",
+    "value": "b6d767d2"
   }
 ];
