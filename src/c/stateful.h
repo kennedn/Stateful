@@ -26,6 +26,7 @@ extern GBitmap *indicator_icons[4];
 
 #define RETRY_READY_TIMEOUT 500
 #define LONG_LOAD_TIMEOUT 6500
+#define EXIT_TIMEOUT 60*1000
 #define SHORT_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(short_vibe); }
 #define LONG_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(long_vibe); }
 #define OVERFLOW_VIBE() if(!quiet_time_is_active()) { vibes_enqueue_custom_pattern(overflow_vibe); }

@@ -8,6 +8,7 @@
 
 static Window *s_menu_window;
 static MenuLayer *s_menu_layer;
+static AppTimer *s_exit_timer;
 
 //! Refreshes all icons if current window is visible, used when icon_array is modified
 void menu_window_refresh_icons() {
@@ -85,7 +86,7 @@ static void open_default(void *data) {
   if (tile_array && tile_array->open_default) { 
     Tile *default_tile = tile_array->tiles[tile_array->default_idx];
     action_window_push(default_tile, tile_array->default_idx); 
-   } 
+  } 
 }
 
 
@@ -93,10 +94,10 @@ static void open_default(void *data) {
 //! @param recognizer The click recognizer that detected a "click" pattern
 //! @param context Pointer to application specified data
 static void select_callback(ClickRecognizerRef ref, void *ctx) {
-  if (tile_array) {
-    uint8_t selected_row = menu_layer_get_selected_index(s_menu_layer).row;
-    action_window_push(tile_array->tiles[selected_row], selected_row);
-  }
+  if (!tile_array) { return; }
+
+  uint8_t selected_row = menu_layer_get_selected_index(s_menu_layer).row;
+  action_window_push(tile_array->tiles[selected_row], selected_row);
 }
 
 //! Up button callback, Moves up one row in the menu list, wraps around to bottom of list
@@ -104,6 +105,11 @@ static void select_callback(ClickRecognizerRef ref, void *ctx) {
 //! @param context Pointer to application specified data
 static void up_callback(ClickRecognizerRef ref, void *ctx){
   if (!tile_array) { return; }
+
+  if (s_exit_timer) {
+    app_timer_reschedule(s_exit_timer, EXIT_TIMEOUT);
+  }
+
   if (menu_layer_get_selected_index(s_menu_layer).row == 0) {
     menu_layer_set_selected_index(s_menu_layer,(MenuIndex) {.row = tile_array->used - 1, .section = 0}, MenuRowAlignCenter, true);
   } else {
@@ -116,6 +122,11 @@ static void up_callback(ClickRecognizerRef ref, void *ctx){
 //! @param context Pointer to application specified data
 static void down_callback(ClickRecognizerRef ref, void *ctx){
   if (!tile_array) { return; }
+
+  if (s_exit_timer) {
+    app_timer_reschedule(s_exit_timer, EXIT_TIMEOUT);
+  }
+
   if (menu_layer_get_selected_index(s_menu_layer).row == tile_array->used - 1) {
     menu_layer_set_selected_index(s_menu_layer,(MenuIndex) {.row = 0, .section = 0}, MenuRowAlignCenter, true);
   } else {
@@ -129,6 +140,12 @@ static void click_config_handler(void *ctx) {
   window_single_repeating_click_subscribe(BUTTON_ID_UP, 200, up_callback);
   window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 200, down_callback);
   window_single_click_subscribe(BUTTON_ID_SELECT, select_callback);
+}
+
+// Exit app
+static void exit_timer_handler(void *context) {
+  s_exit_timer = NULL;
+  window_stack_pop_all(true);
 }
 
 static void menu_window_load(Window *window) {
@@ -162,6 +179,17 @@ static void menu_window_load(Window *window) {
 
 }
 
+static void menu_window_appear(Window *window) {
+  if (s_exit_timer) { return; }
+  s_exit_timer = app_timer_register(EXIT_TIMEOUT, exit_timer_handler, NULL);
+}
+
+static void menu_window_disappear(Window *window) {
+  if(!s_exit_timer) { return; }
+  app_timer_cancel(s_exit_timer);
+  s_exit_timer = NULL;
+}
+
 static void menu_window_unload(Window *window) {
   if (s_menu_window) {
     menu_layer_destroy(s_menu_layer);
@@ -178,6 +206,8 @@ void menu_window_push() {
     window_set_window_handlers(s_menu_window, (WindowHandlers) {
       .load = menu_window_load,
       .unload = menu_window_unload,
+      .appear = menu_window_appear,
+      .disappear = menu_window_disappear
     });
     window_stack_push(s_menu_window, true);
   }

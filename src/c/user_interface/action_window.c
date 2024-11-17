@@ -13,7 +13,7 @@ static GRect s_default_label_rect;
 static uint8_t s_tap_toggle;
 static Tile *s_tile;
 static uint8_t s_active_button;
-static AppTimer *s_spinner_timer, *s_mid_click_timer;
+static AppTimer *s_spinner_timer, *s_mid_click_timer, *s_exit_timer;
 static bool s_mid_button_down;
 static void action_bar_reset_spinner(bool preserve_overflow);
 static void action_window_reset_elements(bool select_icon);
@@ -246,6 +246,10 @@ static void action_bar_start_spinner() {
 //! @param recognizer The click recognizer that detected a "click" pattern
 //! @param context Pointer to application specified data 
 static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
+    if (s_exit_timer) {
+        app_timer_reschedule(s_exit_timer, EXIT_TIMEOUT);
+    }
+
     ButtonId button = click_recognizer_get_button_id(recognizer);
     uint8_t button_index = tile_index_lookup(button);
     if (!tile_index_enabled(button_index)) {return;}
@@ -271,6 +275,10 @@ static void normal_click_callback(ClickRecognizerRef recognizer, void *ctx) {
 //! @param recognizer The click recognizer that detected a "click" pattern
 //! @param context Pointer to application specified data 
 static void mid_hold_click_down_callback(ClickRecognizerRef recognizer, void *ctx) {
+    if (s_exit_timer) {
+        app_timer_reschedule(s_exit_timer, EXIT_TIMEOUT);
+    }
+
     s_mid_button_down = true;
     action_bar_reset_spinner(true);
     action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, indicator_icons[3], true);
@@ -283,6 +291,10 @@ static void mid_hold_click_down_callback(ClickRecognizerRef recognizer, void *ct
 //! @param recognizer The click recognizer that detected a "click" pattern
 //! @param context Pointer to application specified data 
 static void mid_hold_click_up_callback(ClickRecognizerRef recognizer, void *ctx) {
+    if (s_exit_timer) {
+        app_timer_reschedule(s_exit_timer, EXIT_TIMEOUT);
+    }
+
     if (!s_mid_click_timer) {
         action_bar_layer_set_icon_animated(s_action_bar_layer, BUTTON_ID_SELECT, data_icon_array_search(tile_element_lookup(BUTTON_ID_SELECT, TILE_DATA_ICON_KEY)), true);
     }
@@ -371,6 +383,12 @@ static void action_window_reset_elements(bool select_icon) {
     action_bar_layer_set_background_color(s_action_bar_layer, toggle_highlight);
 }  
 
+// Exit app
+static void exit_timer_handler(void *context) {
+  s_exit_timer = NULL;
+  window_stack_pop_all(true);
+}
+
 static void action_window_load(Window *window) {
     GColor8 text_color;
     text_color_legible_over_bg(&(s_tile->color), &text_color);
@@ -431,6 +449,17 @@ static void action_window_unload(Window *window) {
     }
 }
 
+static void action_window_appear(Window *window) {
+  if (s_exit_timer) { return; }
+  s_exit_timer = app_timer_register(EXIT_TIMEOUT, exit_timer_handler, NULL);
+}
+
+static void action_window_disappear(Window *window) {
+  if(!s_exit_timer) { return; }
+  app_timer_cancel(s_exit_timer);
+  s_exit_timer = NULL;
+}
+
 void action_window_push(Tile *current_tile, uint8_t index) {
     if (!s_action_window) {
         s_tile = current_tile;
@@ -440,6 +469,8 @@ void action_window_push(Tile *current_tile, uint8_t index) {
         window_set_window_handlers(s_action_window, (WindowHandlers) {
             .load = action_window_load,
             .unload = action_window_unload,
+            .appear = action_window_appear,
+            .disappear = action_window_disappear
         });
         window_stack_push(s_action_window, true);
     }
