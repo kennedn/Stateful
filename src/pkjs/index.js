@@ -9,7 +9,7 @@ var ClayHelper = require('./modules/clay');
 var LZString = require ('./vendor/LZString');
 
 
-var Clay = require('pebble-clay');
+var Clay = require('pebble-clay-kennedn');
 var customClay = require('./data/clay_function.min');
 var clayConfig = require('./data/clay_config');
 var clay = new Clay(clayConfig, customClay, {autoHandleEvents: false});
