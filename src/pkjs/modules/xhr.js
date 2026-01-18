@@ -118,7 +118,8 @@ var self = module.exports = {
         debug(1, "-- Method: " + method);
         debug(1, "-- Data: " + JSON.stringify(data));
 
-        request.onerror = request.ontimeout = function(e) { 
+        request.onerror = request.ontimeout = request.onabort = function(e) { 
+          debug(1, "---- Status: Error (type: " + JSON.stringify(e.type) + ")");
           return reject(origin_hash);
         };
 
@@ -155,7 +156,7 @@ var self = module.exports = {
           }
         };
 
-        request.onerror = request.ontimeout = function(e) { 
+        request.onerror = request.ontimeout = request.onabort = function(e) { 
           debug(1, "---- Status: Timed out or Error");
           repeatCall(origin_hash);
         };
@@ -229,7 +230,7 @@ var self = module.exports = {
 
         debug(1, "URL: " + url);
 
-        request.onerror = request.ontimeout = function(e) { 
+        request.onerror = request.ontimeout = request.onabort = function(e) { 
           if (maxRetries[1] > 0) {
             setTimeout(function() { 
               xhrRetry(url, [maxRetries[0], maxRetries[1] - 1]); 
